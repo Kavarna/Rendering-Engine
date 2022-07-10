@@ -4,10 +4,10 @@ project("JNR-Renderer")
 
 # Options
 option(BUILD_TESTS "Build tests" ON)
-option(RUN_TESTS "Run tests" ON)
 
-# Dependencies
+# Handle options
 if(BUILD_TESTS)
+    add_definitions(-DBUILD_TESTS)
     include(FetchContent)
     FetchContent_Declare(
         googletest
@@ -43,5 +43,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 
 # Add projects
-add_subdirectory("jnrlib")
+add_subdirectory("Jnrlib")
+include_directories("Jnrlib/include")
 add_subdirectory("Renderer")

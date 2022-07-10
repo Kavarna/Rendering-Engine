@@ -1,9 +1,10 @@
 #pragma once
 
 
+#include <effolkronium/random.hpp>
+using Random = effolkronium::random_static;
 
-namespace jnrlib
-{
-    
-}
+#include "Singletone.h"
+#include "CountParameters.h"
+#include "Threading.h"
 

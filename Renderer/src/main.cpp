@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "gtest/gtest.h"
+#include "Jnrlib.h"
 
 enum class ApplicationMode
 {
@@ -15,7 +16,7 @@ struct ProgramOptions
     ApplicationMode mode = ApplicationMode::UNDEFINED;
 };
 
-std::optional<ProgramOptions> ParseCommandLine(int argc, const char* argv[])
+std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
 {
     using namespace boost::program_options;
 
@@ -49,14 +50,14 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, const char* argv[])
 
         if (vm.count("help") || argc == 1)
         {
-            std::cout << cmdlineOptions << '\n';
+            std::cout << cmdlineOptions << std::endl;
         }
         else if (vm.count("version"))
         {
             std::cout << "Renderer version: " << APPLICATION_VERSION << std::endl;
         }
     }
-    catch (const std::exception& e)
+    catch (std::exception const& e)
     {
         std::cout << e.what() << std::endl;
     }
@@ -64,7 +65,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, const char* argv[])
     return result;
 }
 
-int main(int argc, const char* argv[])
+int main(int argc, char const* argv[])
 {
     auto options = ParseCommandLine(argc, argv);
     if (!options.has_value())
@@ -72,8 +73,12 @@ int main(int argc, const char* argv[])
 
     if (options->mode == ApplicationMode::TESTING)
     {
+#ifdef BUILD_TESTS
         testing::InitGoogleTest();
         RUN_ALL_TESTS();
         return 0;
+#else
+        std::cout << "Cannot run tests if tests were not built with the renderer" << std::endl;
+#endif // BUILD_TESTS
     }
 }
