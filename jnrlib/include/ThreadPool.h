@@ -23,9 +23,10 @@ public:
     };
 
 public:
-    void ExecuteDeffered(std::function<void()> func);
+    std::shared_ptr<struct Task> ExecuteDeffered(std::function<void()> func);
     void Wait(std::shared_ptr<struct Task> task, WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
     void WaitForAll();
+    void CancelRemainingTasks();
 
     bool IsTaskFinished(std::shared_ptr<struct Task> task);
     bool IsTaskActive(std::shared_ptr<struct Task> task);

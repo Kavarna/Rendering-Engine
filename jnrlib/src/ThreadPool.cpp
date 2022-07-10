@@ -43,7 +43,7 @@ ThreadPool::~ThreadPool()
     }
 }
 
-void ThreadPool::ExecuteDeffered(std::function<void()> func)
+std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
 {
     std::shared_ptr<Task> currentTask = std::make_shared<Task>(func);
     {
@@ -65,6 +65,7 @@ void ThreadPool::ExecuteDeffered(std::function<void()> func)
         }
     }
     mWorkersCV.notify_all();
+    return currentTask;
 }
 
 bool ThreadPool::IsTaskFinished(std::shared_ptr<struct Task> task)
@@ -104,6 +105,17 @@ void ThreadPool::WaitForAll()
     {
         return mWorkList == nullptr && mActiveTasks.size() == 0;
     });
+}
+
+void ThreadPool::CancelRemainingTasks()
+{
+    std::unique_lock<std::mutex> lock(mWorkListMutex);
+    
+    // Make sure we delete everything
+    while (mWorkList)
+    {
+        mWorkList = mWorkList->nextTask;
+    }
 }
 
 void ThreadPool::Init(uint32_t nthreads)
@@ -189,11 +201,23 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
     {
         if (IsTaskFinished(task))
             break;
+        if (IsTaskActive(task))
+        {
+            WaitForTaskToFinish(task);
+            break;
+        }
 
         if (mWorkList == nullptr) [[unlikely]]
         {
-            if (!IsTaskActive(task))
+            if (IsTaskActive(task))
             {
+                WaitForTaskToFinish(task);
+                break;
+            }
+            else
+            {
+                if (IsTaskFinished(task))
+                    break;
                 // Task not finished, not active and there's no tasks remaining => there is no such task
                 THROW_TASK_NOT_FOUND;
             }
@@ -229,17 +253,28 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 {
     if (IsTaskFinished(task))
         return;
+    if (IsTaskActive(task))
+    {
+        WaitForTaskToFinish(task);
+        return;
+    }
 
     // Search for the task and then execute it
     std::unique_lock<std::mutex> lock(mWorkListMutex);
     if (mWorkList == nullptr) [[unlikely]]
     {
+        if (IsTaskFinished(task))
+           return;
+        if (IsTaskActive(task))
+        {
+            WaitForTaskToFinish(task);
+            return;
+        }
         std::string error = "Could not find task with ID = ";
         error += std::to_string(task->taskID);
         throw Jnrlib::Exceptions::TaskNotFound(error);
     }
 
-    bool found = false;
     std::shared_ptr<Task> previousTask = mWorkList;
     std::shared_ptr<Task> currentTask = previousTask->nextTask;
 
@@ -258,6 +293,9 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         currentTask = currentTask->nextTask;
     }
 
+    if (currentTask == nullptr)
+        THROW_TASK_NOT_FOUND;
+    
     if (currentTask->taskID == task->taskID)
     {
         previousTask->nextTask = currentTask->nextTask;
