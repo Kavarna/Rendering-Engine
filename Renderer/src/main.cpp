@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "gtest/gtest.h"
+#include "glog/logging.h"
 #include "Jnrlib.h"
 
 enum class ApplicationMode
@@ -13,7 +14,7 @@ enum class ApplicationMode
 
 struct ProgramOptions
 {
-    ApplicationMode mode = ApplicationMode::UNDEFINED;
+    ApplicationMode mode = ApplicationMode::TESTING;
 };
 
 std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
@@ -28,15 +29,9 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
         ("help,h", "Help screen")
         ("version,v", "Print version")
         ;
-    options_description configOptions{"Options"};
+    options_description configOptions{"Application modes"};
     configOptions.add_options()
-        ("run-tests,rt", value<bool>()->default_value(false)->notifier([&](bool value)
-            {
-                if (value)
-                {
-                    result.mode = ApplicationMode::TESTING;
-                }
-            }), "Run tests")
+        ("run-tests,rt", "Run tests")
         ;
 
     options_description cmdlineOptions;
@@ -59,7 +54,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
     }
     catch (std::exception const& e)
     {
-        std::cout << e.what() << std::endl;
+        LOG(ERROR) << e.what() << std::endl;
     }
 
     return result;
@@ -67,6 +62,10 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
 
 int main(int argc, char const* argv[])
 {
+    FLAGS_logtostdout = true;
+    FLAGS_v = 0;
+    google::InitGoogleLogging(argv[0]);
+
     auto options = ParseCommandLine(argc, argv);
     if (!options.has_value())
         return 0;
@@ -78,7 +77,8 @@ int main(int argc, char const* argv[])
         RUN_ALL_TESTS();
         return 0;
 #else
-        std::cout << "Cannot run tests if tests were not built with the renderer" << std::endl;
+        LOG(ERROR) << "Cannot run tests if tests were not built with the renderer" << std::endl;
+        return 0;
 #endif // BUILD_TESTS
     }
 }

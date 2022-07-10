@@ -43,6 +43,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 
 # Add projects
-add_subdirectory("Jnrlib")
 include_directories("Jnrlib/include")
+
+add_subdirectory("Jnrlib")
 add_subdirectory("Renderer")

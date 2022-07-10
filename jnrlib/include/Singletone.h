@@ -33,11 +33,19 @@ namespace Jnrlib
                 }
                 else
                 {
+                    if (!m_singletoneInstance)
+                    {
+                        throw std::exception("Can't use a singletone that has not been created");
+                    }
                     return m_singletoneInstance;
                 }
             }
             else
             {
+                if (m_singletoneInstance)
+                {
+                    throw std::exception("Singletone should be created only once");
+                }
                 std::call_once(m_singletoneFlags,
                                [&]
                 {
