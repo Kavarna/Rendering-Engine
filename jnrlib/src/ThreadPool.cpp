@@ -186,10 +186,10 @@ void ThreadPool::WaitForTaskToFinish(std::shared_ptr<struct Task> task)
     if (IsTaskFinished(task))
         return;
     // Just wait for other thread to finish this
-    std::unique_lock<std::mutex> lock(mWorkListMutex);
+    std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
     mWorkersCV.wait(lock, [&]
     {
-        return IsTaskFinished(task);
+        return mCompletedTasks.find(task->taskID) != mCompletedTasks.end();
     });
 }
 
@@ -203,7 +203,10 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
             break;
         if (IsTaskActive(task))
         {
-            WaitForTaskToFinish(task);
+            mWorkersCV.wait(lock, [&]
+            {
+                return IsTaskFinished(task);
+            });
             break;
         }
 
@@ -211,7 +214,10 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
         {
             if (IsTaskActive(task))
             {
-                WaitForTaskToFinish(task);
+                mWorkersCV.wait(lock, [&]
+                {
+                    return IsTaskFinished(task);
+                });
                 break;
             }
             else

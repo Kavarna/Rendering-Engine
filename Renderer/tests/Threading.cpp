@@ -203,7 +203,7 @@ namespace
         threadPool->WaitForAll();
     }
 
-    TEST_P(Threading, DISABLED_ThreadingCompletenessWithOneElementPolicyExecuteThenExit)
+    TEST_P(Threading, ThreadingCompletenessWithOneElementPolicyExecuteThenExit)
     {
         EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
 

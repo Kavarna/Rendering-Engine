@@ -43,7 +43,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
         store(command_line_parser(argc, argv).options(cmdlineOptions).run(), vm);
         notify(vm);
 
-        if (vm.count("help") || argc == 1)
+        if (vm.count("help"))
         {
             std::cout << cmdlineOptions << std::endl;
         }
