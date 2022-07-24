@@ -1,3 +1,5 @@
+#ifdef BUILD_TESTS
+
 #include "gtest/gtest.h"
 #include "Jnrlib.h"
 
@@ -230,3 +232,5 @@ namespace
 
     INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 100));
 }
+
+#endif // BUILD_TESTS

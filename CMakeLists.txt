@@ -3,10 +3,11 @@ cmake_minimum_required(VERSION 3.14)
 project("JNR-Renderer")
 
 # Options
-option(BUILD_TESTS "Build tests" ON)
+option(BUILD_TESTS "Build tests" OFF)
 
 # Handle options
 if(BUILD_TESTS)
+    message("-- Building tests too")
     add_definitions(-DBUILD_TESTS)
     include(FetchContent)
     FetchContent_Declare(
@@ -16,6 +17,8 @@ if(BUILD_TESTS)
     # For Windows: Prevent overriding the parent project's compiler/linker settings
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
+else()
+    message("-- Not building tests")
 endif(BUILD_TESTS)
 
 # Useful functions
@@ -31,7 +34,7 @@ endmacro()
 
 # Start building
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
-message("Build type = ${CMAKE_BUILD_TYPE}")
+message("-- Build type = ${CMAKE_BUILD_TYPE}")
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()

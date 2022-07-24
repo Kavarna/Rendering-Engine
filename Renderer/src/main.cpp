@@ -2,19 +2,22 @@
 #include <iostream>
 #include <optional>
 
+#ifdef BUILD_TESTS
 #include "gtest/gtest.h"
+#endif
 #include "glog/logging.h"
 #include "Jnrlib.h"
 
 enum class ApplicationMode
 {
     UNDEFINED = 0,
-    TESTING
+    TESTING,
+    RENDER,
 };
 
 struct ProgramOptions
 {
-    ApplicationMode mode = ApplicationMode::TESTING;
+    ApplicationMode mode = ApplicationMode::UNDEFINED;
 };
 
 std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
@@ -31,7 +34,20 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
         ;
     options_description configOptions{"Application modes"};
     configOptions.add_options()
-        ("run-tests,rt", "Run tests")
+        ("render,r", bool_switch()->default_value(false)->notifier([&](bool value)
+            {
+                if (value)
+                {
+                    result.mode = ApplicationMode::RENDER;
+                }
+            }), "Render input file")
+        ("test,t", bool_switch()->default_value(false)->notifier([&](bool value)
+            {
+                if (value)
+                {
+                    result.mode = ApplicationMode::TESTING;
+                }
+            }), "Run all tests")
         ;
 
     options_description cmdlineOptions;
@@ -80,5 +96,9 @@ int main(int argc, char const* argv[])
         LOG(ERROR) << "Cannot run tests if tests were not built with the renderer" << std::endl;
         return 0;
 #endif // BUILD_TESTS
+    }
+    else if (options->mode == ApplicationMode::RENDER)
+    {
+        LOG(INFO) << "Starting application in render mode";
     }
 }

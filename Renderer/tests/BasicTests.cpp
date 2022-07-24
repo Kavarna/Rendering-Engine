@@ -1,3 +1,5 @@
+#ifdef BUILD_TESTS
+
 #include "gtest/gtest.h"
 #include "Jnrlib.h"
 
@@ -75,3 +77,5 @@ namespace
         EXPECT_NO_THROW(auto sg1 = Singletone::Get(3.0f));
     }
 }
+
+#endif // BUILD_TESTS
