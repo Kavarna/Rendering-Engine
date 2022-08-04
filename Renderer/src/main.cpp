@@ -109,6 +109,6 @@ int main(int argc, char const* argv[])
     else if (options->mode == ApplicationMode::RENDER)
     {
         LOG(INFO) << "Starting application in render mode";
-        LOG(INFO) << "Running for config files: " << options->configFiles;
+        LOG(INFO) << "Running for config files: " << options->sceneFiles;
     }
 }
