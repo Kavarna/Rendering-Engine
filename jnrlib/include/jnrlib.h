@@ -7,3 +7,5 @@
 #include "ThreadPool.h"
 #include "Exceptions.h"
 
+#include "TypeHelpers.h"
+

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project("JNR-Renderer")
+project("Rendering-Engine")
 
 # Options
 option(BUILD_TESTS "Build tests" OFF)

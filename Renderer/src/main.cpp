@@ -18,6 +18,7 @@ enum class ApplicationMode
 struct ProgramOptions
 {
     ApplicationMode mode = ApplicationMode::UNDEFINED;
+    std::vector<std::string> sceneFiles;
 };
 
 std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
@@ -50,18 +51,26 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
             }), "Run all tests")
         ;
 
-    options_description cmdlineOptions;
-    cmdlineOptions.add(genericOptions).add(configOptions);
+    options_description rendererOptions{"Renderer options"};
+    rendererOptions.add_options()
+        ("scenes", value<std::vector<std::string>>(&result.sceneFiles), "Scene files for the renderer")
+        ;
+
+    options_description visibleOptions;
+    visibleOptions.add(genericOptions).add(configOptions).add(rendererOptions);
     
+    positional_options_description inputFiles;
+    inputFiles.add("scenes", -1);
+
     try
     {
         variables_map vm;
-        store(command_line_parser(argc, argv).options(cmdlineOptions).run(), vm);
+        store(command_line_parser(argc, argv).options(visibleOptions).positional(inputFiles).run(), vm);
         notify(vm);
 
         if (vm.count("help"))
         {
-            std::cout << cmdlineOptions << std::endl;
+            std::cout << visibleOptions << std::endl;
         }
         else if (vm.count("version"))
         {
@@ -100,5 +109,6 @@ int main(int argc, char const* argv[])
     else if (options->mode == ApplicationMode::RENDER)
     {
         LOG(INFO) << "Starting application in render mode";
+        LOG(INFO) << "Running for config files: " << options->configFiles;
     }
 }
