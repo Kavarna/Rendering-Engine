@@ -5,29 +5,31 @@
 #undef max
 
 #define THROW_TASK_NOT_FOUND {\
-std::string error = "Could not find task with ID = ";\
-error += std::to_string(task->taskID);\
-throw Jnrlib::Exceptions::TaskNotFound(error);\
+throw Jnrlib::Exceptions::TaskNotFound(task->taskID);\
 }\
 
-
-struct Task
+namespace Jnrlib
 {
-    static uint64_t TaskID;
+    struct Task
+    {
+        static uint64_t TaskID;
 
-    Task(std::function<void()> func) :
-        work(func), taskID(TaskID++)
-    { };
+        Task(std::function<void()> func) :
+            work(func), taskID(TaskID++)
+        { };
 
-    std::function<void()> work;
-    uint64_t taskID;
+        std::function<void()> work;
+        uint64_t taskID;
 
-    std::shared_ptr<Task> nextTask = nullptr;
-    
-    bool completed = false;
-};
+        std::shared_ptr<Task> nextTask = nullptr;
 
-uint64_t Task::TaskID = 0;
+        bool completed = false;
+    };
+
+    uint64_t Task::TaskID = 0;
+}
+
+using namespace Jnrlib;
 
 ThreadPool::ThreadPool(uint32_t numThreads)
 {
@@ -276,9 +278,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
             WaitForTaskToFinish(task);
             return;
         }
-        std::string error = "Could not find task with ID = ";
-        error += std::to_string(task->taskID);
-        throw Jnrlib::Exceptions::TaskNotFound(error);
+        throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
     }
 
     std::shared_ptr<Task> previousTask = mWorkList;

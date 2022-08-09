@@ -5,8 +5,9 @@
 #ifdef BUILD_TESTS
 #include "gtest/gtest.h"
 #endif
-#include "glog/logging.h"
 #include "Jnrlib.h"
+#include "Scene/SceneFactory.h"
+#include "ThreadPool.h"
 
 enum class ApplicationMode
 {
@@ -110,5 +111,13 @@ int main(int argc, char const* argv[])
     {
         LOG(INFO) << "Starting application in render mode";
         LOG(INFO) << "Running for config files: " << options->sceneFiles;
+
+        std::vector<std::unique_ptr<Scene>> scenes;
+        scenes.reserve(options->sceneFiles.size());
+        for (const auto& it : options->sceneFiles)
+        {
+            scenes.emplace_back(SceneFactory::Get()->LoadSceneFromFile(it));
+        }
+        
     }
 }

@@ -9,3 +9,5 @@
 
 #include "TypeHelpers.h"
 
+#include "glog/logging.h"
+

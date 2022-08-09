@@ -43,6 +43,8 @@ set(CMAKE_INSTALL_PREFIX ../bin)
 set(CURRENT_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_compile_options(/JMC)
+
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 
 # Add projects

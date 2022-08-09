@@ -5,6 +5,8 @@
 
 #include "glog/logging.h"
 
+using namespace Jnrlib;
+
 namespace
 {
     class Threading : public testing::TestWithParam<int>

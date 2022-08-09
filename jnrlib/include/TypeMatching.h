@@ -3,35 +3,33 @@
 
 #include <vector>
 #include <array>
+#include <string>
+
+namespace Jnrlib
+{
+
+#define ADD_TYPE_NAME(name) \
+template <> struct GetTypeName<name>\
+{\
+    const char* value = #name;\
+};
+
+    template <typename T>
+    struct GetTypeName
+    {
+    };
+
+    template <>
+    struct GetTypeName<std::string>
+    {
+        static constexpr const char* value = "std::string";
+    };
 
 
+    // ADD_TYPE_NAME(std::string);
+    ADD_TYPE_NAME(int);
 
-template <typename T>
-constexpr auto PPTS() {
-#if defined(__FUNCSIG__)
-# define PP __FUNCSIG__
-    int suffix = sizeof ">(void)";
-#else
-# define PP __PRETTY_FUNCTION__
-    int suffix = sizeof "]";
-#endif
-    return sizeof PP - suffix;
 }
-
-template <typename T>
-constexpr auto GetTypeName() {
-    constexpr int prefix = PPTS<int>() - 3;
-    constexpr int N = PPTS<T>() - prefix;
-    struct R {
-        char name[N + 1]{};
-    } r;
-    for (int i = 0; i != N; ++i)
-        r.name[i] = (PP + prefix)[i];
-    return r;
-#undef PP
-}
-
-
 
 namespace Detail {
     template <typename T>
