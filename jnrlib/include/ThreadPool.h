@@ -25,12 +25,15 @@ namespace Jnrlib
 
     public:
         std::shared_ptr<struct Task> ExecuteDeffered(std::function<void()> func);
+        std::shared_ptr<struct Task> ParralelForDeffered2D(std::function<void(uint32_t, uint32_t)> func, uint32_t nRows, uint32_t nCols, uint32_t chunkSize);
         void Wait(std::shared_ptr<struct Task> task, WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
         void WaitForAll();
         void CancelRemainingTasks();
 
         bool IsTaskFinished(std::shared_ptr<struct Task> task);
         bool IsTaskActive(std::shared_ptr<struct Task> task);
+
+        uint32_t GetNumberOfThreads() const;
 
     private:
         void Init(uint32_t nthreads);

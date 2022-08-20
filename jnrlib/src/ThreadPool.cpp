@@ -14,16 +14,94 @@ namespace Jnrlib
     {
         static uint64_t TaskID;
 
-        Task(std::function<void()> func) :
-            work(func), taskID(TaskID++)
+        Task() : taskID(TaskID++)
         { };
 
-        std::function<void()> work;
         uint64_t taskID;
 
         std::shared_ptr<Task> nextTask = nullptr;
 
+        virtual void Work() = 0;
+        virtual bool IsCompleted() const = 0;
+        virtual void Complete() = 0;
+    };
+
+    struct SimpleTask : public Task
+    {
         bool completed = false;
+
+        SimpleTask(std::function<void()> work) :
+            Task(), work(work)
+        {
+        }
+
+        std::function<void()> work;
+
+        void Work()
+        {
+            work();
+        }
+
+        void Complete() override
+        {
+            completed = true;
+        }
+
+        bool IsCompleted() const override
+        {
+            return completed;
+        }
+    };
+
+
+    struct ChunkTask2D : public Task
+    {
+        struct ChunkWork
+        {
+            std::mutex mu;
+            uint32_t leftWork;
+            uint64_t parentTaskID;
+        };
+
+        std::shared_ptr<ChunkWork> chunkWork;
+
+        uint32_t row;
+        uint32_t startCol, chunkSize;
+        std::function<void(uint32_t, uint32_t)> func;
+
+        ChunkTask2D(std::function<void(uint32_t, uint32_t)> func, uint32_t row, uint32_t startCol, uint32_t chunkSize, uint32_t totalWork) :
+            Task(), func(func), row(row), startCol(startCol), chunkSize(chunkSize)
+        {
+            chunkWork = std::make_shared<ChunkWork>();
+            chunkWork->leftWork = totalWork;
+            chunkWork->parentTaskID = taskID;
+        }
+
+        ChunkTask2D(std::function<void(uint32_t, uint32_t)> func, uint32_t row, uint32_t startCol, uint32_t chunkSize, ChunkTask2D* const task2D) :
+            Task(), func(func), row(row), startCol(startCol), chunkSize(chunkSize), chunkWork(task2D->chunkWork)
+        {
+        }
+
+        void Work() override
+        {
+            for (uint32_t i = startCol; i < chunkSize; ++i)
+            {
+                func(row, i);
+            }
+        }
+
+        void Complete() override
+        {
+            std::unique_lock<std::mutex> lock(chunkWork->mu);
+            chunkWork->leftWork -= 1;
+        }
+
+        bool IsCompleted() const override
+        {
+            std::unique_lock<std::mutex> lock(chunkWork->mu);
+            return chunkWork->leftWork == 0;
+        }
+
     };
 
     uint64_t Task::TaskID = 0;
@@ -47,7 +125,7 @@ ThreadPool::~ThreadPool()
 
 std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
 {
-    std::shared_ptr<Task> currentTask = std::make_shared<Task>(func);
+    std::shared_ptr<Task> currentTask = std::make_shared<SimpleTask>(func);
     {
         std::unique_lock<std::mutex> lock(mWorkListMutex);
         if (mWorkList != nullptr) [[likely]]
@@ -70,6 +148,15 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
     return currentTask;
 }
 
+std::shared_ptr<struct Task> Jnrlib::ThreadPool::ParralelForDeffered2D(std::function<void(uint32_t, uint32_t)> func, uint32_t nRows, uint32_t nCols, uint32_t chunkSize)
+{
+    LOG_IF(FATAL, nCols % chunkSize != 0) << "Using parralel for an undivisible number of columns";
+
+
+
+    return std::shared_ptr<struct Task>();
+}
+
 bool ThreadPool::IsTaskFinished(std::shared_ptr<struct Task> task)
 {
     std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
@@ -80,6 +167,11 @@ bool ThreadPool::IsTaskActive(std::shared_ptr<struct Task> task)
 {
     std::unique_lock<std::mutex> lock(mActiveTasksMutex);
     return mActiveTasks.find(task->taskID) != mActiveTasks.end();
+}
+
+uint32_t Jnrlib::ThreadPool::GetNumberOfThreads() const
+{
+    return (uint32_t)mThreads.size();
 }
 
 void ThreadPool::Wait(std::shared_ptr<struct Task> task, WaitPolicy wp)
@@ -164,9 +256,10 @@ void ThreadPool::WorkerThread(uint32_t index)
 
             lock.unlock();
 
-            myTask->work();
-            myTask->completed = true;
+            myTask->Work();
+            myTask->Complete();
 
+            if (myTask->IsCompleted())
             {
                 std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
                 mCompletedTasks.insert(myTask->taskID);
@@ -241,9 +334,10 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 
         lock.unlock();
 
-        myTask->work();
-        myTask->completed = true;
+        myTask->Work();
+        myTask->Complete();
 
+        if (myTask->IsCompleted())
         {
             std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
             mCompletedTasks.insert(myTask->taskID);
@@ -289,7 +383,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         // Delete the first element from the list, execute the work and then return
         mWorkList = mWorkList->nextTask;
         lock.unlock();
-        previousTask->work();
+        previousTask->Work();
         return;
     }
 
@@ -306,7 +400,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
     {
         previousTask->nextTask = currentTask->nextTask;
         lock.unlock();
-        task->work();
+        task->Work();
         return;
     }
 
