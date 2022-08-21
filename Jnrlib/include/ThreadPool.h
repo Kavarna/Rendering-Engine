@@ -5,6 +5,9 @@
 #include <thread>
 #include <unordered_set>
 #include <functional>
+#include <condition_variable>
+#include <atomic>
+
 
 namespace Jnrlib
 {
@@ -48,7 +51,7 @@ namespace Jnrlib
         std::vector<std::thread> mThreads;
 
         std::condition_variable mWorkersCV;
-        std::atomic_bool mShouldClose = false;
+        std::atomic<bool> mShouldClose = false;
 
         // If there will be lots of tasks, adding a look-up table would be very useful
         std::mutex mWorkListMutex;

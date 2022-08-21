@@ -32,6 +32,10 @@ macro(make_filters _source_list)
 endmacro()
 
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/JMC)
+endif()
+
 # Start building
 string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 message("-- Build type = ${CMAKE_BUILD_TYPE}")
@@ -43,7 +47,6 @@ set(CMAKE_INSTALL_PREFIX ../bin)
 set(CURRENT_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(/JMC)
 
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 

@@ -28,28 +28,23 @@ namespace
         EXPECT_NE(threadPool, nullptr);
 
         // Test
-        const unsigned int numbersCount = 100;
-        std::mutex numbersMutex;
-        std::set<uint32_t> numbers;
+        constexpr const unsigned int numbersCount = 100;
+        int numbers[numbersCount] = {};
 
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
-            threadPool->ExecuteDeffered([j, &numbersMutex, &numbers]()
+            threadPool->ExecuteDeffered([j, &numbers]()
             {
-                std::unique_lock<std::mutex> lock(numbersMutex);
-                numbers.insert(j);
+                numbers[j] = 1;
             });
         }
 
         threadPool->WaitForAll();
 
         // Check the result
-        EXPECT_EQ(numbers.size(), numbersCount);
-        std::unordered_set<uint32_t> encounteredNumbers;
-        for (uint32_t number : numbers)
+        for (uint32_t j = 0; j < numbersCount; ++j)
         {
-            EXPECT_EQ(encounteredNumbers.find(number), encounteredNumbers.end());
-            encounteredNumbers.insert(number);
+            EXPECT_EQ(numbers[j], 1);
         }
 
     }
@@ -61,18 +56,16 @@ namespace
         auto threadPool = ThreadPool::Get();
         EXPECT_NE(threadPool, nullptr);
 
-        const unsigned int numbersCount = 1000;
-        std::mutex numbersMutex;
-        std::set<uint32_t> numbers;
+        constexpr const unsigned int numbersCount = 1000;
+        int numbers[numbersCount];
 
         std::shared_ptr<struct Task> first_task;
 
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
-            auto task = threadPool->ExecuteDeffered([j, &numbersMutex, &numbers]()
+            auto task = threadPool->ExecuteDeffered([j, &numbers]()
             {
-                std::unique_lock<std::mutex> lock(numbersMutex);
-                numbers.insert(j);
+                numbers[j] = 1;
                 std::this_thread::sleep_for(std::chrono::nanoseconds(j * 10));
             });
             if (j == 0)
@@ -83,7 +76,7 @@ namespace
 
         threadPool->Wait(first_task, ThreadPool::WaitPolicy::EXIT_ASAP);
 
-        EXPECT_NE(numbers.find(0), numbers.end());
+        EXPECT_EQ(numbers[0], 1);
         threadPool->CancelRemainingTasks();
         threadPool->WaitForAll();
     }
@@ -95,18 +88,16 @@ namespace
         auto threadPool = ThreadPool::Get();
         EXPECT_NE(threadPool, nullptr);
 
-        const unsigned int numbersCount = 1000;
-        std::mutex numbersMutex;
-        std::set<uint32_t> numbers;
+        constexpr const unsigned int numbersCount = 1000;
+        int numbers[numbersCount];
 
         std::shared_ptr<struct Task> first_task;
 
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
-            auto task = threadPool->ExecuteDeffered([j, &numbersMutex, &numbers]()
+            auto task = threadPool->ExecuteDeffered([j, &numbers]()
             {
-                std::unique_lock<std::mutex> lock(numbersMutex);
-                numbers.insert(j);
+                numbers[j] = 1;
                 std::this_thread::sleep_for(std::chrono::nanoseconds(j * 10));
             });
             if (j == 0)
@@ -117,7 +108,7 @@ namespace
 
         threadPool->Wait(first_task, ThreadPool::WaitPolicy::SEARCH_AND_EXECUTE_THEN_EXIT);
 
-        EXPECT_NE(numbers.find(0), numbers.end());
+        EXPECT_EQ(numbers[0], 1);
         threadPool->CancelRemainingTasks();
         threadPool->WaitForAll();
     }
@@ -129,18 +120,15 @@ namespace
         auto threadPool = ThreadPool::Get();
         EXPECT_NE(threadPool, nullptr);
 
-        const unsigned int numbersCount = 1000;
-        std::mutex numbersMutex;
-        std::set<uint32_t> numbers;
-
+        constexpr const unsigned int numbersCount = 1000;
+        int numbers[numbersCount];
         std::shared_ptr<struct Task> first_task;
 
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
-            auto task = threadPool->ExecuteDeffered([j, &numbersMutex, &numbers]()
+            auto task = threadPool->ExecuteDeffered([j, &numbers]()
             {
-                std::unique_lock<std::mutex> lock(numbersMutex);
-                numbers.insert(j);
+                numbers[j] = 1;
                 std::this_thread::sleep_for(std::chrono::nanoseconds(j * 10));
             });
             if (j == 0)
@@ -151,7 +139,7 @@ namespace
 
         threadPool->Wait(first_task, ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT);
 
-        EXPECT_NE(numbers.find(0), numbers.end());
+        EXPECT_EQ(numbers[0], 1);
         threadPool->CancelRemainingTasks();
         threadPool->WaitForAll();
     }
@@ -189,21 +177,19 @@ namespace
         auto threadPool = ThreadPool::Get();
         EXPECT_NE(threadPool, nullptr);
 
-        const unsigned int numbersCount = 1000;
-        std::mutex numbersMutex;
-        std::set<uint32_t> numbers;
+        constexpr unsigned int numbersCount = 1000;
+        uint32_t numbers[numbersCount];
 
         std::shared_ptr<struct Task> task =
-            threadPool->ExecuteDeffered([&numbersMutex, &numbers]()
+            threadPool->ExecuteDeffered([&numbers]()
         {
-            std::unique_lock<std::mutex> lock(numbersMutex);
-            numbers.insert(0);
+            numbers[0] = 1;
             std::this_thread::sleep_for(std::chrono::nanoseconds(100));
         });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::EXIT_ASAP);
 
-        EXPECT_NE(numbers.find(0), numbers.end());
+        EXPECT_EQ(numbers[0], 1);
         threadPool->WaitForAll();
     }
 

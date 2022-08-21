@@ -128,7 +128,7 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
     std::shared_ptr<Task> currentTask = std::make_shared<SimpleTask>(func);
     {
         std::unique_lock<std::mutex> lock(mWorkListMutex);
-        if (mWorkList != nullptr) [[likely]]
+        if (mWorkList != nullptr)
         {
             std::shared_ptr<Task> lastTask = mWorkList;
             while (true)
@@ -192,13 +192,26 @@ void ThreadPool::Wait(std::shared_ptr<struct Task> task, WaitPolicy wp)
 
 void ThreadPool::WaitForAll()
 {
-    std::unique_lock<std::mutex> lock(mWorkListMutex);
-    if (mWorkList == nullptr && mActiveTasks.size() == 0)
-        return;
-    mWorkersCV.wait(lock, [this]
     {
-        return mWorkList == nullptr && mActiveTasks.size() == 0;
-    });
+        // Make sure that there are no tasks to be run
+        std::unique_lock<std::mutex> lock(mWorkListMutex);
+        if (mWorkList == nullptr)
+            return;
+        mWorkersCV.wait(lock, [this]
+        {
+            return mWorkList == nullptr;
+        });
+    }
+    {
+        // Make sure there are no active tasks
+        std::unique_lock<std::mutex> lock(mActiveTasksMutex);
+        if (mActiveTasks.size() == 0)
+            return;
+        mWorkersCV.wait(lock, [this]
+        {
+            return mActiveTasks.size() == 0;
+        });
+    }
 }
 
 void ThreadPool::CancelRemainingTasks()
@@ -252,6 +265,7 @@ void ThreadPool::WorkerThread(uint32_t index)
             {
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
                 mActiveTasks.insert(myTask->taskID);
+                // mWorkersCV.notify_all();
             }
 
             lock.unlock();
@@ -305,7 +319,7 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
             break;
         }
 
-        if (mWorkList == nullptr) [[unlikely]]
+        if (mWorkList == nullptr)
         {
             if (IsTaskActive(task))
             {
@@ -363,7 +377,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 
     // Search for the task and then execute it
     std::unique_lock<std::mutex> lock(mWorkListMutex);
-    if (mWorkList == nullptr) [[unlikely]]
+    if (mWorkList == nullptr)
     {
         if (IsTaskFinished(task))
            return;

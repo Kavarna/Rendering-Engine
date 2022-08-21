@@ -15,7 +15,7 @@ namespace Jnrlib
             JNRException(std::string const& msg) : message(msg)
             { };
 
-            virtual const char* what() const override
+            virtual const char* what() const noexcept override 
             {
                 return message.c_str();
             }
@@ -34,6 +34,22 @@ namespace Jnrlib
             FieldNotFound(std::string const& field, std::string const& type = "") :
                 JNRException("Field not found: " + field + (type.size() == 0 ? "" : (" of type " + type)))
             { };
+        };
+
+        class SingletoneNotUniqueAttempt : public JNRException
+        {
+        public:
+            SingletoneNotUniqueAttempt() : 
+                JNRException("Singletone attempts not to be unique")
+            {}
+        };
+
+        class SingletoneNotCreated : public JNRException
+        {
+        public:
+            SingletoneNotCreated() : 
+                JNRException("Singletone was not created")
+            {}
         };
     }
 }

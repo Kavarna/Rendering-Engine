@@ -4,6 +4,8 @@
 #include <mutex>
 #include "CountParameters.h"
 #include "TypeMatching.h"
+#include "Exceptions.h"
+#include "TypeHelpers.h"
 
 namespace Jnrlib
 {
@@ -35,7 +37,7 @@ namespace Jnrlib
                 {
                     if (!m_singletoneInstance)
                     {
-                        throw std::exception("Can't use a singletone that has not been created");
+                        throw Jnrlib::Exceptions::SingletoneNotCreated();
                     }
                     return m_singletoneInstance;
                 }
@@ -44,7 +46,7 @@ namespace Jnrlib
             {
                 if (m_singletoneInstance)
                 {
-                    throw std::exception("Singletone should be created only once");
+                    throw Jnrlib::Exceptions::SingletoneNotUniqueAttempt();
                 }
                 std::call_once(m_singletoneFlags,
                                [&]
