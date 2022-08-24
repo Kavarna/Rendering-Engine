@@ -62,6 +62,7 @@ namespace Jnrlib
 
         std::mutex mActiveTasksMutex;
         std::unordered_set<uint64_t> mActiveTasks;
+        std::atomic<uint64_t> mActiveTasksCount = 0;
     };
 
 

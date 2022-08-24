@@ -33,6 +33,7 @@ namespace
 
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
+            LOG(INFO) << "Adding task for index = " << j;
             threadPool->ExecuteDeffered([j, &numbers]()
             {
                 numbers[j] = 1;
@@ -40,11 +41,16 @@ namespace
         }
 
         threadPool->WaitForAll();
+        LOG(INFO) << "Stopped waiting";
 
         // Check the result
         for (uint32_t j = 0; j < numbersCount; ++j)
         {
             EXPECT_EQ(numbers[j], 1);
+            if (::testing::Test::HasFailure())
+            {
+                LOG(INFO) << "Assertion failed for index = " << j;
+            }
         }
 
     }
@@ -160,7 +166,7 @@ namespace
         {
             std::unique_lock<std::mutex> lock(numbersMutex);
             numbers.insert(0);
-            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
         });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::SEARCH_AND_EXECUTE_THEN_EXIT);
@@ -168,7 +174,6 @@ namespace
         EXPECT_NE(numbers.find(0), numbers.end());
         threadPool->WaitForAll();
     }
-
 
     TEST_P(Threading, ThreadingCompletenessWithOneElementPolicyExitASAP)
     {
@@ -184,7 +189,7 @@ namespace
             threadPool->ExecuteDeffered([&numbers]()
         {
             numbers[0] = 1;
-            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
         });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::EXIT_ASAP);
@@ -209,7 +214,7 @@ namespace
         {
             std::unique_lock<std::mutex> lock(numbersMutex);
             numbers.insert(0);
-            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
         });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT);
@@ -234,14 +239,14 @@ namespace
         {
             std::unique_lock<std::mutex> lock(numbersMutex);
             numbers.insert({i,j});
-            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
         }, rows, cols, cols / threadPool->GetNumberOfThreads());
 
 
 
     }
 
-    INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 100));
+    INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 1000));
 
 }
 

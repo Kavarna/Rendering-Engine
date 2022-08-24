@@ -89,7 +89,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
 int main(int argc, char const* argv[])
 {
     FLAGS_logtostdout = true;
-    FLAGS_v = 0;
+    FLAGS_v = 3;
     google::InitGoogleLogging(argv[0]);
 
     auto options = ParseCommandLine(argc, argv);

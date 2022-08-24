@@ -51,6 +51,14 @@ namespace Jnrlib
                 JNRException("Singletone was not created")
             {}
         };
+
+        class ImpossibleToGetHere : public JNRException
+        {
+        public:
+            ImpossibleToGetHere(const std::string& e) :
+                JNRException("How the hell did you get here?: " + e)
+            { }
+        };
     }
 }
 
