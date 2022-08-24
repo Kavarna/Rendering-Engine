@@ -15,7 +15,15 @@ namespace Jnrlib
         static uint64_t TaskID;
 
         Task() : taskID(TaskID++)
-        { };
+        {
+            VLOG(3) << "Task with ID = " << taskID << " was created";
+        };
+
+        ~Task()
+        {
+
+            VLOG(3) << "Task with ID = " << taskID << " was destroyed";
+        }
 
         uint64_t taskID;
 
@@ -39,6 +47,7 @@ namespace Jnrlib
 
         void Work()
         {
+            VLOG(3) << "Task with ID = " << taskID << " is being executed now";
             work();
         }
 
@@ -144,6 +153,7 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
             mWorkList = currentTask;
         }
     }
+    VLOG(2) << "Task " << currentTask->taskID << " was inserted into the work list";
     mWorkersCV.notify_all();
     return currentTask;
 }
@@ -244,14 +254,14 @@ void ThreadPool::WorkerThread(uint32_t index)
         if (!mShouldClose && mWorkList == nullptr)
         {
             // No work to do, just wait
-            VLOG(2) << "Thread " << index << " starts waiting for work";
+            VLOG(4) << "Thread " << index << " starts waiting for work";
             mWorkersCV.wait(lock, [this] { return mWorkList != nullptr; });
-            VLOG(2) << "Thread " << index << " stopped waiting for work" ;
+            VLOG(4) << "Thread " << index << " stopped waiting for work" ;
         }
         
         if (mShouldClose)
         {
-            VLOG(2) << "Thread " << index << " is shutting down";
+            VLOG(4) << "Thread " << index << " is shutting down";
             break;
         }
         else
@@ -266,6 +276,7 @@ void ThreadPool::WorkerThread(uint32_t index)
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
                 mActiveTasks.insert(myTask->taskID);
                 // mWorkersCV.notify_all();
+                VLOG(2) << "Adding to active tasks task with id = " << myTask->taskID;
             }
 
             lock.unlock();
@@ -280,6 +291,7 @@ void ThreadPool::WorkerThread(uint32_t index)
                 mWorkersCV.notify_all();
             }
             {
+                VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
                 mActiveTasks.erase(myTask->taskID);
                 mWorkersCV.notify_all();
@@ -368,36 +380,51 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 {
     if (IsTaskFinished(task))
+    {
+        VLOG(4) << "Task" << task->taskID << " is finished, returning";
         return;
+    }
     if (IsTaskActive(task))
     {
+        VLOG(4) << "Task" << task->taskID << " active, waiting for it";
         WaitForTaskToFinish(task);
+        VLOG(4) << "Task" << task->taskID << " finished, returning";
         return;
     }
 
     // Search for the task and then execute it
+    VLOG(4) << "Task" << task->taskID << ". Locking work list mutex";
     std::unique_lock<std::mutex> lock(mWorkListMutex);
     if (mWorkList == nullptr)
     {
         if (IsTaskFinished(task))
-           return;
-        if (IsTaskActive(task))
         {
-            WaitForTaskToFinish(task);
+            VLOG(4) << "Task" << task->taskID << " is finished, returning";
             return;
         }
+        if (IsTaskActive(task))
+        {
+            VLOG(4) << "Task" << task->taskID << " active, waiting for it";
+            WaitForTaskToFinish(task);
+            VLOG(4) << "Task" << task->taskID << " finished, returning";
+        }
+        VLOG(4) << "Task" << task->taskID << " not found, throwing an exception";
         throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
     }
 
+    VLOG(4) << "Task" << task->taskID << ". Start searching for it.";
     std::shared_ptr<Task> previousTask = mWorkList;
     std::shared_ptr<Task> currentTask = previousTask->nextTask;
 
     if (previousTask->taskID == task->taskID)
     {
+        VLOG(4) << "Task" << task->taskID << " was found as first task, deleting it and executing it";
         // Delete the first element from the list, execute the work and then return
         mWorkList = mWorkList->nextTask;
         lock.unlock();
         previousTask->Work();
+        previousTask->Complete();
+        mWorkersCV.notify_all();
         return;
     }
 
@@ -407,16 +434,24 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         currentTask = currentTask->nextTask;
     }
 
+
     if (currentTask == nullptr)
+    {
+        VLOG(4) << "Task" << task->taskID << " was not found, throwing an exception";
         THROW_TASK_NOT_FOUND;
+    }
     
     if (currentTask->taskID == task->taskID)
     {
+        VLOG(4) << "Task" << task->taskID << " was found, deleting it and executing it";
         previousTask->nextTask = currentTask->nextTask;
         lock.unlock();
+        VLOG(4) << "Task" << task->taskID << " was not found, throwing an exception";
         task->Work();
+        task->Complete();
         return;
     }
 
+    VLOG(4) << "Task" << task->taskID << " was found but had a different ID?";
     THROW_TASK_NOT_FOUND;
 }
