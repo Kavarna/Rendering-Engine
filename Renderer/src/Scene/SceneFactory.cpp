@@ -23,9 +23,22 @@ T get_js_field(nlohmann::json& js, const char* key)
     }
     catch (...)
     {
-        throw Jnrlib::Exceptions::FieldNotFound(key, Jnrlib::GetTypeName<T>::value);
+        throw Jnrlib::Exceptions::FieldNotFound(key, Jnrlib::GetTypeName<T>());
     }
 }
+
+nlohmann::json get_sub_js(nlohmann::json& js, const char* key)
+{
+    try
+    {
+        return js[key];
+    }
+    catch (...)
+    {
+        throw Jnrlib::Exceptions::FieldNotFound(key, "nlohmann::json");
+    }
+}
+
 
 std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
 {
@@ -33,6 +46,8 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
 
     nlohmann::json js;
     RendererType rendererType = RendererType::None;
+    std::string outputFile = "";
+    uint64_t width = 0, height = 0;
 
     try
     {
@@ -47,7 +62,13 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     
     try
     {
-         rendererType = GetRendererTypeFromString(get_js_field<std::string>(js, "renderer-type"));
+        rendererType = GetRendererTypeFromString(get_js_field<std::string>(js, "renderer-type"));
+        outputFile = get_js_field<std::string>(js, "output-file");
+
+        auto imageInfo = get_sub_js(js, "image-info");
+
+        width = get_js_field<uint64_t>(imageInfo, "width");
+        height = get_js_field<uint64_t>(imageInfo, "height");
     }
     catch (std::exception const& e)
     {
@@ -57,7 +78,14 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
 
     LOG(INFO) << "Successfully loaded scene from JSON file" << path;
 
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>(rendererType);
+    Scene::SceneCreateInfo sceneInfo;
+    sceneInfo.outputFile = outputFile;
+    sceneInfo.rendererType = rendererType;
+    
+    sceneInfo.imageInfo.width = width;
+    sceneInfo.imageInfo.height = height;
+    
+    std::unique_ptr<Scene> scene = std::make_unique<Scene>(sceneInfo);
     return scene;
 }
 

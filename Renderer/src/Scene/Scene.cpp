@@ -8,9 +8,22 @@ RendererType GetRendererTypeFromString(std::string const& str)
     return RendererType::None;
 }
 
-Scene::Scene(RendererType type) :
-    mRendererType(type)
+std::string GetStringFromRendererType(RendererType rendererType)
 {
+    switch (rendererType)
+    {
+        case RendererType::PathTracing:
+            return "PathTracing";
+        case RendererType::None:
+        default:
+            return "None";
+    }
+}
+
+Scene::Scene(SceneCreateInfo const& info) :
+    mInfo(info)
+{
+    LOG(INFO) << "Creating scene with info: " << info;
 }
 
 Scene::~Scene()
@@ -18,5 +31,15 @@ Scene::~Scene()
 
 RendererType Scene::GetRendererType() const
 {
-    return mRendererType;
+    return mInfo.rendererType;
+}
+
+std::string Scene::GetOutputFile() const
+{
+    return mInfo.outputFile;
+}
+
+const Scene::SceneCreateInfo::ImageInfo& Scene::GetImageInfo() const
+{
+    return mInfo.imageInfo;
 }

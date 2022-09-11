@@ -7,6 +7,7 @@
 #endif
 #include "Jnrlib.h"
 #include "Scene/SceneFactory.h"
+#include "Renderer/Renderer.h"
 #include "ThreadPool.h"
 
 enum class ApplicationMode
@@ -119,5 +120,9 @@ int main(int argc, char const* argv[])
             scenes.emplace_back(SceneFactory::Get()->LoadSceneFromFile(it));
         }
         
+        for (auto& scene : scenes)
+        {
+            RenderScene(scene);
+        }
     }
 }

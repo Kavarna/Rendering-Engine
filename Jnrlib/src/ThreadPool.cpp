@@ -272,13 +272,9 @@ void ThreadPool::WorkerThread(uint32_t index)
             {
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
                 mActiveTasks.insert(myTask->taskID);
-<<<<<<< HEAD
                 mActiveTasksCount++;
                 VLOG(3) << "Thread " << index << " increased active tasks to " << mActiveTasksCount;
-=======
-                // mWorkersCV.notify_all();
                 VLOG(2) << "Adding to active tasks task with id = " << myTask->taskID;
->>>>>>> bed852e6fd33f666acd0764b85738dda23bee906
             }
 
             lock.unlock();
@@ -286,6 +282,7 @@ void ThreadPool::WorkerThread(uint32_t index)
             myTask->Work();
 
             {
+                VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
                 mActiveTasks.erase(myTask->taskID);
                 mActiveTasksCount--;
@@ -299,15 +296,6 @@ void ThreadPool::WorkerThread(uint32_t index)
                 mCompletedTasks.insert(myTask->taskID);
                 mWorkersCV.notify_all();
             }
-<<<<<<< HEAD
-=======
-            {
-                VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
-                std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-                mActiveTasks.erase(myTask->taskID);
-                mWorkersCV.notify_all();
-            }
->>>>>>> bed852e6fd33f666acd0764b85738dda23bee906
 
             lock.lock();
         }
@@ -392,10 +380,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 {
     if (IsTaskFinished(task))
     {
-<<<<<<< HEAD
-=======
         VLOG(4) << "Task" << task->taskID << " is finished, returning";
->>>>>>> bed852e6fd33f666acd0764b85738dda23bee906
         return;
     }
     if (IsTaskActive(task))
@@ -412,18 +397,9 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
     if (mWorkList == nullptr)
     {
         if (IsTaskFinished(task))
-<<<<<<< HEAD
-        {
-            return;
-        }
-        if (IsTaskActive(task))
-        {
-            WaitForTaskToFinish(task);
-=======
         {
             VLOG(4) << "Task" << task->taskID << " is finished, returning";
             return;
->>>>>>> bed852e6fd33f666acd0764b85738dda23bee906
         }
         if (IsTaskActive(task))
         {

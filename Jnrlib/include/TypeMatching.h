@@ -7,28 +7,31 @@
 
 namespace Jnrlib
 {
+    namespace internal
+    {
+        static const unsigned int FRONT_SIZE = sizeof("Jnrlib::internal::GetTypeNameHelper<") - 1u;
+        static const unsigned int BACK_SIZE = sizeof(">::GetTypeName") - 1u;
 
-#define ADD_TYPE_NAME(name) \
-template <> struct GetTypeName<name>\
-{\
-    const char* value = #name;\
-};
+        template <typename T>
+        struct GetTypeNameHelper
+        {
+            static const char* GetTypeName(void)
+            {
+                static const size_t size = sizeof(__FUNCTION__) - FRONT_SIZE - BACK_SIZE;
+                static char typeName[size] = {};
+                memcpy(typeName, __FUNCTION__ + FRONT_SIZE, size - 1u);
+
+                return typeName;
+            }
+        };
+    }
+
 
     template <typename T>
-    struct GetTypeName
+    const char* GetTypeName(void)
     {
-    };
-
-    template <>
-    struct GetTypeName<std::string>
-    {
-        static constexpr const char* value = "std::string";
-    };
-
-
-    // ADD_TYPE_NAME(std::string);
-    ADD_TYPE_NAME(int);
-
+        return internal::GetTypeNameHelper<T>::GetTypeName();
+    }
 }
 
 namespace Detail {

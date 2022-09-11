@@ -1,3 +1,8 @@
 {
-    "renderer-type": "pathtracing"
+    "renderer-type": "pathtracing",
+    "output-file": "result.png",
+    "image-info": {
+        "width": 512,
+        "height": 512
+    }
 }
