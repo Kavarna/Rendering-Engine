@@ -284,16 +284,16 @@ void ThreadPool::WorkerThread(uint32_t index)
             {
                 VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
                 std::unique_lock<std::mutex> lock(mActiveTasksMutex);
+                std::unique_lock<std::mutex> lock_(mCompletedTasksMutex);
                 mActiveTasks.erase(myTask->taskID);
+                if (myTask->IsCompleted())
+                {
+                    mCompletedTasks.insert(myTask->taskID);
+                }
+                
                 mActiveTasksCount--;
                 VLOG(3) << "Thread " << index << " decreased active tasks to " << mActiveTasksCount;
                 mActiveTasksCount.notify_all();
-            }
-
-            if (myTask->IsCompleted())
-            {
-                std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
-                mCompletedTasks.insert(myTask->taskID);
                 mWorkersCV.notify_all();
             }
 
@@ -320,22 +320,25 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
     std::unique_lock<std::mutex> lock(mWorkListMutex);
     while (true)
     {
-        if (IsTaskFinished(task))
-            break;
-        if (IsTaskActive(task))
         {
-            mWorkersCV.wait(lock, [&]
-            {
-                return IsTaskFinished(task);
-            });
-            break;
+            // Is it complete? then return
+            std::unique_lock<std::mutex> completedTasks(mCompletedTasksMutex);
+            if (mCompletedTasks.find(task->taskID) != mCompletedTasks.end())
+                break;
         }
-
         if (mWorkList == nullptr)
         {
-            if (IsTaskActive(task))
+            // No work left? Let's check whether the task is completed or active
+
+            // Block both lists
+            std::unique_lock<std::mutex> activeTasks(mActiveTasksMutex);
+            std::unique_lock<std::mutex> completedTasks(mCompletedTasksMutex);
+
+            if (mActiveTasks.find(task->taskID) != mActiveTasks.end())
             {
-                mWorkersCV.wait(lock, [&]
+                // If it's active, then wait for it
+                activeTasks.unlock();
+                mWorkersCV.wait(completedTasks, [&]
                 {
                     return mCompletedTasks.find(task->taskID) != mCompletedTasks.end();
                 });
@@ -343,13 +346,15 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
             }
             else
             {
-                if (IsTaskFinished(task))
+                // If it's completed, then return
+                if (mCompletedTasks.find(task->taskID) != mCompletedTasks.end())
                     break;
                 // Task not finished, not active and there's no tasks remaining => there is no such task
                 throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
             }
         }
 
+        // Get the first task in work list and then execute it
         std::shared_ptr<Task> myTask = mWorkList;
         mWorkList = mWorkList->nextTask;
         

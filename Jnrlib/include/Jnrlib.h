@@ -11,3 +11,11 @@
 
 #include "glog/logging.h"
 
+#include "glm/glm.hpp"
+
+namespace Jnrlib
+{
+    using Color = glm::vec4;
+    using Position = glm::vec3;
+    using Direction = glm::vec3;
+}
