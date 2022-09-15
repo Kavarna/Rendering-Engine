@@ -223,7 +223,7 @@ namespace
         threadPool->WaitForAll();
     }
 
-    TEST_P(Threading, ParralelForCorrectness)
+    /*TEST_P(Threading, ParralelForCorrectness)
     {
         EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
 
@@ -244,7 +244,7 @@ namespace
 
 
 
-    }
+    }*/
 
     INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 1000));
 

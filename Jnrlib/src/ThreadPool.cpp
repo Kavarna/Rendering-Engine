@@ -4,13 +4,23 @@
 
 #undef max
 
+#define WAIT_ALL_ACTIVE_THREADS \
+{ \
+uint64_t oldValue = mActiveTasksCount; \
+while (oldValue != 0) \
+{ \
+    mActiveTasksCount.wait(oldValue, std::memory_order::relaxed); \
+    oldValue = mActiveTasksCount; \
+} \
+}
+
 namespace Jnrlib
 {
     struct Task
     {
         static uint64_t TaskID;
 
-        Task() : taskID(TaskID++)
+        Task(std::function<void()> work) : taskID(TaskID++), work(work)
         {
             VLOG(3) << "Task with ID = " << taskID << " was created";
         };
@@ -23,23 +33,10 @@ namespace Jnrlib
 
         uint64_t taskID;
 
+        std::function<void()> work;
         std::shared_ptr<Task> nextTask = nullptr;
 
-        virtual void Work() = 0;
-        virtual bool IsCompleted() const = 0;
-        virtual void Complete() = 0;
-    };
-
-    struct SimpleTask : public Task
-    {
         bool completed = false;
-
-        SimpleTask(std::function<void()> work) :
-            Task(), work(work)
-        {
-        }
-
-        std::function<void()> work;
 
         void Work()
         {
@@ -48,68 +45,14 @@ namespace Jnrlib
             Complete();
             VLOG(3) << "Task with ID = " << taskID << " is done being executed";
         }
-
-        void Complete() override
+        bool IsCompleted() const
+        {
+            return completed;
+        };
+        void Complete()
         {
             completed = true;
         }
-
-        bool IsCompleted() const override
-        {
-            return completed;
-        }
-    };
-
-
-    struct ChunkTask2D : public Task
-    {
-        struct ChunkWork
-        {
-            std::mutex mu;
-            uint32_t leftWork;
-            uint64_t parentTaskID;
-        };
-
-        std::shared_ptr<ChunkWork> chunkWork;
-
-        uint32_t row;
-        uint32_t startCol, chunkSize;
-        std::function<void(uint32_t, uint32_t)> func;
-
-        ChunkTask2D(std::function<void(uint32_t, uint32_t)> func, uint32_t row, uint32_t startCol, uint32_t chunkSize, uint32_t totalWork) :
-            Task(), func(func), row(row), startCol(startCol), chunkSize(chunkSize)
-        {
-            chunkWork = std::make_shared<ChunkWork>();
-            chunkWork->leftWork = totalWork;
-            chunkWork->parentTaskID = taskID;
-        }
-
-        ChunkTask2D(std::function<void(uint32_t, uint32_t)> func, uint32_t row, uint32_t startCol, uint32_t chunkSize, ChunkTask2D* const task2D) :
-            Task(), func(func), row(row), startCol(startCol), chunkSize(chunkSize), chunkWork(task2D->chunkWork)
-        {
-        }
-
-        void Work() override
-        {
-            for (uint32_t i = startCol; i < chunkSize; ++i)
-            {
-                func(row, i);
-            }
-            Complete();
-        }
-
-        void Complete() override
-        {
-            std::unique_lock<std::mutex> lock(chunkWork->mu);
-            chunkWork->leftWork -= 1;
-        }
-
-        bool IsCompleted() const override
-        {
-            std::unique_lock<std::mutex> lock(chunkWork->mu);
-            return chunkWork->leftWork == 0;
-        }
-
     };
 
     uint64_t Task::TaskID = 0;
@@ -133,7 +76,7 @@ ThreadPool::~ThreadPool()
 
 std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
 {
-    std::shared_ptr<Task> currentTask = std::make_shared<SimpleTask>(func);
+    std::shared_ptr<Task> currentTask = std::make_shared<Task>(func);
     {
         std::unique_lock<std::mutex> lock(mWorkListMutex);
         if (mWorkList != nullptr)
@@ -157,27 +100,11 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
     return currentTask;
 }
 
-std::shared_ptr<struct Task> Jnrlib::ThreadPool::ParralelForDeffered2D(std::function<void(uint32_t, uint32_t)> func, uint32_t nRows, uint32_t nCols, uint32_t chunkSize)
+bool ThreadPool::IsTaskCompleted(std::shared_ptr<struct Task> task)
 {
-    LOG_IF(FATAL, nCols % chunkSize != 0) << "Using parralel for an undivisible number of columns";
-
-    // TODO: Unwrap the function to multiple tasks that would have the same ID
-
-
-    return std::shared_ptr<struct Task>();
+    return task->completed;
 }
 
-bool ThreadPool::IsTaskFinished(std::shared_ptr<struct Task> task)
-{
-    std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
-    return mCompletedTasks.find(task->taskID) != mCompletedTasks.end();
-}
-
-bool ThreadPool::IsTaskActive(std::shared_ptr<struct Task> task)
-{
-    std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-    return mActiveTasks.find(task->taskID) != mActiveTasks.end();
-}
 
 uint32_t Jnrlib::ThreadPool::GetNumberOfThreads() const
 {
@@ -211,14 +138,7 @@ void ThreadPool::WaitForAll()
         return mWorkList == nullptr;
     });
     
-    // Make sure there are no active tasks 
-    uint64_t oldValue = mActiveTasksCount;
-    
-    while (oldValue != 0)
-    {
-        mActiveTasksCount.wait(oldValue, std::memory_order::relaxed);
-        oldValue = mActiveTasksCount;
-    }
+    WAIT_ALL_ACTIVE_THREADS;
 }
 
 void ThreadPool::CancelRemainingTasks()
@@ -270,8 +190,6 @@ void ThreadPool::WorkerThread(uint32_t index)
             mWorkList = mWorkList->nextTask;
             
             {
-                std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-                mActiveTasks.insert(myTask->taskID);
                 mActiveTasksCount++;
                 VLOG(3) << "Thread " << index << " increased active tasks to " << mActiveTasksCount;
                 VLOG(2) << "Adding to active tasks task with id = " << myTask->taskID;
@@ -283,14 +201,6 @@ void ThreadPool::WorkerThread(uint32_t index)
 
             {
                 VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
-                std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-                std::unique_lock<std::mutex> lock_(mCompletedTasksMutex);
-                mActiveTasks.erase(myTask->taskID);
-                if (myTask->IsCompleted())
-                {
-                    mCompletedTasks.insert(myTask->taskID);
-                }
-                
                 mActiveTasksCount--;
                 VLOG(3) << "Thread " << index << " decreased active tasks to " << mActiveTasksCount;
                 mActiveTasksCount.notify_all();
@@ -305,12 +215,12 @@ void ThreadPool::WorkerThread(uint32_t index)
 void ThreadPool::WaitForTaskToFinish(std::shared_ptr<struct Task> task)
 {
     // Just wait for other thread to finish this
-    std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
-    if (mCompletedTasks.find(task->taskID) != mCompletedTasks.end())
+    std::unique_lock<std::mutex> lock(mWorkListMutex);
+    if (task->IsCompleted())
         return;
     mWorkersCV.wait(lock, [&]
     {
-        return mCompletedTasks.find(task->taskID) != mCompletedTasks.end();
+        return task->IsCompleted();
     });
 }
 
@@ -322,60 +232,42 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
     {
         {
             // Is it complete? then return
-            std::unique_lock<std::mutex> completedTasks(mCompletedTasksMutex);
-            if (mCompletedTasks.find(task->taskID) != mCompletedTasks.end())
+            if (task->IsCompleted())
                 break;
         }
         if (mWorkList == nullptr)
         {
-            // No work left? Let's check whether the task is completed or active
-
-            // Block both lists
-            std::unique_lock<std::mutex> activeTasks(mActiveTasksMutex);
-            std::unique_lock<std::mutex> completedTasks(mCompletedTasksMutex);
-
-            if (mActiveTasks.find(task->taskID) != mActiveTasks.end())
+            // No work left? Let's check whether the task is completed
+            if (task->IsCompleted())
             {
-                // If it's active, then wait for it
-                activeTasks.unlock();
-                mWorkersCV.wait(completedTasks, [&]
-                {
-                    return mCompletedTasks.find(task->taskID) != mCompletedTasks.end();
-                });
                 break;
             }
-            else
+
+            // Not completed? Let's wait for active tasks
+            bool found = false;
+            uint64_t oldValue = mActiveTasksCount;
+            while (oldValue != 0)
             {
-                // If it's completed, then return
-                if (mCompletedTasks.find(task->taskID) != mCompletedTasks.end())
+                mActiveTasksCount.wait(oldValue, std::memory_order::relaxed);
+                oldValue = mActiveTasksCount;
+                if (task->IsCompleted())
+                {
+                    found = true;
                     break;
-                // Task not finished, not active and there's no tasks remaining => there is no such task
-                throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+                }
             }
+
+            if (!found)
+                throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
         }
 
         // Get the first task in work list and then execute it
         std::shared_ptr<Task> myTask = mWorkList;
         mWorkList = mWorkList->nextTask;
-        
-        {
-            std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-            mActiveTasks.insert(myTask->taskID);
-        }
 
         lock.unlock();
 
         myTask->Work();
-
-        if (myTask->IsCompleted())
-        {
-            std::unique_lock<std::mutex> lock(mCompletedTasksMutex);
-            mCompletedTasks.insert(myTask->taskID);
-        }
-        {
-            std::unique_lock<std::mutex> lock(mActiveTasksMutex);
-            mActiveTasks.erase(myTask->taskID);
-        }
 
         lock.lock();
     }
@@ -383,16 +275,9 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 
 void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 {
-    if (IsTaskFinished(task))
+    if (task->IsCompleted())
     {
         VLOG(4) << "Task" << task->taskID << " is finished, returning";
-        return;
-    }
-    if (IsTaskActive(task))
-    {
-        VLOG(4) << "Task" << task->taskID << " active, waiting for it";
-        WaitForTaskToFinish(task);
-        VLOG(4) << "Task" << task->taskID << " finished, returning";
         return;
     }
 
@@ -401,19 +286,27 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
     std::unique_lock<std::mutex> lock(mWorkListMutex);
     if (mWorkList == nullptr)
     {
-        if (IsTaskFinished(task))
+        // No work left, check if the task is completed
+        if (IsTaskCompleted(task))
         {
             VLOG(4) << "Task" << task->taskID << " is finished, returning";
             return;
         }
-        if (IsTaskActive(task))
+        
+        // If it's not completed, then we should wait for all active threads
+        WAIT_ALL_ACTIVE_THREADS;
+
+        // Now it MUST be either complete or invalid
+        if (task->IsCompleted())
         {
-            VLOG(4) << "Task" << task->taskID << " active, waiting for it";
-            WaitForTaskToFinish(task);
-            VLOG(4) << "Task" << task->taskID << " finished, returning";
+            VLOG(4) << "Task" << task->taskID << " is finished, returning";
+            return;
         }
-        VLOG(4) << "Task" << task->taskID << " not found, throwing an exception";
-        throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+        else
+        {
+            VLOG(4) << "Task" << task->taskID << " not found, throwing an exception";
+            throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+        }
     }
 
     VLOG(4) << "Task" << task->taskID << ". Start searching for it.";
@@ -431,42 +324,32 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         return;
     }
 
-    do
+    while (currentTask != nullptr && currentTask->taskID != task->taskID)
     {
-        while (currentTask != nullptr && currentTask->taskID != task->taskID)
-        {
-            previousTask = currentTask;
-            currentTask = currentTask->nextTask;
-        }
+        previousTask = currentTask;
+        currentTask = currentTask->nextTask;
+    }
 
-        if (currentTask == nullptr)
-        {
-            // If we didn't find the task, something must be wrong :-(
-            // But we give it one more try and wait for all active workers to finish their tasks
-            uint64_t oldValue = mActiveTasksCount;
-            while (oldValue != 0)
-            {
-                mActiveTasksCount.wait(oldValue, std::memory_order::relaxed);
-                oldValue = mActiveTasksCount;
-            }
+    if (currentTask == nullptr)
+    {
+        // If we didn't find the task, something must be wrong :-(
+        // But we give it one more try and wait for all active workers to finish their tasks
+        WAIT_ALL_ACTIVE_THREADS;
 
-            // And then check if the task is actually finished
-            if (IsTaskFinished(task))
-            {
-                return;
-            }
-            // And if that doesn't work, we throw an error
-            throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+        // And then check if the task is actually finished
+        if (task->IsCompleted())
+        {
+            return;
         }
-        
-    } while (currentTask == nullptr);
+        // And if that doesn't work, we throw an error
+        throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+    }
     
     if (currentTask->taskID == task->taskID)
     {
         VLOG(4) << "Task" << task->taskID << " was found, deleting it and executing it";
         previousTask->nextTask = currentTask->nextTask;
         lock.unlock();
-        VLOG(4) << "Task" << task->taskID << " was not found, throwing an exception";
         task->Work();
         task->Complete();
         return;
