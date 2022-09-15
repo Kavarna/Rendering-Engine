@@ -17,8 +17,8 @@ void PngDumper::SetPixelColor(float u, float v, float r, float g, float b, float
     png::byte blue = png::byte(b * 255.f);
     png::byte alpha = png::byte(a * 255.f);
 
-    uint32_t x = u * GetWidth();
-    uint32_t y = v * GetHeight();
+    uint32_t x = (uint32_t)(u * GetWidth());
+    uint32_t y = (uint32_t)(v * GetHeight());
 
     mImage[x][y] = png::rgba_pixel(red, green, blue, alpha);
 }
@@ -40,8 +40,8 @@ void PngDumper::SetPixelColor(float u, float v, Jnrlib::Color const& c)
     png::byte blue = png::byte(c.b * 255.f);
     png::byte alpha = png::byte(c.a * 255.f);
 
-    uint32_t x = u * GetWidth();
-    uint32_t y = v * GetHeight();
+    uint32_t x = (uint32_t)(u * GetWidth());
+    uint32_t y = (uint32_t)(v * GetHeight());
 
     mImage[x][y] = png::rgba_pixel(red, green, blue, alpha);
 }
@@ -59,7 +59,7 @@ void PngDumper::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& c)
 void PngDumper::SetProgress(float progress)
 {
     int barLength = 50;
-    int pos = progress * barLength;
+    int pos = int(progress * barLength);
 
     std::cout << "Progress: [";
     for (int i = 0; i != barLength; ++i)
