@@ -13,7 +13,7 @@ void RenderScene(std::unique_ptr<Scene>& scene)
 
 	switch (scene->GetRendererType())
 	{
-		case RendererType::PathTracing:
+		case CreateInfo::RendererType::PathTracing:
 		{
 			PathTracing(dumper, *scene.get()).Render();
 			break;

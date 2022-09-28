@@ -4,9 +4,10 @@ project("Rendering-Engine")
 
 # Options
 option(BUILD_TESTS "Build tests" OFF)
+option(USE_FLOAT64 "Use 64-bit floating point numbers" ON)
 
 # Handle options
-if(BUILD_TESTS)
+if (BUILD_TESTS)
     message("-- Building tests too")
     add_definitions(-DBUILD_TESTS)
     include(FetchContent)
@@ -19,7 +20,15 @@ if(BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
 else()
     message("-- Not building tests")
-endif(BUILD_TESTS)
+endif (BUILD_TESTS)
+
+if (USE_FLOAT64)
+    message("-- Using 64-bit floating point numbers")
+    add_definitions(-DUSE_FLOAT64)
+else()
+    message("-- Using 32-bit floating point numbers")
+    add_definitions(-DUSE_FLOAT32)
+endif (USE_FLOAT64)
 
 # Useful functions
 macro(make_filters _source_list)

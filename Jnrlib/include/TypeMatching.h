@@ -24,6 +24,7 @@ namespace Jnrlib
                 return typeName;
             }
         };
+
     }
 
 
@@ -31,6 +32,14 @@ namespace Jnrlib
     const char* GetTypeName(void)
     {
         return internal::GetTypeNameHelper<T>::GetTypeName();
+    }
+
+    template <typename T>
+    std::string to_string(T&& t)
+    {
+        std::stringstream stream;
+        stream << t;
+        return stream.str();
     }
 }
 

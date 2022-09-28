@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include_directories("include")
-FILE(GLOB_RECURSE SOURCES "src/*" "include/*" "tests/*")
+include_directories("src/Helpers")
+FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 
 add_executable("Renderer" ${SOURCES})
 target_link_libraries("Renderer" Jnrlib)

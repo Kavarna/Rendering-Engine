@@ -1,6 +1,7 @@
 #include "SceneFactory.h"
 #include <fstream>
 #include <nlohmann/json.hpp> 
+#include "CreateInfoUtils.h"
 
 SceneFactory::SceneFactory()
 { }
@@ -45,9 +46,8 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     LOG(INFO) << "Attempting to load scene from JSON file " << path;
 
     nlohmann::json js;
-    RendererType rendererType = RendererType::None;
-    std::string outputFile = "";
-    uint64_t width = 0, height = 0;
+    CreateInfo::Scene sceneInfo;
+    CreateInfo::Camera cameraInfo;
 
     try
     {
@@ -59,33 +59,28 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
         LOG(ERROR) << "Unable to parse " << path << " as JSON. Error: " << e.what();
         return nullptr;
     }
-    
+
     try
     {
-        rendererType = GetRendererTypeFromString(get_js_field<std::string>(js, "renderer-type"));
-        outputFile = get_js_field<std::string>(js, "output-file");
-
-        auto imageInfo = get_sub_js(js, "image-info");
-
-        width = get_js_field<uint64_t>(imageInfo, "width");
-        height = get_js_field<uint64_t>(imageInfo, "height");
+        CreateInfo::from_json(js, sceneInfo);
+        if (js.contains("camera"))
+        {
+            CreateInfo::from_json(js["camera"], cameraInfo);
+        }
     }
     catch (std::exception const& e)
     {
-        LOG(ERROR) << "Unable to parse " << path << " as JSON. Error: " << e.what();
+        LOG(ERROR) << "Error while parsing the scene json: " << e.what();
         return nullptr;
     }
 
     LOG(INFO) << "Successfully loaded scene from JSON file" << path;
 
-    Scene::SceneCreateInfo sceneInfo;
-    sceneInfo.outputFile = outputFile;
-    sceneInfo.rendererType = rendererType;
-    
-    sceneInfo.imageInfo.width = width;
-    sceneInfo.imageInfo.height = height;
-    
     std::unique_ptr<Scene> scene = std::make_unique<Scene>(sceneInfo);
+    std::unique_ptr<Camera> camera = std::make_unique<Camera>(cameraInfo);
+
+    scene->SetCamera(std::move(camera));
+
     return scene;
 }
 
