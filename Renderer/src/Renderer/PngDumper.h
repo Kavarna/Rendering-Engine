@@ -23,8 +23,9 @@ public:
 
     void SetPixelColor(uint32_t x, uint32_t y,
                        Jnrlib::Color const&);
-
-    void SetProgress(float x);
+    
+    void SetTotalWork(uint32_t totalWork);
+    void AddDoneWork();
 
     uint32_t GetWidth() const;
     uint32_t GetHeight() const;
@@ -34,7 +35,8 @@ public:
 private:
     png::image<png::rgba_pixel> mImage;
     std::string mName;
-
+    uint32_t mTotalWork;
+    uint32_t mDoneWork = 0;
 };
 
 

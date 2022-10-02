@@ -22,13 +22,12 @@ namespace Jnrlib
 
         Task(std::function<void()> work) : taskID(TaskID++), work(work)
         {
-            VLOG(3) << "Task with ID = " << taskID << " was created";
+            VLOG(2) << "Task with ID = " << taskID << " was created";
         };
 
-        ~Task()
+        inline ~Task()
         {
-
-            VLOG(3) << "Task with ID = " << taskID << " was destroyed";
+            VLOG(2) << "Task with ID = " << taskID << " was destroyed";
         }
 
         uint64_t taskID;
@@ -81,21 +80,15 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
         std::unique_lock<std::mutex> lock(mWorkListMutex);
         if (mWorkList != nullptr)
         {
-            std::shared_ptr<Task> lastTask = mWorkList;
-            while (true)
-            {
-                if (lastTask->nextTask == nullptr)
-                    break;
-                lastTask = lastTask->nextTask;
-            }
-            lastTask->nextTask = currentTask;
+            currentTask->nextTask = mWorkList;
+            mWorkList = currentTask;
         }
         else
         {
             mWorkList = currentTask;
         }
     }
-    VLOG(2) << "Task " << currentTask->taskID << " was inserted into the work list";
+    VLOG(3) << "Task " << currentTask->taskID << " was inserted into the work list";
     mWorkersCV.notify_all();
     return currentTask;
 }
@@ -131,12 +124,13 @@ void ThreadPool::WaitForAll()
 {
     // Make sure that there are no tasks to be run
     std::unique_lock<std::mutex> lock(mWorkListMutex);
-    if (mWorkList == nullptr)
-        return;
-    mWorkersCV.wait(lock, [this]
+    if (mWorkList != nullptr)
     {
-        return mWorkList == nullptr;
-    });
+        mWorkersCV.wait(lock, [this]
+        {
+            return mWorkList == nullptr;
+        });
+    }
     
     WAIT_ALL_ACTIVE_THREADS;
 }
@@ -188,6 +182,7 @@ void ThreadPool::WorkerThread(uint32_t index)
 
             std::shared_ptr<Task> myTask = mWorkList;
             mWorkList = mWorkList->nextTask;
+            myTask->nextTask = nullptr;
             
             {
                 mActiveTasksCount++;
@@ -264,10 +259,12 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
         // Get the first task in work list and then execute it
         std::shared_ptr<Task> myTask = mWorkList;
         mWorkList = mWorkList->nextTask;
+        myTask->nextTask = nullptr;
 
         lock.unlock();
 
         myTask->Work();
+
 
         lock.lock();
     }
@@ -351,7 +348,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         previousTask->nextTask = currentTask->nextTask;
         lock.unlock();
         task->Work();
-        task->Complete();
+        task.reset();
         return;
     }
 

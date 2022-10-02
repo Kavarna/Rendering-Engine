@@ -56,9 +56,23 @@ void PngDumper::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& c)
     mImage[x][y] = png::rgba_pixel(red, green, blue, alpha);
 }
 
-void PngDumper::SetProgress(float progress)
+void PngDumper::SetTotalWork(uint32_t totalWork)
 {
-    int barLength = 50;
+    mTotalWork = totalWork;
+    mDoneWork = 0;
+}
+
+void PngDumper::AddDoneWork()
+{
+    mDoneWork++;
+
+#define SHOW_CLI_PROGRESS
+#ifdef SHOW_CLI_PROGRESS
+    static std::mutex mu;
+    std::unique_lock<std::mutex> lock(mu);
+    int barLength = 10;
+    float progress = (float)mDoneWork / mTotalWork;
+    uint32_t secondNumber = (uint32_t)(progress * 100) % 10;
     int pos = int(progress * barLength);
 
     std::cout << "Progress: [";
@@ -66,10 +80,15 @@ void PngDumper::SetProgress(float progress)
     {
         if (i < pos)
             std::cout << "#";
+        else if (i == pos)
+        {
+            std::cout << secondNumber;
+        }
         else
             std::cout << " ";
     }
     std::cout << "]\r";
+#endif
 }
 
 uint32_t PngDumper::GetWidth() const

@@ -14,26 +14,28 @@ void PathTracing::Render()
 
     auto threadPool = Jnrlib::ThreadPool::Get();
 
+    mDumper.SetTotalWork(width * height);
+
+
     for (uint32_t y = 0; y < height; ++y)
     {
-        std::vector<std::shared_ptr<struct Jnrlib::Task>> tasks;
-        tasks.reserve(width);
         for (uint32_t x = 0; x < width; ++x)
         {
-            tasks.emplace_back(threadPool->ExecuteDeffered(
-                [this, x, y, width, height]()
-                {
-                    float red = (float)x / (width - 1.0f);
-                    float green = (float)y / (height - 1.0f);
-                    float blue = 0.0f;
-                    mDumper.SetPixelColor(x, y, red, green, blue);
-                })
+            threadPool->ExecuteDeffered(
+                std::bind(&PathTracing::SetPixelColor, this, x, y, width, height)
             );
         }
-        for (auto& task : tasks)
-        {
-            threadPool->Wait(task);
-        }
-        mDumper.SetProgress((float)y / (width - 1));
     }
+    LOG(INFO) << "Start waiting";
+    threadPool->WaitForAll();
+    LOG(INFO) << "Done waiting";
+    
+}
+
+void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+{
+    float red = (float)x / (width - 1);
+    float green = (float)y / (width - 1);
+    mDumper.SetPixelColor(x, y, red, green, 0.0f);
+    mDumper.AddDoneWork();
 }
