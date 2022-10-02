@@ -21,6 +21,7 @@ namespace Jnrlib
     using Direction = glm::vec3;
 
     using Float = float;
+
 #elif USE_FLOAT64
     using Color = glm::dvec4;
     using Position = glm::dvec3;
@@ -28,5 +29,8 @@ namespace Jnrlib
 
     using Float = double;
 #endif
+
+    constexpr Float Half = (Float)1 / (Float)2;
+    constexpr Float One = (Float)1;
 
 }

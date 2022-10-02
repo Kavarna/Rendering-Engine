@@ -16,26 +16,49 @@ void PathTracing::Render()
 
     mDumper.SetTotalWork(width * height);
 
+    Jnrlib::Position pos = mScene.GetCamera().GetPosition();
+    Jnrlib::Direction forwardDirection = mScene.GetCamera().GetForwardDirection();
+    Jnrlib::Direction rightDirection = mScene.GetCamera().GetRightDirection();
+    Jnrlib::Direction upDirection = mScene.GetCamera().GetUpDirection();
+    Jnrlib::Float focalDistance = mScene.GetCamera().GetFocalDistance();
+    Jnrlib::Float halfViewportWidth = Jnrlib::Half * mScene.GetCamera().GetViewportWidth();
+    Jnrlib::Float halfViewportHeight = Jnrlib::Half * mScene.GetCamera().GetViewportHeight();
+
+    Jnrlib::Position upperLeftCorner = pos + forwardDirection * focalDistance - rightDirection * halfViewportWidth + upDirection * halfViewportHeight;
 
     for (uint32_t y = 0; y < height; ++y)
     {
         for (uint32_t x = 0; x < width; ++x)
         {
             threadPool->ExecuteDeffered(
-                std::bind(&PathTracing::SetPixelColor, this, x, y, width, height)
+                std::bind(&PathTracing::SetPixelColor, this, x, y, width, height, upperLeftCorner)
             );
         }
     }
-    LOG(INFO) << "Start waiting";
+
     threadPool->WaitForAll();
-    LOG(INFO) << "Done waiting";
-    
 }
 
-void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Jnrlib::Position const& upperLeftCorner)
 {
-    float red = (float)x / (width - 1);
-    float green = (float)y / (width - 1);
-    mDumper.SetPixelColor(x, y, red, green, 0.0f);
+    Jnrlib::Float u = (Jnrlib::Float)x / (width - 1);
+    Jnrlib::Float v = (Jnrlib::Float)y / (width - 1);
+
+    Jnrlib::Position pos = mScene.GetCamera().GetPosition();
+    Jnrlib::Direction rightDirection = mScene.GetCamera().GetRightDirection();
+    Jnrlib::Direction upDirection = mScene.GetCamera().GetUpDirection();
+
+    Renderer::Ray ray(pos, upperLeftCorner + u * rightDirection - v * upDirection - pos);
+
+    Jnrlib::Color color = GetRayColor(ray);
+    
+    mDumper.SetPixelColor(x, y, color);
+    
     mDumper.AddDoneWork();
+}
+
+Jnrlib::Color PathTracing::GetRayColor(Renderer::Ray const& ray)
+{
+    Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
+    return (1.0f - t) * Jnrlib::Color(1.0f, 1.0f, 1.0f, 1.0f) + t * Jnrlib::Color(0.5f, 0.7f, 1.0f, 1.0f);
 }

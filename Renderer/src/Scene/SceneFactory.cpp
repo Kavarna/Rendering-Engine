@@ -77,8 +77,9 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     LOG(INFO) << "Successfully loaded scene from JSON file" << path;
 
     std::unique_ptr<Scene> scene = std::make_unique<Scene>(sceneInfo);
+    CreateInfo::ImageInfo outputFile = scene->GetImageInfo();
+    cameraInfo.RecalculateViewport((uint32_t)outputFile.width, (uint32_t)outputFile.height);
     std::unique_ptr<Camera> camera = std::make_unique<Camera>(cameraInfo);
-
     scene->SetCamera(std::move(camera));
 
     return scene;

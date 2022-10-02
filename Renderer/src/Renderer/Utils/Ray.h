@@ -3,20 +3,23 @@
 
 #include "Jnrlib.h"
 
-
-class Ray
+namespace Renderer
 {
-public:
-    Ray() = default;
-    Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction);
 
-    Jnrlib::Position const& GetStartPosition() const;
-    Jnrlib::Direction const& GetDirection() const;
+    class Ray
+    {
+    public:
+        Ray() = default;
+        Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction);
 
-    Jnrlib::Position At(Jnrlib::Float t) const;
+        Jnrlib::Position const& GetStartPosition() const;
+        Jnrlib::Direction const& GetDirection() const;
 
-private:
-    Jnrlib::Position mStartPosition = Jnrlib::Position(0.0f);
-    Jnrlib::Direction mDirection = Jnrlib::Direction(0.0f);
-};
+        Jnrlib::Position At(Jnrlib::Float t) const;
 
+    private:
+        Jnrlib::Position mStartPosition = Jnrlib::Position(0.0f);
+        Jnrlib::Direction mDirection = Jnrlib::Direction(0.0f);
+    };
+
+}

@@ -21,6 +21,7 @@ public:
     const CreateInfo::ImageInfo& GetImageInfo() const;
 
     void SetCamera(std::unique_ptr<Camera>&& camera);
+    Camera const& GetCamera() const;
 
 private:
     CreateInfo::Scene mInfo;

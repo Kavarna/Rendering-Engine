@@ -29,3 +29,8 @@ void Scene::SetCamera(std::unique_ptr<Camera>&& camera)
 {
     mCamera = std::move(camera);
 }
+
+Camera const& Scene::GetCamera() const
+{
+    return *mCamera;
+}
