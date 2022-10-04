@@ -48,7 +48,7 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
     Jnrlib::Direction rightDirection = mScene.GetCamera().GetRightDirection();
     Jnrlib::Direction upDirection = mScene.GetCamera().GetUpDirection();
 
-    Renderer::Ray ray(pos, upperLeftCorner + u * rightDirection - v * upDirection - pos);
+    Ray ray(pos, upperLeftCorner + u * rightDirection - v * upDirection - pos);
 
     Jnrlib::Color color = GetRayColor(ray);
     
@@ -57,7 +57,7 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
     mDumper.AddDoneWork();
 }
 
-Jnrlib::Color PathTracing::GetRayColor(Renderer::Ray const& ray)
+Jnrlib::Color PathTracing::GetRayColor(Ray const& ray)
 {
     Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
     return (1.0f - t) * Jnrlib::Color(1.0f, 1.0f, 1.0f, 1.0f) + t * Jnrlib::Color(0.5f, 0.7f, 1.0f, 1.0f);

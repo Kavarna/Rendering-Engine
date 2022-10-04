@@ -2,6 +2,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp> 
 #include "CreateInfoUtils.h"
+#include "MaterialManager.h"
 
 SceneFactory::SceneFactory()
 { }
@@ -65,7 +66,25 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
         CreateInfo::from_json(js, sceneInfo);
         if (js.contains("camera"))
         {
+            LOG(INFO) << "Found camera, parsing camera";
             CreateInfo::from_json(js["camera"], cameraInfo);
+            LOG(INFO) << "Successfully parsed camera";
+        }
+        if (js.contains("materials"))
+        {
+            LOG(INFO) << "Found materials, parsing materials";
+            nlohmann::json materialsJson = js["materials"];
+            std::vector<Material> materials;
+            materials.reserve(materialsJson.size());
+
+            for (auto const& material : materialsJson)
+            {
+                Material m;
+                from_json(material, m);
+                materials.emplace_back(m);
+            }
+            MaterialManager::Get()->AddMaterials(materials);
+            LOG(INFO) << "Successfully parsed materials";
         }
     }
     catch (std::exception const& e)

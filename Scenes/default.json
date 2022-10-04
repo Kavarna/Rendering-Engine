@@ -4,5 +4,20 @@
     "image-info": {
         "width": 512,
         "height": 512
-    }
+    },
+    "materials": [
+        {
+            "name": "red",
+            "color": "(1.0, 0.0, 0,0, 1.0)"
+        }
+    ],
+    "objects": [
+        {
+            "type": "Sphere",
+            "name": "Red-Sphere",
+            "radius": 1.0,
+            "position": "(0.0, 1.0, 0.0)",
+            "material": "red"
+        }
+    ]
 }

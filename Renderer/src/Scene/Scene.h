@@ -11,7 +11,7 @@
 class Scene
 {
 public:
-    Scene(CreateInfo::Scene const& info);
+    Scene(CreateInfo::Scene& info);
     ~Scene();
 
 public:
@@ -24,9 +24,12 @@ public:
     Camera const& GetCamera() const;
 
 private:
-    CreateInfo::Scene mInfo;
+    std::string mOutputFile;
+    CreateInfo::RendererType mRendererType;
+    CreateInfo::ImageInfo mImageInfo;
 
     std::unique_ptr<Camera> mCamera;
+    std::vector<std::unique_ptr<Primitive>> mObjects;
 };
 
 

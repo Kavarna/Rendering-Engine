@@ -3,6 +3,8 @@
 #include "TypeHelpers.h"
 #include <boost/algorithm/string.hpp>
 
+#include "Sphere.h"
+
 using json = nlohmann::json;
 
 
@@ -84,6 +86,16 @@ namespace CreateInfo
         j["renderer-type"] = GetStringFromRendererType(sceneInfo.rendererType);
         j["output-file"] = sceneInfo.outputFile;
         to_json(j["image-info"], sceneInfo.imageInfo);
+
+        for (const auto& primitive : sceneInfo.primitives)
+        {
+            json object;
+            if (Sphere* s = dynamic_cast<Sphere*>(primitive.get()); s != nullptr)
+            {
+                to_json(object, *s);
+            }
+            j["objects"].push_back(object);
+        }
     }
 
     void from_json(const nlohmann::json& j, Scene& p)
@@ -93,6 +105,22 @@ namespace CreateInfo
         p.rendererType = GetRendererTypeFromString(rendererTypeString);
         j.at("output-file").get_to(p.outputFile);
         j.at("image-info").get_to(p.imageInfo);
+
+        if (j.contains("objects"))
+        {
+            json objectsJson = j["objects"];
+            p.primitives.reserve(objectsJson.size());
+            for (auto const& object : objectsJson)
+            {
+                std::string type = object["type"].get<std::string>();
+                if (boost::iequals(type, "sphere"))
+                {
+                    std::unique_ptr<Sphere> sphere = std::make_unique<Sphere>();
+                    from_json(object, *sphere);
+                    p.primitives.emplace_back(std::move(sphere));
+                }
+            }
+        }
     }
 
 }

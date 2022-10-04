@@ -4,8 +4,7 @@
 #include <Jnrlib.h>
 
 #include <nlohmann/json.hpp>
-
-#include "CameraCreateInfo.h"
+#include "Primitive.h"
 
 namespace CreateInfo
 {
@@ -30,11 +29,14 @@ namespace CreateInfo
     void to_json(nlohmann::json& j, const ImageInfo& p);
     void from_json(const nlohmann::json& j, ImageInfo& p);
 
+
     struct Scene
     {
         RendererType rendererType;
         std::string outputFile;
         ImageInfo imageInfo;
+
+        std::vector<std::unique_ptr<Primitive>> primitives;
 
         friend std::ostream& operator << (std::ostream& stream, Scene const& cameraInfo);
         friend std::istream& operator >> (std::istream& stream, Scene& cameraInfo);

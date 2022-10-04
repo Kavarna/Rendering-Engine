@@ -50,7 +50,7 @@ glm::vec4 string_to_dvec4(std::string const& str);
 namespace Jnrlib
 {
     template <typename T>
-    T StringToType(std::string const& str)
+    T to_type(std::string const& str)
     {
         if constexpr (std::is_same_v<T, glm::vec2>)
         {

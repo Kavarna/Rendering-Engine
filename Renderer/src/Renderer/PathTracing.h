@@ -3,7 +3,7 @@
 #include "Jnrlib.h"
 #include "PngDumper.h"
 #include "../Scene/Scene.h"
-#include "Utils/Ray.h"
+#include "Ray.h"
 
 class PathTracing
 {
@@ -15,7 +15,7 @@ public:
 private:
     void SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Jnrlib::Position const& upperLeftCorner);
 
-    Jnrlib::Color GetRayColor(Renderer::Ray const&);
+    Jnrlib::Color GetRayColor(Ray const&);
 
 private:
     PngDumper& mDumper;

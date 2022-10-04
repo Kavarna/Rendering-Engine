@@ -57,10 +57,10 @@ namespace CreateInfo
         j.at("right-direction").get_to(rightDirection);
         j.at("up-direction").get_to(upDirection);
 
-        cameraInfo.position = Jnrlib::StringToType<Jnrlib::Position>(positionStr);
-        cameraInfo.forwardDirection = Jnrlib::StringToType<Jnrlib::Position>(forwardDirection);
-        cameraInfo.rightDirection = Jnrlib::StringToType<Jnrlib::Position>(rightDirection);
-        cameraInfo.upDirection = Jnrlib::StringToType<Jnrlib::Position>(upDirection);
+        cameraInfo.position = Jnrlib::to_type<Jnrlib::Position>(positionStr);
+        cameraInfo.forwardDirection = Jnrlib::to_type<Jnrlib::Position>(forwardDirection);
+        cameraInfo.rightDirection = Jnrlib::to_type<Jnrlib::Position>(rightDirection);
+        cameraInfo.upDirection = Jnrlib::to_type<Jnrlib::Position>(upDirection);
 
         j.at("viewport-width").get_to(cameraInfo.viewportWidth);
         j.at("viewport-height").get_to(cameraInfo.viewportHeight);
