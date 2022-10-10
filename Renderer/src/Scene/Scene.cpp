@@ -37,3 +37,37 @@ Camera const& Scene::GetCamera() const
 {
     return *mCamera;
 }
+
+std::optional<HitPoint> Scene::GetClosestHit(Ray const& r) const
+{
+    std::optional<HitPoint> finalHitPoint;
+    Jnrlib::Float closestHitSoFar = 0.0;
+
+    for (const auto& primitive : mObjects)
+    {
+        std::optional<HitPoint> hp = primitive->IntersectRay(r);
+        
+        if (!hp.has_value())
+            continue;
+        
+        for (Jnrlib::Float intersectionPoint : hp->GetIntersectionPoints())
+        {
+            if (intersectionPoint < 0.0f)
+                continue;
+
+            if (!finalHitPoint.has_value())
+            {
+                finalHitPoint = hp;
+                closestHitSoFar = intersectionPoint;
+            }
+
+            if (intersectionPoint < closestHitSoFar)
+            {
+                closestHitSoFar = intersectionPoint;
+                finalHitPoint = hp;
+            }
+        }
+    }
+
+    return finalHitPoint;
+}

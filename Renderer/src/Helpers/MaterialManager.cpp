@@ -57,3 +57,10 @@ void MaterialManager::AddMaterials(std::vector<Material> const& materials)
         AddMaterial(material);
     }
 }
+
+Material MaterialManager::GetMaterial(std::string const& name)
+{
+    auto it = mMaterialMap.find(name);
+    CHECK(it != mMaterialMap.end()) << "Looking for material with name " << name << ", but couldn't find it";
+    return (*it).second;
+}

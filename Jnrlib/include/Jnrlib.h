@@ -30,6 +30,7 @@ namespace Jnrlib
     using Float = double;
 #endif
 
+    constexpr Float Zero = (Float)1 / (Float)2;
     constexpr Float Half = (Float)1 / (Float)2;
     constexpr Float One = (Float)1;
 

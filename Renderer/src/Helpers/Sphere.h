@@ -12,7 +12,7 @@ public:
     Sphere(std::string const& name, Jnrlib::Position const& position, Jnrlib::Float radius, std::string const& materialName);
     ~Sphere();
 
-    virtual bool IntersectRay(Ray const&, HitPoint& hp) override;
+    virtual std::optional<HitPoint> IntersectRay(Ray const&) override;
 
     friend std::ostream& operator << (std::ostream& stream, Sphere const& s);
     friend std::istream& operator >> (std::istream& stream, Sphere& s);
@@ -24,7 +24,7 @@ private:
     Jnrlib::Float mRadius;
 
     std::string mName;
-    std::string mMaterialName;
+    Material mMaterial;
 
 };
 

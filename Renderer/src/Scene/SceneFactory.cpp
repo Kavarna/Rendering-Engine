@@ -63,13 +63,6 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
 
     try
     {
-        CreateInfo::from_json(js, sceneInfo);
-        if (js.contains("camera"))
-        {
-            LOG(INFO) << "Found camera, parsing camera";
-            CreateInfo::from_json(js["camera"], cameraInfo);
-            LOG(INFO) << "Successfully parsed camera";
-        }
         if (js.contains("materials"))
         {
             LOG(INFO) << "Found materials, parsing materials";
@@ -85,6 +78,13 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
             }
             MaterialManager::Get()->AddMaterials(materials);
             LOG(INFO) << "Successfully parsed materials";
+        }
+        CreateInfo::from_json(js, sceneInfo);
+        if (js.contains("camera"))
+        {
+            LOG(INFO) << "Found camera, parsing camera";
+            CreateInfo::from_json(js["camera"], cameraInfo);
+            LOG(INFO) << "Successfully parsed camera";
         }
     }
     catch (std::exception const& e)

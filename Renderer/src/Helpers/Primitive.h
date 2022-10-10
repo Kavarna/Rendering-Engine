@@ -9,5 +9,5 @@
 class Primitive
 {
 public:
-    virtual bool IntersectRay(Ray const&, HitPoint& hp) = 0;
+    virtual std::optional<HitPoint> IntersectRay(Ray const&) = 0;
 };

@@ -36,7 +36,10 @@ public:
     void AddMaterial(Material const& material);
     void AddMaterials(std::vector<Material> const& materials);
 
+    Material GetMaterial(std::string const& name);
+
 private:
+    // TODO: Create a pool of materials, so we can return a reference to the material
     // TODO: Key to be replaced with a hash (or something similar to speed-up look-up)
     std::unordered_map<std::string, Material> mMaterialMap;
 };
