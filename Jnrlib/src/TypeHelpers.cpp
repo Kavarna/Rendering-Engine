@@ -6,7 +6,7 @@ template <typename NumberType>
 NumberType ParseNumber(std::istream& stream)
 {
     char ch = stream.peek();
-    while (!(ch >= '0' && ch <= '9'))
+    while (!((ch >= '0' && ch <= '9') || ch == '-'))
     {
         stream.get();
         ch = stream.peek();

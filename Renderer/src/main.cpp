@@ -115,8 +115,6 @@ int main(int argc, char const* argv[])
         LOG(INFO) << "Starting application in render mode";
         LOG(INFO) << "Running for config files: " << options->sceneFiles;
 
-        Jnrlib::ThreadPool::Get(1);
-
         std::vector<std::unique_ptr<Scene>> scenes;
         scenes.reserve(options->sceneFiles.size());
         for (const auto& it : options->sceneFiles)
