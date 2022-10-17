@@ -2,7 +2,6 @@
 
 
 Scene::Scene(CreateInfo::Scene& info) :
-    mRendererType(info.rendererType),
     mOutputFile(info.outputFile),
     mImageInfo(info.imageInfo),
     mObjects(std::move(info.primitives))
@@ -12,11 +11,6 @@ Scene::Scene(CreateInfo::Scene& info) :
 
 Scene::~Scene()
 { }
-
-CreateInfo::RendererType Scene::GetRendererType() const
-{
-    return mRendererType;
-}
 
 std::string Scene::GetOutputFile() const
 {
@@ -40,8 +34,9 @@ Camera const& Scene::GetCamera() const
 
 std::optional<HitPoint> Scene::GetClosestHit(Ray const& r) const
 {
+#undef max
     std::optional<HitPoint> finalHitPoint;
-    Jnrlib::Float closestHitSoFar = 0.0;
+    Jnrlib::Float closestHitSoFar = std::numeric_limits<Jnrlib::Float>::max();
 
     for (const auto& primitive : mObjects)
     {
@@ -50,22 +45,11 @@ std::optional<HitPoint> Scene::GetClosestHit(Ray const& r) const
         if (!hp.has_value())
             continue;
         
-        for (Jnrlib::Float intersectionPoint : hp->GetIntersectionPoints())
+        Jnrlib::Float intersectionPoint = hp->GetIntersectionPoint();
+        if (intersectionPoint < closestHitSoFar)
         {
-            if (intersectionPoint < 0.0f)
-                continue;
-
-            if (!finalHitPoint.has_value())
-            {
-                finalHitPoint = hp;
-                closestHitSoFar = intersectionPoint;
-            }
-
-            if (intersectionPoint < closestHitSoFar)
-            {
-                closestHitSoFar = intersectionPoint;
-                finalHitPoint = hp;
-            }
+            closestHitSoFar = intersectionPoint;
+            finalHitPoint = hp.value();
         }
     }
 

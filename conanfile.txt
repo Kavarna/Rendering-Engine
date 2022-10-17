@@ -4,6 +4,7 @@ boost/1.79.0
 glog/0.6.0
 nlohmann_json/3.11.1
 pngpp/0.2.10
+effolkronium-random/1.4.1
 
 [generators]
 cmake

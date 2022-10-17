@@ -15,10 +15,17 @@ private:
     ~SceneFactory();
 
 public:
-    std::unique_ptr<Scene> LoadSceneFromFile(std::string const& path);
+    struct ParsedScene
+    {
+        std::unique_ptr<Scene> scene;
+        CreateInfo::Renderer rendererInfo;
+    };
+
+    std::optional<ParsedScene> LoadSceneFromFile(std::string const& path);
 
 private:
-    std::unique_ptr<Scene> LoadSceneFromJSON(std::string const& path);
+    std::optional<ParsedScene> LoadSceneFromJSON(std::string const& path);
+
 
 };
 

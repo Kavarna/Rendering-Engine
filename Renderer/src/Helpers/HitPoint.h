@@ -13,16 +13,17 @@ public:
 
 public:
     void SetColor(Jnrlib::Color const& color);
-    void SetIntersectionPoint(Jnrlib::Float t, uint32_t index = 0);
+    void SetIntersectionPoint(Jnrlib::Float t);
+    void SetNormal(Jnrlib::Direction const& normal);
 
 public:
     Jnrlib::Color const& GetColor() const;
-    Jnrlib::Float GetIntersectionPoint(uint32_t index = 0) const;
-
-    std::array<Jnrlib::Float, MAX_INTERSECTION_POINTS> const& GetIntersectionPoints() const;
+    Jnrlib::Direction const& GetNormal() const;
+    Jnrlib::Float GetIntersectionPoint() const;
 
 private:
     Jnrlib::Color mColor;
-    std::array<Jnrlib::Float, MAX_INTERSECTION_POINTS> mIntersectionPoints;
+    Jnrlib::Direction mNormal;
+    Jnrlib::Float mIntersectionPoint;
 
 };

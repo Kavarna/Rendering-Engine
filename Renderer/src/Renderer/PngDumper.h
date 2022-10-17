@@ -36,7 +36,7 @@ private:
     png::image<png::rgba_pixel> mImage;
     std::string mName;
     uint32_t mTotalWork;
-    uint32_t mDoneWork = 0;
+    std::atomic<uint32_t> mDoneWork = 0;
 };
 
 

@@ -8,14 +8,6 @@
 
 namespace CreateInfo
 {
-    enum class RendererType
-    {
-        PathTracing,
-        None
-    };
-    RendererType GetRendererTypeFromString(std::string const& str);
-    std::string GetStringFromRendererType(RendererType rendererType);
-
     struct ImageInfo
     {
         std::size_t width;
@@ -32,7 +24,6 @@ namespace CreateInfo
 
     struct Scene
     {
-        RendererType rendererType;
         std::string outputFile;
         ImageInfo imageInfo;
 

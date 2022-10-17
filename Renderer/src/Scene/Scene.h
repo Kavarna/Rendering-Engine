@@ -15,7 +15,6 @@ public:
     ~Scene();
 
 public:
-    CreateInfo::RendererType GetRendererType() const;
     std::string GetOutputFile() const;
 
     const CreateInfo::ImageInfo& GetImageInfo() const;
@@ -28,7 +27,6 @@ public:
 
 private:
     std::string mOutputFile;
-    CreateInfo::RendererType mRendererType;
     CreateInfo::ImageInfo mImageInfo;
 
     std::unique_ptr<Camera> mCamera;

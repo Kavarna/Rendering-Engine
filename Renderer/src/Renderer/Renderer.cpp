@@ -3,7 +3,8 @@
 #include "PngDumper.h"
 
 
-void RenderScene(std::unique_ptr<Scene>& scene)
+
+void RenderScene(std::unique_ptr<Scene>& scene, CreateInfo::Renderer const& rendererInfo)
 {
 	using namespace std::placeholders;
 
@@ -11,11 +12,11 @@ void RenderScene(std::unique_ptr<Scene>& scene)
 
 	PngDumper dumper((uint32_t)imageInfo.width, (uint32_t)imageInfo.height, scene->GetOutputFile());
 
-	switch (scene->GetRendererType())
+	switch (rendererInfo.rendererType)
 	{
 		case CreateInfo::RendererType::PathTracing:
 		{
-			PathTracing(dumper, *scene.get()).Render();
+			PathTracing(dumper, *scene.get(), rendererInfo.numSamples, rendererInfo.maxDepth).Render();
 			break;
 		}
 		default:

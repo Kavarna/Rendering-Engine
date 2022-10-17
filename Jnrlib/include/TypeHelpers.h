@@ -6,6 +6,8 @@
 
 #include <glm/glm.hpp>
 
+#include "effolkronium/random.hpp"
+
 template <typename T>
 std::ostream& operator<<(std::ostream& stream, std::vector<T> const& vct)
 {
@@ -77,4 +79,30 @@ namespace Jnrlib
             return string_to_dvec4(str);
         }
     }
+}
+
+namespace Jnrlib
+{
+    using Random = effolkronium::random_static;
+
+#if USE_FLOAT32
+    using Color = glm::vec4;
+    using Position = glm::vec3;
+    using Direction = glm::vec3;
+
+    using Float = float;
+
+#elif USE_FLOAT64
+    using Color = glm::dvec4;
+    using Position = glm::dvec3;
+    using Direction = glm::dvec3;
+
+    using Float = double;
+#endif
+
+    constexpr Float Zero = (Float)0;
+    constexpr Float Quarter = (Float)1 / (Float)4;
+    constexpr Float Half = (Float)1 / (Float)2;
+    constexpr Float One = (Float)1;
+    constexpr Float EPSILON = (Float)0.0001f;
 }

@@ -115,16 +115,19 @@ int main(int argc, char const* argv[])
         LOG(INFO) << "Starting application in render mode";
         LOG(INFO) << "Running for config files: " << options->sceneFiles;
 
-        std::vector<std::unique_ptr<Scene>> scenes;
-        scenes.reserve(options->sceneFiles.size());
+        std::vector<SceneFactory::ParsedScene> parsedScenes;
+        parsedScenes.reserve(options->sceneFiles.size());
         for (const auto& it : options->sceneFiles)
         {
-            scenes.emplace_back(SceneFactory::Get()->LoadSceneFromFile(it));
+            if (auto parsedScene = SceneFactory::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+            {
+                parsedScenes.emplace_back(std::move(*parsedScene));
+            }
         }
         
-        for (auto& scene : scenes)
+        for (auto& parsedScene : parsedScenes)
         {
-            RenderScene(scene);
+            RenderScene(parsedScene.scene, parsedScene.rendererInfo);
         }
     }
 }

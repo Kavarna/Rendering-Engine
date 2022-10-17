@@ -10,10 +10,10 @@ SceneFactory::SceneFactory()
 SceneFactory::~SceneFactory()
 { }
 
-std::unique_ptr<Scene> SceneFactory::LoadSceneFromFile(std::string const& path)
+std::optional<SceneFactory::ParsedScene> SceneFactory::LoadSceneFromFile(std::string const& path)
 {
-    if (auto scene = LoadSceneFromJSON(path); scene != nullptr) return scene;
-    return nullptr;
+    if (auto parsedScene = LoadSceneFromJSON(path); parsedScene.has_value()) return parsedScene;
+    return std::nullopt;
 }
 
 template <typename T>
@@ -42,13 +42,14 @@ nlohmann::json get_sub_js(nlohmann::json& js, const char* key)
 }
 
 
-std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
+std::optional<SceneFactory::ParsedScene> SceneFactory::LoadSceneFromJSON(std::string const& path)
 {
     LOG(INFO) << "Attempting to load scene from JSON file " << path;
 
     nlohmann::json js;
     CreateInfo::Scene sceneInfo;
     CreateInfo::Camera cameraInfo;
+    CreateInfo::Renderer rendererInfo;
 
     try
     {
@@ -58,7 +59,7 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     catch (std::exception const& e)
     {
         LOG(ERROR) << "Unable to parse " << path << " as JSON. Error: " << e.what();
-        return nullptr;
+        return std::nullopt;
     }
 
     try
@@ -80,6 +81,7 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
             LOG(INFO) << "Successfully parsed materials";
         }
         CreateInfo::from_json(js, sceneInfo);
+        CreateInfo::from_json(js, rendererInfo);
         if (js.contains("camera"))
         {
             LOG(INFO) << "Found camera, parsing camera";
@@ -90,7 +92,7 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     catch (std::exception const& e)
     {
         LOG(ERROR) << "Error while parsing the scene json: " << e.what();
-        return nullptr;
+        return std::nullopt;
     }
 
     LOG(INFO) << "Successfully loaded scene from JSON file" << path;
@@ -101,6 +103,9 @@ std::unique_ptr<Scene> SceneFactory::LoadSceneFromJSON(std::string const& path)
     std::unique_ptr<Camera> camera = std::make_unique<Camera>(cameraInfo);
     scene->SetCamera(std::move(camera));
 
-    return scene;
+    return ParsedScene{
+        .scene = std::move(scene),
+        .rendererInfo = rendererInfo
+    };
 }
 

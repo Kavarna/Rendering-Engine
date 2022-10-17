@@ -26,13 +26,53 @@ std::optional<HitPoint> Sphere::IntersectRay(Ray const& r)
 
     Jnrlib::Float thc = sqrt(mRadius * mRadius - d2);
 
-    Jnrlib::Float firstPoint = tca - thc;
-    Jnrlib::Float secondPoint = tca + thc;
+    Jnrlib::Float minPoint = Jnrlib::Zero, maxPoint = Jnrlib::Zero, intersectionPoint = Jnrlib::Zero;
+    /* Compute the intersection point */
+    {
+        Jnrlib::Float firstPoint = tca - thc;
+        Jnrlib::Float secondPoint = tca + thc;
+
+        if (firstPoint > secondPoint)
+        {
+            minPoint = secondPoint;
+            maxPoint = firstPoint;
+        }
+        else
+        {
+            minPoint = firstPoint;
+            maxPoint = secondPoint;
+        }
+        if (minPoint >= 0.0)
+        {
+            intersectionPoint = minPoint;
+        }
+        else if (maxPoint > 0.0)
+        {
+            intersectionPoint = maxPoint;
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    /* Compute the normal */
+    Jnrlib::Position hitPosition = r.At(intersectionPoint);
+    Jnrlib::Direction normal = hitPosition - mPosition;
+
+    /* Reject back-facing intersections */
+    if (glm::dot(normal, r.GetDirection()) > 0)
+    {
+        return std::nullopt;
+    }
+
+    if (abs(intersectionPoint) < Jnrlib::EPSILON)
+        return std::nullopt;
 
     HitPoint hp = {};
     hp.SetColor(mMaterial.color);
-    hp.SetIntersectionPoint(std::min(firstPoint, secondPoint), 0);
-    hp.SetIntersectionPoint(std::max(firstPoint, secondPoint), 1);
+    hp.SetIntersectionPoint(intersectionPoint);
+    hp.SetNormal(normal);
 
     return hp;
 }

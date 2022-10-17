@@ -10,20 +10,24 @@ Jnrlib::Color const& HitPoint::GetColor() const
     return mColor;
 }
 
-Jnrlib::Float HitPoint::GetIntersectionPoint(uint32_t index) const
+Jnrlib::Direction const& HitPoint::GetNormal() const
 {
-    CHECK(index < MAX_INTERSECTION_POINTS) << "Unable to get intersection point " << index << ". Maximum is " << MAX_INTERSECTION_POINTS;
-    return mIntersectionPoints[index];
+    return mNormal;
 }
 
-std::array<Jnrlib::Float, HitPoint::MAX_INTERSECTION_POINTS> const& HitPoint::GetIntersectionPoints() const
+Jnrlib::Float HitPoint::GetIntersectionPoint() const
 {
-    return mIntersectionPoints;
+    return mIntersectionPoint;
 }
 
-void HitPoint::SetIntersectionPoint(Jnrlib::Float t, uint32_t index)
+void HitPoint::SetIntersectionPoint(Jnrlib::Float t)
 {
-    CHECK(index < MAX_INTERSECTION_POINTS) << "Unable to set intersection point " << index << ". Maximum is " << MAX_INTERSECTION_POINTS;
-    mIntersectionPoints[index] = t;
+    mIntersectionPoint = t;
+}
+
+void HitPoint::SetNormal(Jnrlib::Direction const& normal)
+{
+    CHECK(!(normal.x == Jnrlib::Zero && normal.y == Jnrlib::Zero && normal.z == Jnrlib::Zero)) << "Normal cannot be (0, 0, 0)";
+    mNormal = glm::normalize(normal);
 }
 
