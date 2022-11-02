@@ -3,9 +3,10 @@
 using nlohmann::json;
 
 Sphere::Sphere(std::string const& name, Jnrlib::Position const& position, Jnrlib::Float radius, std::string const& materialName) :
-    mName(name), mPosition(position), mRadius(radius), mMaterial(MaterialManager::Get()->GetMaterial(materialName))
+    mName(name), mPosition(position), mRadius(radius)
 {
-    CHECK((mMaterial.mask & Material::FeaturesMask::Color) != 0) << "Sphere material must have a color";
+    mMaterial = MaterialManager::Get()->GetMaterial(materialName);
+    CHECK(mMaterial != nullptr) << "A sphere must have a material";
 }
 
 Sphere::~Sphere()
@@ -70,7 +71,6 @@ std::optional<HitPoint> Sphere::IntersectRay(Ray const& r)
         return std::nullopt;
 
     HitPoint hp = {};
-    hp.SetColor(mMaterial.color);
     hp.SetIntersectionPoint(intersectionPoint);
     hp.SetNormal(normal);
 
@@ -100,18 +100,20 @@ std::istream& operator>>(std::istream& stream, Sphere& s)
 void to_json(nlohmann::json& j, const Sphere& s)
 {
     j["name"] = s.mName;
-    j["material"] = s.mMaterial.name;
     j["radius"] = s.mRadius;
     j["position"] = Jnrlib::to_string(s.mPosition);
+    j["material"] = s.mMaterial->GetName();
 }
 
 void from_json(const nlohmann::json & j, Sphere & s)
 {
-    std::string positionString;
+    std::string positionString, materialName;
     j.at("name").get_to(s.mName);
-    j.at("material").get_to(s.mMaterial.name);
     j.at("radius").get_to(s.mRadius);
     j.at("position").get_to(positionString);
+    j.at("material").get_to(materialName);
+
+    MaterialManager::Get()->GetMaterial(materialName);
+
     s.mPosition = Jnrlib::to_type<Jnrlib::Position>(positionString);
-    s.mMaterial = MaterialManager::Get()->GetMaterial(s.mMaterial.name);
 }

@@ -10,19 +10,23 @@
     "materials": [
         {
             "name": "red",
-            "color": "(1.0, 0.0, 0.0, 1.0)"
+            "type": "Lambertian",
+            "attenuation": "(1.0, 0.0, 0.0, 1.0)"
         },
         {
             "name": "blue",
-            "color": "(0.0, 0.0, 1.0, 1.0)"
+            "type": "Lambertian",
+            "attenuation": "(0.0, 0.0, 1.0, 1.0)"
         },
         {
             "name": "yellow",
-            "color": "(1.0, 1.0, 0.0, 1.0)"
+            "type": "Lambertian",
+            "attenuation": "(1.0, 1.0, 0.0, 1.0)"
         },
         {
             "name": "green",
-            "color": "(0.0, 1.0, 0.0, 1.0)"
+            "type": "Lambertian",
+            "attenuation": "(0.0, 1.0, 0.0, 1.0)"
         }
     ],
     "objects": [

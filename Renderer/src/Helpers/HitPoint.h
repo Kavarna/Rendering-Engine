@@ -2,6 +2,8 @@
 
 #include <Jnrlib.h>
 
+#include "Material/Material.h"
+
 class HitPoint
 {
 public:
@@ -12,18 +14,19 @@ public:
     ~HitPoint() = default;
 
 public:
-    void SetColor(Jnrlib::Color const& color);
     void SetIntersectionPoint(Jnrlib::Float t);
     void SetNormal(Jnrlib::Direction const& normal);
+    void SetMaterial(std::shared_ptr<IMaterial> material);
 
 public:
-    Jnrlib::Color const& GetColor() const;
     Jnrlib::Direction const& GetNormal() const;
     Jnrlib::Float GetIntersectionPoint() const;
+    std::shared_ptr<IMaterial> GetMaterial() const;
 
 private:
-    Jnrlib::Color mColor;
     Jnrlib::Direction mNormal;
     Jnrlib::Float mIntersectionPoint;
+
+    std::shared_ptr<IMaterial> mMaterial;
 
 };

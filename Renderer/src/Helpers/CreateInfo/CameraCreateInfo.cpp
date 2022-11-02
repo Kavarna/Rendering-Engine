@@ -12,9 +12,9 @@ namespace CreateInfo
         if (aspectRatio == -1)
         {
             aspectRatio = (float)width / (float)height;
-            viewportHeight = 2.0f;
-            viewportWidth = viewportHeight * aspectRatio;
         }
+        viewportHeight = 2.0f;
+        viewportWidth = viewportHeight * aspectRatio;
     }
 
     std::ostream& operator << (std::ostream& stream, CreateInfo::Camera const& cameraInfo)
@@ -47,6 +47,7 @@ namespace CreateInfo
         j["viewport-width"] = cameraInfo.viewportWidth;
         j["viewport-height"] = cameraInfo.viewportHeight;
         j["focal-length"] = cameraInfo.focalLength;
+        j["aspect-ratio"] = cameraInfo.aspectRatio;
     }
 
     void from_json(const nlohmann::json& j, Camera& cameraInfo)
@@ -65,5 +66,6 @@ namespace CreateInfo
         j.at("viewport-width").get_to(cameraInfo.viewportWidth);
         j.at("viewport-height").get_to(cameraInfo.viewportHeight);
         j.at("focal-length").get_to(cameraInfo.focalLength);
+        j.at("aspect-ratio").get_to(cameraInfo.aspectRatio);
     }
 }

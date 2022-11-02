@@ -75,12 +75,18 @@ Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
     {
         HitPoint hp = (*_hp);
 
+        auto material = hp.GetMaterial();
+
+        material->Scatter(ray, hp);
+
         Jnrlib::Direction newDirection = hp.GetNormal() + Jnrlib::GetRandomDirectionInUnitSphere();
 
         Ray newRay(ray.At(hp.GetIntersectionPoint()), newDirection);
         Jnrlib::Color newColor = Jnrlib::Half * GetRayColor(newRay, depth + 1);
 
-        return Jnrlib::Half * hp.GetColor() + newColor;
+        Jnrlib::Color color = Jnrlib::Color((hp.GetNormal() + 1.0f) * 0.5f, 1.0f);
+
+        return Jnrlib::Half * color + newColor;
     }
     else
     {

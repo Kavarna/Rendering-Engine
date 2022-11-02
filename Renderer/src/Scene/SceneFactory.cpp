@@ -68,12 +68,12 @@ std::optional<SceneFactory::ParsedScene> SceneFactory::LoadSceneFromJSON(std::st
         {
             LOG(INFO) << "Found materials, parsing materials";
             nlohmann::json materialsJson = js["materials"];
-            std::vector<Material> materials;
+            std::vector<CreateInfo::Material> materials;
             materials.reserve(materialsJson.size());
 
             for (auto const& material : materialsJson)
             {
-                Material m;
+                CreateInfo::Material m;
                 from_json(material, m);
                 materials.emplace_back(m);
             }

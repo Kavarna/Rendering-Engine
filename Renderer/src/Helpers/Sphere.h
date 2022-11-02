@@ -24,7 +24,6 @@ private:
     Jnrlib::Float mRadius;
 
     std::string mName;
-    Material mMaterial;
-
+    std::shared_ptr<IMaterial> mMaterial;
 };
 
