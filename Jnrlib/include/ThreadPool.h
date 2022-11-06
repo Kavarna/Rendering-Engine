@@ -29,7 +29,7 @@ namespace Jnrlib
     public:
         std::shared_ptr<struct Task> ExecuteDeffered(std::function<void()> func);
         void Wait(std::shared_ptr<struct Task> task, WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
-        void WaitForAll();
+        void WaitForAll(WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
         void CancelRemainingTasks();
 
         bool IsTaskCompleted(std::shared_ptr<struct Task> task);
@@ -44,6 +44,9 @@ namespace Jnrlib
         void WaitForTaskToFinish(std::shared_ptr<struct Task> task);
         void ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> task);
         void ExecuteSpecificTask(std::shared_ptr<struct Task> task);
+
+        void WaitForAllToFinish();
+        void WaitForAllExecutingTasks();
 
     private:
         std::vector<std::thread> mThreads;

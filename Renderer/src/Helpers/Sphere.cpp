@@ -73,6 +73,7 @@ std::optional<HitPoint> Sphere::IntersectRay(Ray const& r)
     HitPoint hp = {};
     hp.SetIntersectionPoint(intersectionPoint);
     hp.SetNormal(normal);
+    hp.SetMaterial(mMaterial);
 
     return hp;
 }
@@ -113,7 +114,6 @@ void from_json(const nlohmann::json & j, Sphere & s)
     j.at("position").get_to(positionString);
     j.at("material").get_to(materialName);
 
-    MaterialManager::Get()->GetMaterial(materialName);
-
+    s.mMaterial = MaterialManager::Get()->GetMaterial(materialName);
     s.mPosition = Jnrlib::to_type<Jnrlib::Position>(positionString);
 }

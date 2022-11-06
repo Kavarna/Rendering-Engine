@@ -2,9 +2,10 @@
 
 
 #include "Ray.h"
-#include "HitPoint.h"
 #include <nlohmann/json.hpp>
 #include "CreateInfo/MaterialCreateInfo.h"
+
+class HitPoint;
 
 struct ScatterInfo
 {

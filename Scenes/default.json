@@ -1,7 +1,7 @@
 {
     "renderer-type": "pathtracing",
-    "num-samples": 100,
-    "max-depth": 50,
+    "num-samples": 1024,
+    "max-depth": 30,
     "output-file": "result.png",
     "image-info": {
         "width": 512,
@@ -34,15 +34,8 @@
             "type": "Sphere",
             "name": "Red-Sphere",
             "radius": 1.0,
-            "position": "(-1.0, -1.0, 5.0)",
+            "position": "(0.0, -1.0, 5.0)",
             "material": "red"
-        },
-        {
-            "type": "Sphere",
-            "name": "Blue-Sphere",
-            "radius": 1.0,
-            "position": "(1.0, -1.0, 5.0)",
-            "material": "blue"
         },
         {
             "type": "Sphere",

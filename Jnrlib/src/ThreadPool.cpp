@@ -6,12 +6,11 @@
 
 #define WAIT_ALL_ACTIVE_THREADS \
 { \
-uint64_t oldValue = mActiveTasksCount; \
-while (oldValue != 0) \
-{ \
-    mActiveTasksCount.wait(oldValue, std::memory_order::relaxed); \
-    oldValue = mActiveTasksCount; \
-} \
+while (true) \
+{\
+    if (mActiveTasksCount.load() == 0) \
+        break; \
+}\
 }
 
 namespace Jnrlib
@@ -120,19 +119,19 @@ void ThreadPool::Wait(std::shared_ptr<struct Task> task, WaitPolicy wp)
     }
 }
 
-void ThreadPool::WaitForAll()
+void Jnrlib::ThreadPool::WaitForAll(WaitPolicy wp)
 {
-    // Make sure that there are no tasks to be run
-    std::unique_lock<std::mutex> lock(mWorkListMutex);
-    if (mWorkList != nullptr)
+    switch (wp)
     {
-        mWorkersCV.wait(lock, [this]
-        {
-            return mWorkList == nullptr;
-        });
+        case Jnrlib::ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT:
+            WaitForAllExecutingTasks();
+            break;
+        case Jnrlib::ThreadPool::WaitPolicy::EXIT_ASAP:
+            WaitForAllToFinish();
+            break;
+        default:
+            CHECK(false) << "Invalid policy provided to WaitForAll()";
     }
-    
-    WAIT_ALL_ACTIVE_THREADS;
 }
 
 void ThreadPool::CancelRemainingTasks()
@@ -198,7 +197,6 @@ void ThreadPool::WorkerThread(uint32_t index)
                 VLOG(2) << "Removing to active tasks task with id = " << myTask->taskID;
                 mActiveTasksCount--;
                 VLOG(3) << "Thread " << index << " decreased active tasks to " << mActiveTasksCount;
-                mActiveTasksCount.notify_all();
                 mWorkersCV.notify_all();
             }
 
@@ -225,11 +223,9 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
     std::unique_lock<std::mutex> lock(mWorkListMutex);
     while (true)
     {
-        {
-            // Is it complete? then return
-            if (task->IsCompleted())
-                break;
-        }
+        // Is it complete? then return
+        if (task->IsCompleted())
+            break;
         if (mWorkList == nullptr)
         {
             // No work left? Let's check whether the task is completed
@@ -240,20 +236,25 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 
             // Not completed? Let's wait for active tasks
             bool found = false;
-            uint64_t oldValue = mActiveTasksCount;
-            while (oldValue != 0)
+            while (true)
             {
-                mActiveTasksCount.wait(oldValue, std::memory_order::relaxed);
-                oldValue = mActiveTasksCount;
                 if (task->IsCompleted())
                 {
                     found = true;
                     break;
                 }
+                if (mActiveTasksCount.load() == 0)
+                    break;
             }
 
             if (!found)
+            {
                 throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+            }
+            else
+            {
+                break;
+            }
         }
 
         // Get the first task in work list and then execute it
@@ -264,7 +265,6 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
         lock.unlock();
 
         myTask->Work();
-
 
         lock.lock();
     }
@@ -354,4 +354,52 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 
     // This should never happen
     throw Jnrlib::Exceptions::ImpossibleToGetHere("Task ID = " + std::to_string(task->taskID) + ". Could not be found");
+}
+
+void Jnrlib::ThreadPool::WaitForAllToFinish()
+{
+    // Make sure that there are no tasks to be run
+    std::unique_lock<std::mutex> lock(mWorkListMutex);
+    if (mWorkList != nullptr)
+    {
+        mWorkersCV.wait(lock, [this]
+        {
+            return mWorkList == nullptr;
+        });
+    }
+
+    WAIT_ALL_ACTIVE_THREADS;
+}
+
+void Jnrlib::ThreadPool::WaitForAllExecutingTasks()
+{
+    // Execute tasks in the queue until the searched task is executed
+    std::unique_lock<std::mutex> lock(mWorkListMutex);
+    while (true)
+    {
+        // No tasks left in the worklist, wait for all threads to finish working
+        if (mWorkList == nullptr)
+        {
+            // Not completed? Let's wait for active tasks
+            bool found = false;
+            while (true)
+            {
+                if (mActiveTasksCount.load() == 0)
+                    break;
+            }
+
+            break;
+        }
+
+        // Get the first task in work list and then execute it
+        std::shared_ptr<Task> myTask = mWorkList;
+        mWorkList = mWorkList->nextTask;
+        myTask->nextTask = nullptr;
+
+        lock.unlock();
+
+        myTask->Work();
+
+        lock.lock();
+    }
 }

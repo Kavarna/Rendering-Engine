@@ -20,7 +20,7 @@ namespace
         EXPECT_NE(threadPool, nullptr);
     }
 
-    TEST_P(Threading, ThreadingEventualCompleteness)
+    TEST_P(Threading, ThreadingEventualCompletenessWait)
     {
         EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
 
@@ -39,7 +39,36 @@ namespace
             });
         }
 
-        threadPool->WaitForAll();
+        threadPool->WaitForAll(ThreadPool::WaitPolicy::EXIT_ASAP);
+
+        // Check the result
+        for (uint32_t j = 0; j < numbersCount; ++j)
+        {
+            EXPECT_EQ(numbers[j], 1);
+        }
+
+    }
+
+    TEST_P(Threading, ThreadingEventualCompletenessWaitExecute)
+    {
+        EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
+
+        auto threadPool = ThreadPool::Get();
+        EXPECT_NE(threadPool, nullptr);
+
+        // Test
+        constexpr const unsigned int numbersCount = 100;
+        int numbers[numbersCount] = {};
+
+        for (uint32_t j = 0; j < numbersCount; ++j)
+        {
+            threadPool->ExecuteDeffered([j, &numbers]()
+            {
+                numbers[j] = 1;
+            });
+        }
+
+        threadPool->WaitForAll(ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT);
 
         // Check the result
         for (uint32_t j = 0; j < numbersCount; ++j)

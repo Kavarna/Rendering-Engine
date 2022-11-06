@@ -27,6 +27,9 @@ void PathTracing::Render()
     Jnrlib::Float halfViewportHeight = Jnrlib::Half * mScene.GetCamera().GetViewportHeight();
 
     Jnrlib::Position upperLeftCorner = pos + forwardDirection * focalDistance - rightDirection * halfViewportWidth + upDirection * halfViewportHeight;
+
+    SetPixelColor(0, 0, width, height, upperLeftCorner);
+
     for (uint32_t y = 0; y < height; ++y)
     {
         for (uint32_t x = 0; x < width; ++x)
@@ -69,29 +72,28 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
 Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
 {
     if (depth >= mMaxDepth)
+    {
         return Jnrlib::Color(Jnrlib::Zero);
+    }
 
     if (auto _hp = mScene.GetClosestHit(ray); _hp.has_value())
     {
         HitPoint hp = (*_hp);
 
         auto material = hp.GetMaterial();
+        
+        std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, hp);
+        if (!scatterInfo.has_value())
+            return Jnrlib::Color(Jnrlib::Zero);
+;
+        Jnrlib::Color newColor = GetRayColor(scatterInfo->ray, depth + 1);
 
-        material->Scatter(ray, hp);
-
-        Jnrlib::Direction newDirection = hp.GetNormal() + Jnrlib::GetRandomDirectionInUnitSphere();
-
-        Ray newRay(ray.At(hp.GetIntersectionPoint()), newDirection);
-        Jnrlib::Color newColor = Jnrlib::Half * GetRayColor(newRay, depth + 1);
-
-        Jnrlib::Color color = Jnrlib::Color((hp.GetNormal() + 1.0f) * 0.5f, 1.0f);
-
-        return Jnrlib::Half * color + newColor;
+        return scatterInfo->attenuation * newColor;
     }
     else
     {
         Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
-        Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::One);
+        Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half + Jnrlib::Quarter);
         Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Half, Jnrlib::Half, Jnrlib::One, 1.0f);
         return t * whiteSkyColor + (Jnrlib::One - t) * blueSkyColor;
     }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <Jnrlib.h>
+#include <Material/Material.h>
 
-#include "Material/Material.h"
 
 class HitPoint
 {

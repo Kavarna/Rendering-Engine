@@ -35,6 +35,7 @@ void PngDumper::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& col)
 {
     Jnrlib::Color c = glm::clamp(col, Jnrlib::Zero, Jnrlib::One);
     
+#define USE_GAMMA
 #if defined USE_GAMMA
     /* Apply gamma corrections */
     c = sqrt(c);
