@@ -28,7 +28,7 @@ void PathTracing::Render()
 
     Jnrlib::Position upperLeftCorner = pos + forwardDirection * focalDistance - rightDirection * halfViewportWidth + upDirection * halfViewportHeight;
 
-    SetPixelColor(0, 0, width, height, upperLeftCorner);
+    SetPixelColor(293, 304, width, height, upperLeftCorner);
 
     for (uint32_t y = 0; y < height; ++y)
     {
@@ -93,7 +93,7 @@ Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
     else
     {
         Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
-        Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half + Jnrlib::Quarter);
+        Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
         Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Half, Jnrlib::Half, Jnrlib::One, 1.0f);
         return t * whiteSkyColor + (Jnrlib::One - t) * blueSkyColor;
     }

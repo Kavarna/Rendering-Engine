@@ -10,6 +10,7 @@ namespace CreateInfo
     enum MaterialType
     {
         Lambertian,
+        Metal,
         None,
     };
     MaterialType GetMaterialTypeFromString(std::string const& str);
@@ -21,11 +22,13 @@ namespace CreateInfo
 
         std::string name;
         Jnrlib::Color attenuation;
+        Jnrlib::Float fuziness;
         MaterialType type;
 
         enum FeaturesMask : FeatureType
         {
             Attenuation = 1,
+            Fuzziness = 2,
         };
         FeatureType mask = 0;
 

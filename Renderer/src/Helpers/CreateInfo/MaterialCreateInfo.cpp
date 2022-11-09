@@ -10,6 +10,8 @@ namespace CreateInfo
     {
         if (boost::iequals(str, "lambertian"))
             return MaterialType::Lambertian;
+        else if (boost::iequals(str, "metal"))
+            return MaterialType::Metal;
         return MaterialType::None;
     }
 
@@ -19,6 +21,8 @@ namespace CreateInfo
         {
             case CreateInfo::Lambertian:
                 return "Lambertian";
+            case CreateInfo::Metal:
+                return "Metal";
             case CreateInfo::None:
             default:
                 return "None";
@@ -53,6 +57,10 @@ namespace CreateInfo
         {
             j["attenuation"] = Jnrlib::to_string(p.attenuation);
         }
+        if (p.mask & Material::Fuzziness)
+        {
+            j["fuziness"] = Jnrlib::to_string(p.fuziness);
+        }
     }
 
     void from_json(const nlohmann::json& j, Material& p)
@@ -68,6 +76,11 @@ namespace CreateInfo
             j.at("attenuation").get_to(attenuationString);
             p.attenuation = Jnrlib::to_type<Jnrlib::Color>(attenuationString);
             p.mask |= Material::Attenuation;
+        }
+        if (j.contains("fuziness"))
+        {
+            j.at("fuziness").get_to(p.fuziness);
+            p.mask |= Material::Fuzziness;
         }
     }
 }

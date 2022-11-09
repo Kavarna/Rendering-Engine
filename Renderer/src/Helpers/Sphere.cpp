@@ -115,5 +115,6 @@ void from_json(const nlohmann::json & j, Sphere & s)
     j.at("material").get_to(materialName);
 
     s.mMaterial = MaterialManager::Get()->GetMaterial(materialName);
+    CHECK(s.mMaterial != nullptr) << "A sphere must have a material";
     s.mPosition = Jnrlib::to_type<Jnrlib::Position>(positionString);
 }

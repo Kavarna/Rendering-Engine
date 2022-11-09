@@ -1,5 +1,6 @@
 #include "MaterialManager.h"
 #include "Material/Lambertian.h"
+#include "Material/Metal.h"
 
 void MaterialManager::AddMaterial(CreateInfo::Material const& material)
 {
@@ -30,6 +31,8 @@ std::shared_ptr<IMaterial> MaterialManager::CreateMaterial(CreateInfo::Material 
 	{
 		case CreateInfo::MaterialType::Lambertian:
 			return std::make_shared<Lambertian>(matInfo);
+		case CreateInfo::MaterialType::Metal:
+			return std::make_shared<Metal>(matInfo);
 		case CreateInfo::MaterialType::None:
 		default:
 			return nullptr;
