@@ -74,8 +74,14 @@ void PngDumper::AddDoneWork()
     std::cout << "Progress: [";
     for (int i = 0; i != barLength; ++i)
     {
-        if (i < pos)
+        if (i < pos - 1)
+        {
             std::cout << "#";
+        }
+        else if (i == pos - 1)
+        {
+            std::cout << (i + 1);
+        }
         else if (i == pos)
         {
             std::cout << secondNumber;

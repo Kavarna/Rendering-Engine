@@ -61,19 +61,25 @@ std::optional<HitPoint> Sphere::IntersectRay(Ray const& r)
     Jnrlib::Position hitPosition = r.At(intersectionPoint);
     Jnrlib::Direction normal = hitPosition - mPosition;
 
-    /* Reject back-facing intersections */
-    if (glm::dot(normal, r.GetDirection()) > 0)
-    {
-        return std::nullopt;
-    }
-
     if (abs(intersectionPoint) < Jnrlib::EPSILON)
         return std::nullopt;
 
+    /* Fill the hitpoint */
     HitPoint hp = {};
     hp.SetIntersectionPoint(intersectionPoint);
-    hp.SetNormal(normal);
     hp.SetMaterial(mMaterial);
+    if (glm::dot(normal, r.GetDirection()) < 0)
+    {
+        /* We're hitting the sphere in the front */
+        hp.SetNormal(normal);
+        hp.SetFrontFace(true);
+    }
+    else
+    {
+        /* We're hitting the sphere in the back, so the normal has to be reversed */
+        hp.SetNormal(-normal);
+        hp.SetFrontFace(false);
+    }
 
     return hp;
 }

@@ -12,6 +12,8 @@ namespace CreateInfo
             return MaterialType::Lambertian;
         else if (boost::iequals(str, "metal"))
             return MaterialType::Metal;
+        else if (boost::iequals(str, "dielectric"))
+            return MaterialType::Dieletric;
         return MaterialType::None;
     }
 
@@ -19,11 +21,13 @@ namespace CreateInfo
     {
         switch (materialType)
         {
-            case CreateInfo::Lambertian:
+            case MaterialType::Lambertian:
                 return "Lambertian";
-            case CreateInfo::Metal:
+            case MaterialType::Metal:
                 return "Metal";
-            case CreateInfo::None:
+            case MaterialType::Dieletric:
+                return "Dielectric";
+            case MaterialType::None:
             default:
                 return "None";
         }
@@ -61,6 +65,10 @@ namespace CreateInfo
         {
             j["fuziness"] = Jnrlib::to_string(p.fuziness);
         }
+        if (p.mask & Material::RefractionIndex)
+        {
+            j["refraction-index"] = p.refractionIndex;
+        }
     }
 
     void from_json(const nlohmann::json& j, Material& p)
@@ -81,6 +89,11 @@ namespace CreateInfo
         {
             j.at("fuziness").get_to(p.fuziness);
             p.mask |= Material::Fuzziness;
+        }
+        if (j.contains("refraction-index"))
+        {
+            j.at("refraction-index").get_to(p.refractionIndex);
+            p.mask |= Material::RefractionIndex;
         }
     }
 }

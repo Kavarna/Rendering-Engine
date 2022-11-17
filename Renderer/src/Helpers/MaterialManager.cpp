@@ -1,6 +1,7 @@
 #include "MaterialManager.h"
 #include "Material/Lambertian.h"
 #include "Material/Metal.h"
+#include "Material/Dielectric.h"
 
 void MaterialManager::AddMaterial(CreateInfo::Material const& material)
 {
@@ -33,6 +34,8 @@ std::shared_ptr<IMaterial> MaterialManager::CreateMaterial(CreateInfo::Material 
 			return std::make_shared<Lambertian>(matInfo);
 		case CreateInfo::MaterialType::Metal:
 			return std::make_shared<Metal>(matInfo);
+		case CreateInfo::MaterialType::Dieletric:
+			return std::make_shared<Dielectric>(matInfo);
 		case CreateInfo::MaterialType::None:
 		default:
 			return nullptr;

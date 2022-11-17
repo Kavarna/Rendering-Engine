@@ -28,7 +28,7 @@ void PathTracing::Render()
 
     Jnrlib::Position upperLeftCorner = pos + forwardDirection * focalDistance - rightDirection * halfViewportWidth + upDirection * halfViewportHeight;
 
-    SetPixelColor(293, 304, width, height, upperLeftCorner);
+    SetPixelColor(122, 339, width, height, upperLeftCorner);
 
     for (uint32_t y = 0; y < height; ++y)
     {
@@ -55,7 +55,7 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
     Jnrlib::Color color(Jnrlib::Zero);
     for (uint32_t i = 0; i < mNumSamples; ++i)
     {
-        Jnrlib::Float u = ((Jnrlib::Float)x + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One) ) / (width - 1);
+        Jnrlib::Float u = ((Jnrlib::Float)x + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (width - 1);
         Jnrlib::Float v = ((Jnrlib::Float)y + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (width - 1);
 
         Ray ray(pos, upperLeftCorner + u * rightDirection * viewportWidth - v * upDirection * viewportHeight - pos);

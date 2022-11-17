@@ -16,6 +16,11 @@ std::shared_ptr<IMaterial> HitPoint::GetMaterial() const
     return mMaterial;
 }
 
+bool HitPoint::GetFrontFace() const
+{
+    return mFrontFace;
+}
+
 void HitPoint::SetIntersectionPoint(Jnrlib::Float t)
 {
     mIntersectionPoint = t;
@@ -30,5 +35,10 @@ void HitPoint::SetNormal(Jnrlib::Direction const& normal)
 void HitPoint::SetMaterial(std::shared_ptr<IMaterial> material)
 {
     mMaterial = material;
+}
+
+void HitPoint::SetFrontFace(bool frontFace)
+{
+    mFrontFace = frontFace;
 }
 
