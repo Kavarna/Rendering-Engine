@@ -9,7 +9,7 @@ Float Reflectance(Float cosine, Float referenceIndex)
     // Use Schlick's approximation for reflectance.
     Float r0 = (One - referenceIndex) / (One + referenceIndex);
     r0 = r0 * r0;
-    return r0 + (One - r0) * pow((One - cosine), 5);
+    return r0 + (One - r0) * (Float)pow((One - cosine), 5);
 }
 
 Dielectric::Dielectric(CreateInfo::Material const& info) :
@@ -18,6 +18,14 @@ Dielectric::Dielectric(CreateInfo::Material const& info) :
     CHECK((info.mask & CreateInfo::Material::RefractionIndex) != 0) << "Dielectric material has to have a index of refraction";
 
     mRefractionIndex = info.refractionIndex;
+}
+
+Direction refract(const Direction& direction, const Direction& n, Float referenceIndex)
+{
+    Float cos_theta = (Float)fmin(dot(-direction, n), 1.0);
+    glm::vec3 r_out_perp = referenceIndex * (direction + cos_theta * n);
+    glm::vec3 r_out_parallel = -(Float)sqrt(fabs(One - r_out_perp.length() * r_out_perp.length())) * n;
+    return r_out_perp + r_out_parallel;
 }
 
 std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& hp) const
@@ -31,7 +39,6 @@ std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& h
     Direction finalRay;
 
     bool cannotRefract = refractionRatio * sinTheta > 1.0;
-
     bool reflectance = Reflectance(cosTheta, refractionRatio) > Random::get(Zero, One);
 
     if (cannotRefract || reflectance)
@@ -40,7 +47,7 @@ std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& h
     }
     else
     {
-        finalRay = glm::refract(rIn.GetDirection(), hp.GetNormal(), refractionRatio);
+        finalRay = refract(rIn.GetDirection(), hp.GetNormal(), refractionRatio);
     }
 
 
