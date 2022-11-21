@@ -61,7 +61,7 @@ std::optional<HitPoint> Sphere::IntersectRay(Ray const& r)
     Jnrlib::Position hitPosition = r.At(intersectionPoint);
     Jnrlib::Direction normal = hitPosition - mPosition;
 
-    if (abs(intersectionPoint) < Jnrlib::EPSILON)
+    if (fabs(intersectionPoint) < Jnrlib::EPSILON)
         return std::nullopt;
 
     /* Fill the hitpoint */

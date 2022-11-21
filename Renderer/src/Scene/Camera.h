@@ -22,5 +22,10 @@ public:
     Jnrlib::Direction const& GetLowerLeftCorner() const;
 
 private:
+    void CalculateLowerLeftCorner();
+
+private:
     CreateInfo::Camera mInfo;
+
+    Jnrlib::Direction mLowerLeftCorner;
 };

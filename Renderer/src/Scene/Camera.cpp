@@ -4,6 +4,7 @@ Camera::Camera(CreateInfo::Camera const& info) :
     mInfo(info)
 {
     LOG(INFO) << "Creating camera with info: " << info;
+    CalculateLowerLeftCorner();
 }
 
 Jnrlib::Position const& Camera::GetPosition() const
@@ -43,7 +44,12 @@ Jnrlib::Float const& Camera::GetViewportHeight() const
 
 Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
 {
-    return mInfo.position +
+    return mLowerLeftCorner;
+}
+
+void Camera::CalculateLowerLeftCorner()
+{
+    mLowerLeftCorner = mInfo.position +
         mInfo.forwardDirection * mInfo.focalLength - mInfo.rightDirection * mInfo.viewportWidth / Jnrlib::Two +
         mInfo.upDirection * mInfo.viewportHeight / Jnrlib::Two;
 }
