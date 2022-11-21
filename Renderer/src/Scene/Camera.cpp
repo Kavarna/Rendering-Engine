@@ -40,3 +40,10 @@ Jnrlib::Float const& Camera::GetViewportHeight() const
 {
     return mInfo.viewportHeight;
 }
+
+Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
+{
+    return mInfo.position +
+        mInfo.forwardDirection * mInfo.focalLength - mInfo.rightDirection * mInfo.viewportWidth / Jnrlib::Two +
+        mInfo.upDirection * mInfo.viewportHeight / Jnrlib::Two;
+}

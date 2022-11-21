@@ -33,7 +33,7 @@ std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& h
 
     Float refractionRatio = hp.GetFrontFace() ? One / mRefractionIndex : mRefractionIndex;
     Float cosTheta = fmin(dot(-rIn.GetDirection(), hp.GetNormal()), 1.0f);
-    Float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    Float sinTheta = sqrt(One - cosTheta * cosTheta);
 
     Position newPosition = rIn.At(hp.GetIntersectionPoint());
     Direction finalRay;

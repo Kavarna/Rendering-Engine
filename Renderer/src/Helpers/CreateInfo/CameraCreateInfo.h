@@ -18,6 +18,7 @@ namespace CreateInfo
         Jnrlib::Float viewportHeight = -1.f;
         Jnrlib::Float viewportWidth = -1.f;
         Jnrlib::Float focalLength = 1.0f;
+        Jnrlib::Float fieldOfView = Jnrlib::PI / Jnrlib::Two;
 
         void RecalculateViewport(uint32_t width, uint32_t height);
 

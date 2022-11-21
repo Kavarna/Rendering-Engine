@@ -48,3 +48,19 @@ Jnrlib::Direction Jnrlib::GetRandomDirectionInHemisphere(Jnrlib::Direction const
     }
 }
 
+Jnrlib::Direction Jnrlib::GetRandomInUnitDisk()
+{
+    while (true)
+    {
+        Jnrlib::Direction randomDirection = {
+            Random::get(-Jnrlib::One, Jnrlib::One),
+            Random::get(-Jnrlib::One, Jnrlib::One),
+            0.0f
+        };
+        if (glm::length(randomDirection) >= One)
+            continue;
+
+        return randomDirection;
+    }
+}
+

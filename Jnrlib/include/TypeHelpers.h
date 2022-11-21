@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include "effolkronium/random.hpp"
 
@@ -104,5 +105,8 @@ namespace Jnrlib
     constexpr Float Quarter = (Float)1 / (Float)4;
     constexpr Float Half = (Float)1 / (Float)2;
     constexpr Float One = (Float)1;
+    constexpr Float Two = (Float)2;
     constexpr Float EPSILON = (Float)0.0001f;
+
+    constexpr Float PI = glm::pi<Float>();
 }

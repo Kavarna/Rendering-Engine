@@ -19,6 +19,8 @@ public:
     Jnrlib::Float const& GetViewportWidth() const;
     Jnrlib::Float const& GetViewportHeight() const;
 
+    Jnrlib::Direction const& GetLowerLeftCorner() const;
+
 private:
     CreateInfo::Camera mInfo;
 };

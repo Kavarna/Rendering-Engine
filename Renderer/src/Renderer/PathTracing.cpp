@@ -18,17 +18,7 @@ void PathTracing::Render()
 
     mDumper.SetTotalWork(width * height);
 
-    Jnrlib::Position pos = mScene.GetCamera().GetPosition();
-    Jnrlib::Direction forwardDirection = mScene.GetCamera().GetForwardDirection();
-    Jnrlib::Direction rightDirection = mScene.GetCamera().GetRightDirection();
-    Jnrlib::Direction upDirection = mScene.GetCamera().GetUpDirection();
-    Jnrlib::Float focalDistance = mScene.GetCamera().GetFocalDistance();
-    Jnrlib::Float halfViewportWidth = Jnrlib::Half * mScene.GetCamera().GetViewportWidth();
-    Jnrlib::Float halfViewportHeight = Jnrlib::Half * mScene.GetCamera().GetViewportHeight();
-
-    Jnrlib::Position upperLeftCorner = pos + forwardDirection * focalDistance - rightDirection * halfViewportWidth + upDirection * halfViewportHeight;
-
-    SetPixelColor(122, 339, width, height, upperLeftCorner);
+    Jnrlib::Position upperLeftCorner = mScene.GetCamera().GetLowerLeftCorner();
 
     for (uint32_t y = 0; y < height; ++y)
     {
@@ -94,7 +84,7 @@ Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
     {
         Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
         Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
-        Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Half, Jnrlib::Half, Jnrlib::One, 1.0f);
+        Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Quarter, Jnrlib::Quarter, Jnrlib::One, 1.0f);
         return t * whiteSkyColor + (Jnrlib::One - t) * blueSkyColor;
     }
 }

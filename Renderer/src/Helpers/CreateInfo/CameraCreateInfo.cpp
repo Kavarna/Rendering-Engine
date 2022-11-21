@@ -13,7 +13,10 @@ namespace CreateInfo
         {
             aspectRatio = (float)width / (float)height;
         }
-        viewportHeight = 2.0f;
+
+        Jnrlib::Float h = tan(fieldOfView / Jnrlib::Two);
+
+        viewportHeight = 2.0f * h;
         viewportWidth = viewportHeight * aspectRatio;
     }
 
@@ -48,6 +51,8 @@ namespace CreateInfo
         j["viewport-height"] = cameraInfo.viewportHeight;
         j["focal-length"] = cameraInfo.focalLength;
         j["aspect-ratio"] = cameraInfo.aspectRatio;
+
+        j["field-of-view"] = cameraInfo.fieldOfView;
     }
 
     void from_json(const nlohmann::json& j, Camera& cameraInfo)
@@ -60,12 +65,19 @@ namespace CreateInfo
 
         cameraInfo.position = Jnrlib::to_type<Jnrlib::Position>(positionStr);
         cameraInfo.forwardDirection = Jnrlib::to_type<Jnrlib::Position>(forwardDirection);
+        cameraInfo.forwardDirection = glm::normalize(cameraInfo.forwardDirection);
+
         cameraInfo.rightDirection = Jnrlib::to_type<Jnrlib::Position>(rightDirection);
+        cameraInfo.rightDirection = glm::normalize(cameraInfo.rightDirection);
+
         cameraInfo.upDirection = Jnrlib::to_type<Jnrlib::Position>(upDirection);
+        cameraInfo.upDirection = glm::normalize(cameraInfo.upDirection);
 
         j.at("viewport-width").get_to(cameraInfo.viewportWidth);
         j.at("viewport-height").get_to(cameraInfo.viewportHeight);
         j.at("focal-length").get_to(cameraInfo.focalLength);
         j.at("aspect-ratio").get_to(cameraInfo.aspectRatio);
+
+        j.at("field-of-view").get_to(cameraInfo.fieldOfView);
     }
 }
