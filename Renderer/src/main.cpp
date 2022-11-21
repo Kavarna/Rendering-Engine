@@ -9,12 +9,14 @@
 #include "Scene/SceneFactory.h"
 #include "Renderer/Renderer.h"
 #include "ThreadPool.h"
+#include "Renderer/Window.h"
 
 enum class ApplicationMode
 {
     UNDEFINED = 0,
     TESTING,
     RENDER,
+    EDITOR,
 };
 
 struct ProgramOptions
@@ -51,6 +53,13 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
                     result.mode = ApplicationMode::TESTING;
                 }
             }), "Run all tests")
+        ("editor,e", bool_switch()->default_value(true)->notifier([&](bool value)
+            {
+                if (value)
+                {
+                    result.mode = ApplicationMode::EDITOR;
+                }
+            }), "Run the application as an editor");
         ;
 
     options_description rendererOptions{"Renderer options"};
@@ -129,5 +138,10 @@ int main(int argc, char const* argv[])
         {
             RenderScene(parsedScene.scene, parsedScene.rendererInfo);
         }
+    }
+    else if (options->mode == ApplicationMode::EDITOR)
+    {
+        LOG(INFO) << "Starting application in editor mode";
+        Window::Get()->Run();
     }
 }

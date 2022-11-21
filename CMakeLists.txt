@@ -60,6 +60,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 
 # Add projects
+
+# External projects
+include_directories("external/glfw/include")
+add_subdirectory("external/glfw")
+
+# Internal projects
 include_directories("Jnrlib/include")
 
 add_subdirectory("Jnrlib")

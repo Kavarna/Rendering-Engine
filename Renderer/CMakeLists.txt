@@ -5,6 +5,11 @@ include_directories("src/Helpers")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 
 add_executable("Renderer" ${SOURCES})
+
+find_package(Vulkan REQUIRED FATAL_ERROR)
+
+target_link_libraries("Renderer" Vulkan::Vulkan)
+target_link_libraries("Renderer" glfw)  
 target_link_libraries("Renderer" Jnrlib)
 target_link_libraries("Renderer" ${CONAN_LIBS})
 
