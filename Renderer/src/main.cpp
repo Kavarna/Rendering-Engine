@@ -9,7 +9,7 @@
 #include "Scene/SceneFactory.h"
 #include "Renderer/Renderer.h"
 #include "ThreadPool.h"
-#include "Renderer/Window.h"
+#include "Editor/Editor.h"
 
 enum class ApplicationMode
 {
@@ -136,12 +136,13 @@ int main(int argc, char const* argv[])
         
         for (auto& parsedScene : parsedScenes)
         {
-            RenderScene(parsedScene.scene, parsedScene.rendererInfo);
+            Renderer::RenderScene(parsedScene.scene, parsedScene.rendererInfo);
         }
     }
     else if (options->mode == ApplicationMode::EDITOR)
     {
         LOG(INFO) << "Starting application in editor mode";
-        Window::Get()->Run();
+        Editor::Editor::Get()->Run();
+        Editor::Editor::Destroy();
     }
 }

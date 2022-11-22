@@ -4,7 +4,7 @@
 
 
 
-void RenderScene(std::unique_ptr<Scene>& scene, CreateInfo::Renderer const& rendererInfo)
+void Renderer::RenderScene(std::unique_ptr<Scene>& scene, CreateInfo::Renderer const& rendererInfo)
 {
 	using namespace std::placeholders;
 
