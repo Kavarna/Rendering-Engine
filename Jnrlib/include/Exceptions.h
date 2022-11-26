@@ -3,6 +3,7 @@
 #include <string>
 #include <exception>
 
+#include "TypeMatching.h"
 
 namespace Jnrlib
 {
@@ -57,6 +58,14 @@ namespace Jnrlib
         public:
             ImpossibleToGetHere(const std::string& e) :
                 JNRException("How the hell did you get here?: " + e)
+            { }
+        };
+
+        class VulkanException : public JNRException
+        {
+        public:
+            VulkanException(uint32_t errorCode) :
+                JNRException("Vulkan function failed with error code " + Jnrlib::to_string(errorCode))
             { }
         };
     }

@@ -6,8 +6,16 @@ constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
 
 Editor::Editor::Editor()
 {
-    InitWindow();
-    Renderer::Get();
+    try
+    {
+        InitWindow();
+
+        Renderer::Get(CreateRendererInfo());
+    }
+    catch (std::exception const& e)
+    {
+        LOG(ERROR) << "Error occured when initializing editor " << e.what();
+    }
 }
 
 Editor::Editor::~Editor()
@@ -33,6 +41,29 @@ void Editor::Editor::InitWindow()
     CHECK(mWindow != nullptr) << "Unable to create window";
 
     LOG(INFO) << "Successfully created window";
+}
+
+CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo()
+{
+    CreateInfo::EditorRenderer info = {};
+
+    {
+        uint32_t count;
+        const char** extensions = glfwGetRequiredInstanceExtensions(&count);
+
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            info.instanceExtensions.push_back(extensions[i]);
+        }
+    }
+
+    if (/* TODO: enable validation? */ true)
+    {
+        info.instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
+        info.instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
+    return info;
 }
 
 void Editor::Editor::Run()

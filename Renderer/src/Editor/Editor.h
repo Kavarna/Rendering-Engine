@@ -4,6 +4,8 @@
 #include <Jnrlib.h>
 #include <GLFW/glfw3.h>
 
+#include "CreateInfoUtils.h"
+
 namespace Editor
 {
     class Editor : public Jnrlib::ISingletone<Editor>
@@ -20,6 +22,8 @@ namespace Editor
 
     private:
         void InitWindow();
+
+        CreateInfo::EditorRenderer CreateRendererInfo();
 
     private:
         void Frame();

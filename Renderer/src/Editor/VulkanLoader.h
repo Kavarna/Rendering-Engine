@@ -11,10 +11,14 @@
 
 // Instance
 extern JNR_FN(DestroyInstance);
+extern JNR_FN(CreateDebugUtilsMessengerEXT);
+extern JNR_FN(DestroyDebugUtilsMessengerEXT);
 
 // Special cases
 extern JNR_FN(CreateInstance);
 extern JNR_FN(GetInstanceProcAddr);
+extern JNR_FN(EnumerateInstanceLayerProperties);
+extern JNR_FN(EnumerateInstanceExtensionProperties);
 
 
 namespace Editor

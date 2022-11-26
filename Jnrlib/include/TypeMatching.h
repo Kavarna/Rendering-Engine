@@ -6,6 +6,8 @@
 #include <string>
 #include <sstream>
 
+#include "nlohmann/json.hpp"
+
 namespace Jnrlib
 {
     namespace internal
@@ -25,7 +27,6 @@ namespace Jnrlib
                 return typeName;
             }
         };
-
     }
 
 

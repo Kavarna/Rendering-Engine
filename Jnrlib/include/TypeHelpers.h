@@ -12,6 +12,10 @@
 template <typename T>
 std::ostream& operator<<(std::ostream& stream, std::vector<T> const& vct)
 {
+    if (vct.size() == 0)
+    {
+        stream << "[]";
+    }
     stream << vct.size() << " : [ ";
     for (uint32_t i = 0; i < vct.size() - 1; ++i)
     {
