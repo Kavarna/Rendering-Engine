@@ -15,6 +15,13 @@
 JNR_FN(DestroyInstance);
 JNR_FN(CreateDebugUtilsMessengerEXT);
 JNR_FN(DestroyDebugUtilsMessengerEXT);
+JNR_FN(EnumeratePhysicalDevices);
+JNR_FN(GetPhysicalDeviceProperties);
+JNR_FN(GetPhysicalDeviceFeatures);
+JNR_FN(GetPhysicalDeviceQueueFamilyProperties);
+JNR_FN(EnumerateDeviceLayerProperties);
+JNR_FN(CreateDevice);
+JNR_FN(DestroyDevice);
 
 // Special cases
 JNR_FN(CreateInstance);
@@ -37,4 +44,11 @@ void Editor::LoadFunctionsInstance(VkInstance instance)
     GET_INST_FN(DestroyInstance, instance);
     GET_INST_FN(CreateDebugUtilsMessengerEXT, instance);
     GET_INST_FN(DestroyDebugUtilsMessengerEXT, instance);
+    GET_INST_FN(EnumeratePhysicalDevices, instance);
+    GET_INST_FN(GetPhysicalDeviceProperties, instance);
+    GET_INST_FN(GetPhysicalDeviceFeatures, instance);
+    GET_INST_FN(GetPhysicalDeviceQueueFamilyProperties, instance);
+    GET_INST_FN(EnumerateDeviceLayerProperties, instance);
+    GET_INST_FN(CreateDevice, instance);
+    GET_INST_FN(DestroyDevice, instance);
 }

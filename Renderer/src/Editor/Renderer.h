@@ -17,31 +17,60 @@ namespace Editor
     
     private:
         void InitInstance(CreateInfo::EditorRenderer const& info);
-        void InitDevice();
+        void PickPhysicalDevice();
+        void PickQueueFamilyIndices();
+        void InitDevice(CreateInfo::EditorRenderer const& info);
+
 
     private:
-        struct ExtensionsOutput
+        struct QueueFamilyIndices
         {
-            template <typename ExtensionInfo>
-            struct Extension
+            std::optional<uint32_t> graphicsFamily;
+
+            bool IsEmpty()
             {
-                ExtensionInfo info;
-                bool enabled = false;
-            };
-            std::vector<const char*> extensionNames = {};
-            Extension<VkDebugUtilsMessengerCreateInfoEXT> debugUtils = {};
+                return !graphicsFamily.has_value();
+            }
+
+            std::unordered_set<uint32_t> GetUniqueFamilyIndices()
+            {
+                std::unordered_set<uint32_t> uniqueFamilyIndices;
+
+                if (graphicsFamily.has_value())
+                    uniqueFamilyIndices.insert(*graphicsFamily);
+
+                return uniqueFamilyIndices;
+            }
         };
 
+        struct ExtensionsOutput
+        {
+            std::vector<const char*> extensionNames = {};
+            std::optional<VkDebugUtilsMessengerCreateInfoEXT> debugUtils = {};
+        };
+
+    private:
         std::vector<const char*> GetEnabledInstanceLayers(decltype(CreateInfo::EditorRenderer::instanceLayers) const& layers);
         ExtensionsOutput HandleEnabledInstanceExtensions(decltype(CreateInfo::EditorRenderer::instanceExtensions) const& extensions);
 
+        std::vector<const char*> GetEnabledDeviceLayers(decltype(CreateInfo::EditorRenderer::instanceLayers) const& layers);
+        ExtensionsOutput HandleEnabledDeviceExtensions(decltype(CreateInfo::EditorRenderer::instanceExtensions) const& extensions);
+
+
     private:
         VkInstance mInstance;
-
         std::vector<const char*> mInstanceLayers;
         ExtensionsOutput mInstanceExtensions;
-
         VkDebugUtilsMessengerEXT mDebugUtilsMessenger;
+        
+        VkPhysicalDevice mPhysicalDevice;
+        VkPhysicalDeviceProperties mPhysicalDeviceProperties;
+        VkPhysicalDeviceFeatures mPhysicalDeviceFeatures;
+        QueueFamilyIndices mQueueIndices;
+
+        VkDevice mDevice;
+        std::vector<const char*> mDeviceLayers;
+        ExtensionsOutput mDeviceExtensions;
     };
 }
 

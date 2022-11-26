@@ -30,12 +30,16 @@ namespace CreateInfo
     {
         j["instance-layers"] = p.instanceLayers;
         j["instance-extensions"] = p.instanceExtensions;
+        j["device-layers"] = p.deviceLayers;
+        j["device-extensions"] = p.deviceExtensions;
     }
 
     void from_json(const nlohmann::json& j, EditorRenderer& p)
     {
         j["instance-layers"].get_to(p.instanceLayers);
         j["instance-extensions"].get_to(p.instanceExtensions);
+        j["device-layers"].get_to(p.deviceLayers);
+        j["device-extensions"].get_to(p.deviceExtensions);
     }
 
 }

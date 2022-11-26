@@ -13,6 +13,9 @@ namespace CreateInfo
         std::vector<std::string> instanceLayers;
         std::vector<std::string> instanceExtensions;
 
+        std::vector<std::string> deviceLayers;
+        std::vector<std::string> deviceExtensions;
+
         friend std::ostream& operator << (std::ostream& stream, EditorRenderer const& info);
         friend std::istream& operator >> (std::istream& stream, EditorRenderer& info);
     };

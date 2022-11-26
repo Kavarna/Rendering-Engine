@@ -13,6 +13,13 @@
 extern JNR_FN(DestroyInstance);
 extern JNR_FN(CreateDebugUtilsMessengerEXT);
 extern JNR_FN(DestroyDebugUtilsMessengerEXT);
+extern JNR_FN(EnumeratePhysicalDevices);
+extern JNR_FN(GetPhysicalDeviceProperties);
+extern JNR_FN(GetPhysicalDeviceFeatures);
+extern JNR_FN(GetPhysicalDeviceQueueFamilyProperties);
+extern JNR_FN(EnumerateDeviceLayerProperties);
+extern JNR_FN(CreateDevice);
+extern JNR_FN(DestroyDevice);
 
 // Special cases
 extern JNR_FN(CreateInstance);
