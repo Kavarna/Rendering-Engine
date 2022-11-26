@@ -7,7 +7,7 @@
 #define JNR_FN(FN) PFN_vk##FN jnr##FN
 
 // Device
-
+extern JNR_FN(CreateCommandPool);
 
 // Instance
 extern JNR_FN(DestroyInstance);
@@ -20,6 +20,8 @@ extern JNR_FN(GetPhysicalDeviceQueueFamilyProperties);
 extern JNR_FN(EnumerateDeviceLayerProperties);
 extern JNR_FN(CreateDevice);
 extern JNR_FN(DestroyDevice);
+extern JNR_FN(GetDeviceQueue);
+extern JNR_FN(GetDeviceProcAddr);
 
 // Special cases
 extern JNR_FN(CreateInstance);
@@ -32,4 +34,5 @@ namespace Editor
 {
     void LoadFunctions();
     void LoadFunctionsInstance(VkInstance);
+    void LoadFunctionsDevice(VkDevice);
 }

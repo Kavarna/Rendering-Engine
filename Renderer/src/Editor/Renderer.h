@@ -71,6 +71,8 @@ namespace Editor
         VkDevice mDevice;
         std::vector<const char*> mDeviceLayers;
         ExtensionsOutput mDeviceExtensions;
+        VkQueue mGraphicsQueue;
+
     };
 }
 

@@ -11,6 +11,16 @@
 }
 #define GET_INST_FN(fn, inst)             GET_INST_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
 
+#define GET_DEV_FN_INT(pf, vk, in, dev) \
+{ \
+    in = reinterpret_cast<pf>(jnrGetDeviceProcAddr(dev, STRINGIFY(vk))); \
+    CHECK(in != nullptr) << "Unable to get a pointer to " #vk; \
+}
+#define GET_DEV_FN(fn, inst)             GET_DEV_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
+
+// Device
+JNR_FN(CreateCommandPool);
+
 // Instance
 JNR_FN(DestroyInstance);
 JNR_FN(CreateDebugUtilsMessengerEXT);
@@ -22,6 +32,8 @@ JNR_FN(GetPhysicalDeviceQueueFamilyProperties);
 JNR_FN(EnumerateDeviceLayerProperties);
 JNR_FN(CreateDevice);
 JNR_FN(DestroyDevice);
+JNR_FN(GetDeviceQueue);
+JNR_FN(GetDeviceProcAddr);
 
 // Special cases
 JNR_FN(CreateInstance);
@@ -41,6 +53,7 @@ void Editor::LoadFunctions()
 
 void Editor::LoadFunctionsInstance(VkInstance instance)
 {
+    GET_INST_FN(GetDeviceProcAddr, instance);
     GET_INST_FN(DestroyInstance, instance);
     GET_INST_FN(CreateDebugUtilsMessengerEXT, instance);
     GET_INST_FN(DestroyDebugUtilsMessengerEXT, instance);
@@ -51,4 +64,10 @@ void Editor::LoadFunctionsInstance(VkInstance instance)
     GET_INST_FN(EnumerateDeviceLayerProperties, instance);
     GET_INST_FN(CreateDevice, instance);
     GET_INST_FN(DestroyDevice, instance);
+    GET_INST_FN(GetDeviceQueue, instance);
+}
+
+void Editor::LoadFunctionsDevice(VkDevice device)
+{
+    GET_DEV_FN(CreateCommandPool, device)
 }

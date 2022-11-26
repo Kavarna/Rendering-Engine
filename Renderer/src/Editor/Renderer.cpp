@@ -203,6 +203,13 @@ void Renderer::InitDevice(CreateInfo::EditorRenderer const& info)
     ThrowIfFailed(
         jnrCreateDevice(mPhysicalDevice, &deviceInfo, nullptr, &mDevice)
     );
+
+    if (mQueueIndices.graphicsFamily.has_value())
+    {
+        jnrGetDeviceQueue(mDevice, mQueueIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
+    }
+
+    LoadFunctionsDevice(mDevice);
 }
 
 std::vector<const char*> Renderer::GetEnabledInstanceLayers(decltype(CreateInfo::EditorRenderer::instanceLayers) const& expectedLayers)
