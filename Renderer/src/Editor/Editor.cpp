@@ -4,13 +4,13 @@
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
 
-Editor::Editor::Editor()
+Editor::Editor::Editor(bool enableValidationLayers)
 {
     try
     {
         InitWindow();
 
-        Renderer::Get(CreateRendererInfo());
+        Renderer::Get(CreateRendererInfo(enableValidationLayers));
     }
     catch (std::exception const& e)
     {
@@ -43,9 +43,13 @@ void Editor::Editor::InitWindow()
     LOG(INFO) << "Successfully created window";
 }
 
-CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo()
+CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidationLayers)
 {
     CreateInfo::EditorRenderer info = {};
+    {
+        info.window = mWindow;
+        info.deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
 
     {
         uint32_t count;
@@ -57,8 +61,9 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo()
         }
     }
 
-    if (/* TODO: enable validation? */ true)
+    if (enableValidationLayers)
     {
+        LOG(INFO) << "Enabling vulkan validation layers";
         info.instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
         info.instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }

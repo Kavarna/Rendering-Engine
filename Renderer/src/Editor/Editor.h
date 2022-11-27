@@ -2,7 +2,6 @@
 
 
 #include <Jnrlib.h>
-#include <GLFW/glfw3.h>
 
 #include "CreateInfoUtils.h"
 
@@ -17,13 +16,13 @@ namespace Editor
 
 
     private:
-        Editor();
+        Editor(bool enableValidationLayers);
         ~Editor();
 
     private:
         void InitWindow();
 
-        CreateInfo::EditorRenderer CreateRendererInfo();
+        CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
         void Frame();

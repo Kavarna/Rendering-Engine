@@ -1,11 +1,9 @@
 #include "Renderer.h"
 #include "VulkanLoader.h"
-
-#include <boost/algorithm/string.hpp>
-
 #include "VulkanHelpers/VulkanHelpers.h"
 
 #include <unordered_set>
+#include <boost/algorithm/string.hpp>
 
 using namespace Editor;
 
@@ -42,16 +40,26 @@ Renderer::Renderer(CreateInfo::EditorRenderer const& info)
 {
     LOG(INFO) << "Attempting to initialize vulkan renderer with info" << info;
 
+    mWindow = info.window;
+    CHECK(mWindow != nullptr) << "In order to use the renderer, a window has to be specified";
     LoadFunctions();
     InitInstance(info);
+    InitSurface();
     PickPhysicalDevice();
     InitDevice(info);
+    InitSwapchain();
 
     LOG(INFO) << "Vulkan renderer initialised successfully";
 }
 
 Renderer::~Renderer()
 {
+    for (auto const& view : mSwapchainImageViews)
+    {
+        jnrDestroyImageView(mDevice, view, nullptr);
+    }
+    jnrDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+    jnrDestroySurfaceKHR(mInstance, mRenderingSurface, nullptr);
     jnrDestroyDevice(mDevice, nullptr);
     if (mInstanceExtensions.debugUtils.has_value())
     {
@@ -155,10 +163,23 @@ void Renderer::PickQueueFamilyIndices()
 
     for (uint32_t i = 0; i < queues.size(); ++i)
     {
-        if (queues[i].queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT)
+        if (queues[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
         {
             mQueueIndices.graphicsFamily = i;
         }
+
+        VkBool32 presentSupport = VK_FALSE;
+        ThrowIfFailed(
+            jnrGetPhysicalDeviceSurfaceSupportKHR(mPhysicalDevice, i, mRenderingSurface, &presentSupport)
+        );
+
+        if (presentSupport)
+        {
+            mQueueIndices.presentFamily = i;
+        }
+
+        if (mQueueIndices.IsComplete())
+            break;
     }
 
     CHECK(!mQueueIndices.IsEmpty()) << "There should be at least one queue";
@@ -208,8 +229,186 @@ void Renderer::InitDevice(CreateInfo::EditorRenderer const& info)
     {
         jnrGetDeviceQueue(mDevice, mQueueIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
     }
+    if (mQueueIndices.presentFamily.has_value())
+    {
+        jnrGetDeviceQueue(mDevice, mQueueIndices.presentFamily.value(), 0, &mPresentQueue);
+    }
 
     LoadFunctionsDevice(mDevice);
+}
+
+void Renderer::InitSurface()
+{
+    ThrowIfFailed(glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mRenderingSurface));
+}
+
+void Renderer::InitSwapchain()
+{
+    auto swapchainCapabilities = GetSwapchainCapabilities();
+
+    auto presentMode = SelectBestPresentMode(swapchainCapabilities.presentModes);
+    auto surfaceFormat = SelectBestSurfaceFormat(swapchainCapabilities.formats);
+    auto extent = SelectSwapchainExtent(swapchainCapabilities.capabilities);
+
+    uint32_t imageCount = glm::clamp(swapchainCapabilities.capabilities.minImageCount + 1,
+                                     swapchainCapabilities.capabilities.minImageCount, swapchainCapabilities.capabilities.maxImageCount);
+
+    std::vector<uint32_t> familiesUsingBackbuffer = {
+        *mQueueIndices.graphicsFamily,
+        *mQueueIndices.presentFamily
+    };
+    std::sort(familiesUsingBackbuffer.begin(), familiesUsingBackbuffer.end());
+    familiesUsingBackbuffer.erase(
+        std::unique(familiesUsingBackbuffer.begin(), familiesUsingBackbuffer.end()),
+        familiesUsingBackbuffer.end());
+    CHECK(familiesUsingBackbuffer.size() != 0) << "Something weird happened and I don't have any families to use with the backbuffer";
+
+    VkSwapchainCreateInfoKHR swapchainInfo = {};
+    {
+        swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchainInfo.surface = mRenderingSurface;
+        swapchainInfo.clipped = VK_TRUE;
+        swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapchainInfo.imageArrayLayers = 1;
+        swapchainInfo.imageColorSpace = surfaceFormat.colorSpace;
+        swapchainInfo.imageFormat = surfaceFormat.format;
+        swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        swapchainInfo.minImageCount = imageCount;
+        swapchainInfo.oldSwapchain = mSwapchain;
+        swapchainInfo.presentMode = presentMode;
+        swapchainInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        swapchainInfo.imageExtent = extent;
+        
+        swapchainInfo.imageSharingMode = familiesUsingBackbuffer.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+        swapchainInfo.queueFamilyIndexCount = (uint32_t)familiesUsingBackbuffer.size();
+        swapchainInfo.pQueueFamilyIndices = familiesUsingBackbuffer.data();
+    }
+    
+    ThrowIfFailed(jnrCreateSwapchainKHR(mDevice, &swapchainInfo, nullptr, &mSwapchain));
+
+    {
+        /* Retrieve images */
+        uint32_t count = 0;
+        ThrowIfFailed(jnrGetSwapchainImagesKHR(mDevice, mSwapchain, &count, nullptr));
+
+        mSwapchainImages.resize(count);
+        ThrowIfFailed(jnrGetSwapchainImagesKHR(mDevice, mSwapchain, &count, mSwapchainImages.data()));
+    }
+
+    {
+        /* Create views for images */
+        mSwapchainImageViews.resize(mSwapchainImages.size());
+        
+        for (uint32_t i = 0; i < mSwapchainImages.size(); ++i)
+        {
+            VkImageViewCreateInfo viewInfo = {};
+            {
+                viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+                viewInfo.flags = 0;
+                viewInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
+                    VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+                viewInfo.format = surfaceFormat.format;
+                viewInfo.image = mSwapchainImages[i];
+                viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                viewInfo.subresourceRange.levelCount = 1;
+                viewInfo.subresourceRange.baseMipLevel = 0;
+                viewInfo.subresourceRange.layerCount = 1;
+                viewInfo.subresourceRange.baseArrayLayer = 0;
+                viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            }
+
+            ThrowIfFailed(jnrCreateImageView(mDevice, &viewInfo, nullptr, &mSwapchainImageViews[i]));
+        }
+
+    }
+
+}
+
+Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()
+{
+    SwapchainSupportDetails result;
+    {
+        VkSurfaceCapabilitiesKHR capabilities;
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice, mRenderingSurface, &capabilities));
+
+        result.capabilities = std::move(capabilities);
+    }
+    
+    {
+        uint32_t surfaceFormatCount = 0;
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount, nullptr));
+        CHECK(surfaceFormatCount != 0) << "The physical device has 0 surface formats. How is this possible?";
+
+        std::vector<VkSurfaceFormatKHR> surfaceFormats;
+        surfaceFormats.resize(surfaceFormatCount);
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount, surfaceFormats.data()));
+
+        result.formats = std::move(surfaceFormats);
+    }
+
+    {
+        uint32_t presentCount = 0;
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount, nullptr));
+        CHECK(presentCount != 0) << "The physical device has 0 present modes. How is this possible?";
+
+        std::vector<VkPresentModeKHR> presentModes;
+        presentModes.resize(presentCount);
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount, presentModes.data()));
+
+        result.presentModes = std::move(presentModes);
+    }
+
+    return result;
+}
+
+VkPresentModeKHR Renderer::SelectBestPresentMode(std::vector<VkPresentModeKHR> const& presentModes)
+{
+    for (auto const& presentMode : presentModes)
+    {
+        if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+            return presentMode;
+    }
+
+    // This is guaranteed to be present
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkSurfaceFormatKHR Renderer::SelectBestSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& formats)
+{
+    for (auto const& format : formats)
+    {
+        if (format.format == VK_FORMAT_R8G8B8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            return format;
+        }
+    }
+
+    return formats[0];
+}
+
+VkExtent2D Renderer::SelectSwapchainExtent(VkSurfaceCapabilitiesKHR const& capabilities)
+{
+#undef max
+    VkExtent2D extent = {};
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+    {
+        return capabilities.currentExtent;
+    }
+    else
+    {
+        int width, height;
+        glfwGetFramebufferSize(mWindow, &width, &height);
+
+        VkExtent2D actualExtent = {
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+
+        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
 }
 
 std::vector<const char*> Renderer::GetEnabledInstanceLayers(decltype(CreateInfo::EditorRenderer::instanceLayers) const& expectedLayers)
@@ -242,15 +441,38 @@ std::vector<const char*> Renderer::GetEnabledInstanceLayers(decltype(CreateInfo:
         CHECK(found) << "Unable to find extension " << expectedLayer;
 
     }
-
+    
     return enabledLayers;
 }
 
 Renderer::ExtensionsOutput Renderer::HandleEnabledInstanceExtensions(decltype(CreateInfo::EditorRenderer::instanceExtensions) const& expectedExtensions)
 {
     ExtensionsOutput extensions;
+
+    std::vector<const char*> enabledLayers = mInstanceLayers; // Copy the existing layers
+    enabledLayers.push_back(nullptr); // and prepend the nullptr, to get layer-less extensions
+    std::vector<VkExtensionProperties> properties;
+    for (auto const& layer : enabledLayers)
+    {
+        uint32_t count = 0;
+        jnrEnumerateInstanceExtensionProperties(layer, &count, nullptr);
+
+        std::vector<VkExtensionProperties> layerProperties;
+        layerProperties.resize(count);
+        jnrEnumerateInstanceExtensionProperties(layer, &count, layerProperties.data());
+        std::move(layerProperties.begin(), layerProperties.end(), std::back_inserter(properties));
+    }
+
     for (const auto& it : expectedExtensions)
     {
+        bool found = std::find_if(properties.begin(), properties.end(),
+                                  [&](VkExtensionProperties const& properties)
+                                  {
+                                      return boost::iequals(it.c_str(), properties.extensionName);
+                                  }) != properties.end();
+
+        CHECK(found) << "Unable to find extension " << it;
+
         if (strcmp(it.c_str(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
         {
             VkDebugUtilsMessengerCreateInfoEXT debugUtils = {};
@@ -310,8 +532,30 @@ Renderer::ExtensionsOutput Renderer::HandleEnabledDeviceExtensions(decltype(Crea
 {
     ExtensionsOutput extensions;
 
+    std::vector<const char*> enabledLayers = mDeviceLayers; // Copy the existing layers
+    enabledLayers.push_back(nullptr); // and prepend the nullptr, to get layer-less extensions
+    std::vector<VkExtensionProperties> properties;
+    for (auto const& layer : enabledLayers)
+    {
+        uint32_t count = 0;
+        jnrEnumerateDeviceExtensionProperties(mPhysicalDevice, layer, &count, nullptr);
+
+        std::vector<VkExtensionProperties> layerProperties;
+        layerProperties.resize(count);
+        jnrEnumerateDeviceExtensionProperties(mPhysicalDevice, layer, &count, layerProperties.data());
+        std::move(layerProperties.begin(), layerProperties.end(), std::back_inserter(properties));
+    }
+
     for (const auto& it : expectedExtensions)
     {
+        bool found = std::find_if(properties.begin(), properties.end(),
+                                  [&](VkExtensionProperties const& properties)
+                                  {
+                                      return boost::iequals(it.c_str(), properties.extensionName);
+                                  }) != properties.end();
+
+        CHECK(found) << "Unable to find extension " << it;
+
         extensions.extensionNames.push_back(it.c_str());
     }
 

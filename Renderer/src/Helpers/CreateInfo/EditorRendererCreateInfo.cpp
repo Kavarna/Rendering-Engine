@@ -32,6 +32,10 @@ namespace CreateInfo
         j["instance-extensions"] = p.instanceExtensions;
         j["device-layers"] = p.deviceLayers;
         j["device-extensions"] = p.deviceExtensions;
+        if (p.window)
+            j["window"] = "SPECIFIED";
+        else
+            j["window"] = "UNSPECIFIED";
     }
 
     void from_json(const nlohmann::json& j, EditorRenderer& p)
@@ -40,6 +44,7 @@ namespace CreateInfo
         j["instance-extensions"].get_to(p.instanceExtensions);
         j["device-layers"].get_to(p.deviceLayers);
         j["device-extensions"].get_to(p.deviceExtensions);
+        p.window = nullptr;
     }
 
 }

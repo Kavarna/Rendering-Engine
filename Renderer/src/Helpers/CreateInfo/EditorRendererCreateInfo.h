@@ -2,6 +2,10 @@
 
 #include <Jnrlib.h>
 
+#define VK_USE_PLATFORM_WIN32_KHR
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #include <nlohmann/json.hpp>
 
 
@@ -15,6 +19,8 @@ namespace CreateInfo
 
         std::vector<std::string> deviceLayers;
         std::vector<std::string> deviceExtensions;
+
+        GLFWwindow *window;
 
         friend std::ostream& operator << (std::ostream& stream, EditorRenderer const& info);
         friend std::istream& operator >> (std::istream& stream, EditorRenderer& info);
