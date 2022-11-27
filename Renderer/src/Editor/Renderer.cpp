@@ -127,7 +127,7 @@ void Renderer::PickPhysicalDevice()
     devices.resize(count);
     ThrowIfFailed(jnrEnumeratePhysicalDevices(mInstance, &count, devices.data()));
 
-    bool found = false;
+    bool found = false, foundIntegrated = false;
     for (auto const& device : devices)
     {
         VkPhysicalDeviceProperties properties = {};
@@ -145,8 +145,17 @@ void Renderer::PickPhysicalDevice()
             found = true;
             break;
         }
+
+        if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+        {
+            LOG(INFO) << "Found intergate GPU with name: " << properties.deviceName;
+            mPhysicalDevice = device;
+            mPhysicalDeviceFeatures = features;
+            mPhysicalDeviceProperties = properties;
+            foundIntegrated = true;
+        }
     }
-    CHECK(found) << "Unable to find a GPU good enough";
+    CHECK(found || foundIntegrated) << "Unable to find a GPU good enough";
 
     PickQueueFamilyIndices();
 }
@@ -199,7 +208,7 @@ void Renderer::InitDevice(CreateInfo::EditorRenderer const& info)
             queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueInfo.queueFamilyIndex = index;
             queueInfo.flags = 0;
-            queueInfo.queueCount = ARRAYSIZE(priorities);
+            queueInfo.queueCount = sizeof(priorities) / sizeof(priorities[0]);
             queueInfo.pQueuePriorities = priorities;
         }
         queues.push_back(queueInfo);
