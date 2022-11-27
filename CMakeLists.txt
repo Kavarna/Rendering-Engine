@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 
 project("Rendering-Engine")
 
+
+
 # Options
 option(BUILD_TESTS "Build tests" OFF)
 option(USE_FLOAT64 "Use 64-bit floating point numbers" ON)
@@ -60,7 +62,6 @@ conan_basic_setup()
 set(CMAKE_INSTALL_PREFIX ../bin)
 set(CURRENT_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
 
