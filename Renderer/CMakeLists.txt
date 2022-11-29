@@ -4,6 +4,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 add_definitions(-DVK_NO_PROTOTYPES)
 
 include_directories("src/Helpers")
+include_directories("src")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 add_executable("Renderer" ${SOURCES})
 

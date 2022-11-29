@@ -11,7 +11,6 @@ private:
     ~PipelineManager();
 
 public:
-    
 
 };
 

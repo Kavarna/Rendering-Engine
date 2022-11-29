@@ -41,7 +41,8 @@ JNR_FN(DestroySwapchainKHR);
 JNR_FN(GetSwapchainImagesKHR);
 JNR_FN(CreateImageView);
 JNR_FN(DestroyImageView);
-
+JNR_FN(CreateShaderModule);
+JNR_FN(DestroyShaderModule);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -110,4 +111,6 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(GetSwapchainImagesKHR, device);
     GET_DEV_FN(CreateImageView, device);
     GET_DEV_FN(DestroyImageView, device);
+    GET_DEV_FN(CreateShaderModule, device);
+    GET_DEV_FN(DestroyShaderModule, device);
 }

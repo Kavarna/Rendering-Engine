@@ -3,6 +3,7 @@
 #include <Jnrlib.h>
 #include "vulkan/vulkan.h"
 #include "CreateInfoUtils.h"
+#include "VulkanHelpers/VulkanHelpers.h"
 
 
 namespace Editor
@@ -15,6 +16,9 @@ namespace Editor
         Renderer(CreateInfo::EditorRenderer const&);
         ~Renderer();
     
+    public:
+        VkDevice GetDevice();
+
     private:
         void InitInstance(CreateInfo::EditorRenderer const& info);
         void PickPhysicalDevice();

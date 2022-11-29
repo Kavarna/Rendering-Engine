@@ -1,6 +1,5 @@
 #include "Renderer.h"
 #include "VulkanLoader.h"
-#include "VulkanHelpers/VulkanHelpers.h"
 
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
@@ -68,6 +67,11 @@ Renderer::~Renderer()
     jnrDestroyInstance(mInstance, nullptr);
 
     LOG(INFO) << "Vulkan renderer uninitialised successfully";
+}
+
+VkDevice Renderer::GetDevice()
+{
+    return mDevice;
 }
 
 void Renderer::InitInstance(CreateInfo::EditorRenderer const& info)
@@ -259,8 +263,18 @@ void Renderer::InitSwapchain()
     auto surfaceFormat = SelectBestSurfaceFormat(swapchainCapabilities.formats);
     auto extent = SelectSwapchainExtent(swapchainCapabilities.capabilities);
 
-    uint32_t imageCount = glm::clamp(swapchainCapabilities.capabilities.minImageCount + 1,
-                                     swapchainCapabilities.capabilities.minImageCount, swapchainCapabilities.capabilities.maxImageCount);
+    uint32_t imageCount = 0;
+    if (swapchainCapabilities.capabilities.maxImageCount == 0)
+    {
+        /* If the maxImageCount is 0 => there is no limit, so just stick to the default*/
+        imageCount = swapchainCapabilities.capabilities.minImageCount + 1;
+    }
+    else
+    {
+        imageCount = glm::clamp(swapchainCapabilities.capabilities.minImageCount + 1,
+                                swapchainCapabilities.capabilities.minImageCount, swapchainCapabilities.capabilities.maxImageCount);
+    }
+    CHECK(imageCount != 0) << "For some reason, the vulkan driver specified that 0 images can be used for the swapchain";
 
     std::vector<uint32_t> familiesUsingBackbuffer = {
         *mQueueIndices.graphicsFamily,

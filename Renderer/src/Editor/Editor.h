@@ -14,13 +14,13 @@ namespace Editor
     public:
         void Run();
 
-
     private:
         Editor(bool enableValidationLayers);
         ~Editor();
 
     private:
         void InitWindow();
+        void InitBasicPipeline();
 
         CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 

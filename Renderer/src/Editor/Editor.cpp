@@ -1,5 +1,7 @@
 #include "Editor.h"
 #include "Renderer.h"
+#include "VulkanHelpers/Pipeline.h"
+#include "VulkanHelpers/PipelineManager.h"
 
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
@@ -9,8 +11,9 @@ Editor::Editor::Editor(bool enableValidationLayers)
     try
     {
         InitWindow();
-
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
+        InitBasicPipeline();
+
     }
     catch (std::exception const& e)
     {
@@ -69,6 +72,13 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     }
 
     return info;
+}
+
+void Editor::Editor::InitBasicPipeline()
+{
+    Pipeline basicPipeline;
+    basicPipeline.AddShader("Shaders/basic.vert.spv");
+    basicPipeline.AddShader("Shaders/basic.frag.spv");
 }
 
 void Editor::Editor::Run()

@@ -13,6 +13,8 @@ extern JNR_FN(DestroySwapchainKHR);
 extern JNR_FN(GetSwapchainImagesKHR);
 extern JNR_FN(CreateImageView);
 extern JNR_FN(DestroyImageView);
+extern JNR_FN(CreateShaderModule);
+extern JNR_FN(DestroyShaderModule);
 
 // Instance
 extern JNR_FN(DestroyInstance);
