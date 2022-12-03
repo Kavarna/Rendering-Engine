@@ -48,9 +48,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 # Start building
-string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE)
 message("-- Build type = ${CMAKE_BUILD_TYPE}")
-if (${CMAKE_BUILD_TYPE} STREQUAL "debug")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     add_definitions(-DDEBUG)
 else()
     add_definitions(-DRELEASE)
