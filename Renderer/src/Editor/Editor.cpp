@@ -52,6 +52,7 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     {
         info.window = mWindow;
         info.deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        info.deviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
     }
 
     {
@@ -76,9 +77,10 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
 
 void Editor::Editor::InitBasicPipeline()
 {
-    Pipeline basicPipeline;
+    Pipeline basicPipeline("BasicPipeline");
     basicPipeline.AddShader("Shaders/basic.vert.spv");
     basicPipeline.AddShader("Shaders/basic.frag.spv");
+    basicPipeline.Bake();
 }
 
 void Editor::Editor::Run()

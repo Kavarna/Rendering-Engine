@@ -18,6 +18,7 @@ namespace Editor
     
     public:
         VkDevice GetDevice();
+        VkPipelineLayout GetEmptyPipelineLayout();
 
     private:
         void InitInstance(CreateInfo::EditorRenderer const& info);
@@ -61,6 +62,7 @@ namespace Editor
         {
             std::vector<const char*> extensionNames = {};
             std::optional<VkDebugUtilsMessengerCreateInfoEXT> debugUtils = {};
+            std::optional<VkPhysicalDeviceDynamicRenderingFeaturesKHR> dynamicRendering = {};
         };
 
         struct SwapchainSupportDetails
@@ -107,6 +109,11 @@ namespace Editor
         VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
         std::vector<VkImage> mSwapchainImages;
         std::vector<VkImageView> mSwapchainImageViews;
+
+        /* Some "default" variables will be store in the renderer, so they will be available as soon
+         * as rendering is needed and will be released as soon as rendering is not needed
+         */
+        VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
     };
 }
 

@@ -232,6 +232,11 @@ void Renderer::InitDevice(CreateInfo::EditorRenderer const& info)
         deviceInfo.ppEnabledLayerNames = mDeviceLayers.data();
         deviceInfo.enabledExtensionCount = (uint32_t)mDeviceExtensions.extensionNames.size();
         deviceInfo.ppEnabledExtensionNames = mDeviceExtensions.extensionNames.data();
+
+        if (mDeviceExtensions.dynamicRendering.has_value())
+        {
+            deviceInfo.pNext = &(*mDeviceExtensions.dynamicRendering);
+        }
     }
 
     ThrowIfFailed(
@@ -508,12 +513,9 @@ Renderer::ExtensionsOutput Renderer::HandleEnabledInstanceExtensions(decltype(Cr
 
             extensions.debugUtils = debugUtils;
 
-            extensions.extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
-        else
-        {
-            extensions.extensionNames.push_back(it.c_str());
-        }
+        
+        extensions.extensionNames.push_back(it.c_str());
     }
     return extensions;
 }
@@ -579,8 +581,37 @@ Renderer::ExtensionsOutput Renderer::HandleEnabledDeviceExtensions(decltype(Crea
 
         CHECK(found) << "Unable to find extension " << it;
 
+        if (strcmp(it.c_str(), VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+        {
+            VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{};
+            dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+            dynamicRendering.dynamicRendering = VK_TRUE;
+
+            extensions.dynamicRendering = dynamicRendering;
+        }
+
         extensions.extensionNames.push_back(it.c_str());
     }
 
     return extensions;
+}
+
+VkPipelineLayout Renderer::GetEmptyPipelineLayout()
+{
+    if (mEmptyPipelineLayout != VK_NULL_HANDLE)
+        return mEmptyPipelineLayout;
+
+    VkPipelineLayoutCreateInfo layoutInfo = {};
+    {
+        layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layoutInfo.setLayoutCount = 0;
+        layoutInfo.pushConstantRangeCount = 0;
+        layoutInfo.flags = 0;
+    }
+
+    ThrowIfFailed(
+        jnrCreatePipelineLayout(mDevice, &layoutInfo, nullptr, &mEmptyPipelineLayout)
+    );
+
+    return mEmptyPipelineLayout;
 }

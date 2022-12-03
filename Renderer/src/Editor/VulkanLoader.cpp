@@ -43,6 +43,11 @@ JNR_FN(CreateImageView);
 JNR_FN(DestroyImageView);
 JNR_FN(CreateShaderModule);
 JNR_FN(DestroyShaderModule);
+JNR_FN(CreatePipelineLayout);
+JNR_FN(DestroyPipelineLayout);
+JNR_FN(CreateGraphicsPipelines);
+JNR_FN(DestroyPipeline);
+JNR_FN(CreateRenderPass);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -113,4 +118,9 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(DestroyImageView, device);
     GET_DEV_FN(CreateShaderModule, device);
     GET_DEV_FN(DestroyShaderModule, device);
+    GET_DEV_FN(CreatePipelineLayout, device);
+    GET_DEV_FN(DestroyPipelineLayout, device);
+    GET_DEV_FN(CreateGraphicsPipelines, device);
+    GET_DEV_FN(DestroyPipeline, device);
+    GET_DEV_FN(CreateRenderPass, device);
 }

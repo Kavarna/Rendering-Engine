@@ -15,6 +15,11 @@ extern JNR_FN(CreateImageView);
 extern JNR_FN(DestroyImageView);
 extern JNR_FN(CreateShaderModule);
 extern JNR_FN(DestroyShaderModule);
+extern JNR_FN(CreatePipelineLayout);
+extern JNR_FN(DestroyPipelineLayout);
+extern JNR_FN(CreateGraphicsPipelines);
+extern JNR_FN(DestroyPipeline);
+extern JNR_FN(CreateRenderPass);
 
 // Instance
 extern JNR_FN(DestroyInstance);
