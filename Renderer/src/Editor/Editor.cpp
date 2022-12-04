@@ -77,9 +77,37 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
 
 void Editor::Editor::InitBasicPipeline()
 {
+    int32_t width, height;
+    glfwGetWindowSize(mWindow, &width, &height);
     Pipeline basicPipeline("BasicPipeline");
-    basicPipeline.AddShader("Shaders/basic.vert.spv");
-    basicPipeline.AddShader("Shaders/basic.frag.spv");
+    {
+        basicPipeline.AddShader("Shaders/basic.vert.spv");
+        basicPipeline.AddShader("Shaders/basic.frag.spv");
+    }
+    VkViewport vp{};
+    VkRect2D sc{};
+    auto& viewport = basicPipeline.GetViewportStateCreateInfo();
+    {
+        vp.width = width; vp.minDepth = 0.0f; vp.x = 0;
+        vp.height = height; vp.maxDepth = 1.0f; vp.y = 0;
+        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
+        viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        viewport.viewportCount = 1;
+        viewport.pViewports = &vp;
+        viewport.scissorCount = 1;
+        viewport.pScissors = &sc;
+    }
+    VkPipelineColorBlendAttachmentState attachmentInfo{};
+    auto& blendState = basicPipeline.GetColorBlendStateCreateInfo();
+    {
+        attachmentInfo.blendEnable = VK_FALSE;
+        attachmentInfo.colorWriteMask = 
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+        blendState.attachmentCount = 1;
+        blendState.pAttachments = &attachmentInfo;
+    }
     basicPipeline.Bake();
 }
 

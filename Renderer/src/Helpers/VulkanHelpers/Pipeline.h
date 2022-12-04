@@ -7,8 +7,6 @@
 class Pipeline
 {
 public:
-    static constexpr const unsigned int MAXIMUM_BLEND_ATTACHMENTS = 8;
-public:
     Pipeline(std::string const& name);
     ~Pipeline();
 
@@ -69,7 +67,6 @@ private:
 
     std::vector<VkPipelineShaderStageCreateInfo> mShaderModules;
 
-    VkPipelineColorBlendAttachmentState mBlendAttachments[MAXIMUM_BLEND_ATTACHMENTS]{};
     VkPipelineColorBlendStateCreateInfo mBlendState{};
     VkPipelineDepthStencilStateCreateInfo mDepthStencilState{};
     VkPipelineDynamicStateCreateInfo mDynamicState{};

@@ -53,6 +53,10 @@ Renderer::Renderer(CreateInfo::EditorRenderer const& info)
 
 Renderer::~Renderer()
 {
+    if (mEmptyPipelineLayout)
+    {
+        jnrDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, nullptr);
+    }
     for (auto const& view : mSwapchainImageViews)
     {
         jnrDestroyImageView(mDevice, view, nullptr);

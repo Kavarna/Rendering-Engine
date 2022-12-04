@@ -30,16 +30,10 @@ Pipeline::~Pipeline()
 void Pipeline::InitDefaultPipelineState()
 {
     {
-        mBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        
         /* Blend State*/
-        mBlendAttachments[0].blendEnable = VK_FALSE;
-        mBlendAttachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                              VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
+        mBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;        
         mBlendState.logicOpEnable = VK_FALSE;
         mBlendState.attachmentCount = 1;
-        mBlendState.pAttachments = mBlendAttachments;
     }
 
     {
