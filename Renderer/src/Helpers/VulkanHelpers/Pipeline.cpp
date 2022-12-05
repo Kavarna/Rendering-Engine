@@ -27,6 +27,18 @@ Pipeline::~Pipeline()
         jnrDestroyPipeline(device, mPipeline, nullptr);
 }
 
+void Pipeline::AddBackbufferColorOutput()
+{
+    VkFormat format = Editor::Renderer::Get()->GetBackbufferFormat();
+    mColorOutputs.push_back(format);
+}
+
+void Pipeline::SetBackbufferDepthStencilOutput()
+{
+    mDepthFormat = Editor::Renderer::Get()->GetDefaultDepthFormat();
+    mStencilFormat = Editor::Renderer::Get()->GetDefaultStencilFormat();
+}
+
 void Pipeline::InitDefaultPipelineState()
 {
     {
@@ -97,19 +109,16 @@ void Pipeline::InitDefaultPipelineState()
     mPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     mPipelineInfo.flags = 0;
     mPipelineInfo.layout; // TODO: Fill this later
-    mPipelineInfo.renderPass; // TODO: Fill this later
 
     mPipelineInfo.pColorBlendState = &mBlendState;
-    mPipelineInfo.pDepthStencilState = &mDepthStencilState;
+    // mPipelineInfo.pDepthStencilState = &mDepthStencilState;
     mPipelineInfo.pDynamicState = &mDynamicState;
     mPipelineInfo.pInputAssemblyState = &mInputAssemblyState;
     mPipelineInfo.pMultisampleState = &mMultisampleState;
     mPipelineInfo.pRasterizationState = &mRasterizationState;
-    mPipelineInfo.pTessellationState = &mTesselationState;
+    // mPipelineInfo.pTessellationState = &mTesselationState;
     mPipelineInfo.pVertexInputState = &mVertexInputState;
     mPipelineInfo.pViewportState = &mViewportState;
-
-    
 }
 
 void Pipeline::AddShader(std::string const& path)
@@ -153,7 +162,7 @@ void Pipeline::AddShader(std::string const& path)
     mShaderModules.push_back(pipelineStageInfo);
 }
 
-void Pipeline::Bake(std::vector<VkFormat> const& colorOutputFormats, VkFormat depthFormat, VkFormat stencilFormat)
+void Pipeline::Bake()
 {
     VkPipelineLayout layout;
     if (/* TODO: Is there a pipeline layout provided? */ false)
@@ -162,17 +171,16 @@ void Pipeline::Bake(std::vector<VkFormat> const& colorOutputFormats, VkFormat de
     layout = Editor::Renderer::Get()->GetEmptyPipelineLayout();
     auto device = Editor::Renderer::Get()->GetDevice();
 
-    VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
     {
-        pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        pipelineRenderingInfo.viewMask = (1u << (uint32_t)colorOutputFormats.size()) - 1u;
-        pipelineRenderingInfo.colorAttachmentCount = (uint32_t)colorOutputFormats.size();
-        pipelineRenderingInfo.pColorAttachmentFormats = colorOutputFormats.data();
-        pipelineRenderingInfo.depthAttachmentFormat = depthFormat;
-        pipelineRenderingInfo.stencilAttachmentFormat = stencilFormat;
+        mRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        mRenderingInfo.viewMask = 0; // Multiview is not active
+        mRenderingInfo.colorAttachmentCount = (uint32_t)mColorOutputs.size();
+        mRenderingInfo.pColorAttachmentFormats = mColorOutputs.data();
+        mRenderingInfo.depthAttachmentFormat = mDepthFormat;
+        mRenderingInfo.stencilAttachmentFormat = mStencilFormat;
     }
 
-    mPipelineInfo.pNext = &pipelineRenderingInfo;
+    mPipelineInfo.pNext = &mRenderingInfo;
 
     mPipelineInfo.layout = layout;
     mPipelineInfo.pStages = mShaderModules.data();

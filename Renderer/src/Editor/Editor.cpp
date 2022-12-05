@@ -13,7 +13,8 @@ Editor::Editor::Editor(bool enableValidationLayers)
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitBasicPipeline();
-
+        mCommandList = Renderer::Get()->GetCommandList(CommandListType::Graphics);
+        mCommandList->Init(1);
     }
     catch (std::exception const& e)
     {
@@ -23,6 +24,9 @@ Editor::Editor::Editor(bool enableValidationLayers)
 
 Editor::Editor::~Editor()
 {
+    Renderer::Get()->WaitIdle();
+    mBasicPipeline.reset();
+    mCommandList.reset();
     Renderer::Destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
@@ -79,17 +83,17 @@ void Editor::Editor::InitBasicPipeline()
 {
     int32_t width, height;
     glfwGetWindowSize(mWindow, &width, &height);
-    Pipeline basicPipeline("BasicPipeline");
+    mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
     {
-        basicPipeline.AddShader("Shaders/basic.vert.spv");
-        basicPipeline.AddShader("Shaders/basic.frag.spv");
+        mBasicPipeline->AddShader("Shaders/basic.vert.spv");
+        mBasicPipeline->AddShader("Shaders/basic.frag.spv");
     }
     VkViewport vp{};
     VkRect2D sc{};
-    auto& viewport = basicPipeline.GetViewportStateCreateInfo();
+    auto& viewport = mBasicPipeline->GetViewportStateCreateInfo();
     {
-        vp.width = width; vp.minDepth = 0.0f; vp.x = 0;
-        vp.height = height; vp.maxDepth = 1.0f; vp.y = 0;
+        vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
+        vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
         sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
         viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewport.viewportCount = 1;
@@ -98,7 +102,7 @@ void Editor::Editor::InitBasicPipeline()
         viewport.pScissors = &sc;
     }
     VkPipelineColorBlendAttachmentState attachmentInfo{};
-    auto& blendState = basicPipeline.GetColorBlendStateCreateInfo();
+    auto& blendState = mBasicPipeline->GetColorBlendStateCreateInfo();
     {
         attachmentInfo.blendEnable = VK_FALSE;
         attachmentInfo.colorWriteMask = 
@@ -108,19 +112,61 @@ void Editor::Editor::InitBasicPipeline()
         blendState.attachmentCount = 1;
         blendState.pAttachments = &attachmentInfo;
     }
-    basicPipeline.Bake();
+    std::vector<VkDynamicState> dynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+    auto& dynamicState = mBasicPipeline->GetDynamicStateCreateInfo();
+    {
+        dynamicState.dynamicStateCount = 2;
+        dynamicState.pDynamicStates = dynamicStates.data();
+    }
+    mBasicPipeline->AddBackbufferColorOutput();
+    mBasicPipeline->SetBackbufferDepthStencilOutput();
+    mBasicPipeline->Bake();
 }
 
 void Editor::Editor::Run()
 {
-    while (!glfwWindowShouldClose(mWindow))
+    try
     {
-        Frame();
-        glfwPollEvents();
+        while (!glfwWindowShouldClose(mWindow))
+        {
+            Frame();
+            glfwPollEvents();
+        }
     }
+    catch (std::exception const& e)
+    {
+        LOG(ERROR) << "Error occured when running: " << e.what();
+    }
+    Renderer::Get()->WaitIdle();
 }
 
 void Editor::Editor::Frame()
 {
+    mCommandList->Begin();
+    {
+        mCommandList->BeginRenderingOnBackbuffer();
+        {
+            int32_t width, height;
+            glfwGetWindowSize(mWindow, &width, &height);
+            VkViewport vp{};
+            VkRect2D sc{};
+            vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
+            vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
+            sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
 
+            mCommandList->BindPipeline(mBasicPipeline.get());
+            mCommandList->SetViewports({vp});
+            mCommandList->SetScissor({sc});
+
+            mCommandList->Draw(3);
+        }
+        mCommandList->EndRendering();
+    }
+    mCommandList->End();
+
+    mCommandList->SubmitToScreen();
+    Renderer::Get()->WaitIdle();
 }

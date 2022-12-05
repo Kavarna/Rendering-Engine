@@ -34,7 +34,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-
 Renderer::Renderer(CreateInfo::EditorRenderer const& info)
 {
     LOG(INFO) << "Attempting to initialize vulkan renderer with info" << info;
@@ -71,6 +70,11 @@ Renderer::~Renderer()
     jnrDestroyInstance(mInstance, nullptr);
 
     LOG(INFO) << "Vulkan renderer uninitialised successfully";
+}
+
+void Editor::Renderer::WaitIdle()
+{
+    ThrowIfFailed(jnrDeviceWaitIdle(mDevice));
 }
 
 VkDevice Renderer::GetDevice()
@@ -318,6 +322,10 @@ void Renderer::InitSwapchain()
     
     ThrowIfFailed(jnrCreateSwapchainKHR(mDevice, &swapchainInfo, nullptr, &mSwapchain));
 
+    /* Save some swapchain info */
+    mSwapchainFormat = surfaceFormat.format;
+    mSwapchainExtent = extent;
+
     {
         /* Retrieve images */
         uint32_t count = 0;
@@ -325,6 +333,15 @@ void Renderer::InitSwapchain()
 
         mSwapchainImages.resize(count);
         ThrowIfFailed(jnrGetSwapchainImagesKHR(mDevice, mSwapchain, &count, mSwapchainImages.data()));
+    }
+
+    {
+        /* Reset image layouts for images */
+        mSwapchainImageLayouts.resize(mSwapchainImages.size());
+        for (uint32_t i = 0; i < mSwapchainImages.size(); ++i)
+        {
+            mSwapchainImageLayouts[i] = VK_IMAGE_LAYOUT_UNDEFINED;
+        }
     }
 
     {
@@ -618,4 +635,58 @@ VkPipelineLayout Renderer::GetEmptyPipelineLayout()
     );
 
     return mEmptyPipelineLayout;
+}
+
+std::unique_ptr<CommandList> Renderer::GetCommandList(CommandListType type)
+{
+    uint32_t queueIndex = (uint32_t)(-1);
+    if (type == CommandListType::Graphics)
+        queueIndex = mQueueIndices.graphicsFamily.value();
+    CHECK(queueIndex != (uint32_t)(-1)) << "Invalid command list provided";
+
+    VkCommandPoolCreateInfo poolInfo{};
+    {
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueIndex;
+    }
+    VkCommandPool cmdPool;
+    ThrowIfFailed(jnrCreateCommandPool(mDevice, &poolInfo, nullptr, &cmdPool));
+    
+    return std::make_unique<CommandList>(cmdPool, type);
+}
+
+VkFormat Editor::Renderer::GetBackbufferFormat()
+{
+    return mSwapchainFormat;
+}
+
+VkFormat Editor::Renderer::GetDefaultStencilFormat()
+{
+    return VK_FORMAT_UNDEFINED;
+}
+
+VkFormat Editor::Renderer::GetDefaultDepthFormat()
+{
+    return VK_FORMAT_UNDEFINED;
+}
+
+VkExtent2D Editor::Renderer::GetBackbufferExtent()
+{
+    return mSwapchainExtent;
+}
+
+uint32_t Editor::Renderer::AcquireNextImage(GPUSynchronizationObject* syncObject)
+{
+    uint32_t imageIndex = 0;
+    ThrowIfFailed(
+        jnrAcquireNextImageKHR(mDevice, mSwapchain, UINT64_MAX, syncObject->GetSemaphore(), VK_NULL_HANDLE, &imageIndex)
+    );
+    return imageIndex;
+}
+
+VkImageView Editor::Renderer::GetSwapchainImageView(uint32_t index)
+{
+    CHECK(index >= 0 && index < mSwapchainImageViews.size()) << "Invalid image view requested";
+    return mSwapchainImageViews[index];
 }

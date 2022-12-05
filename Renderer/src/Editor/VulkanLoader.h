@@ -3,11 +3,11 @@
 #include <Jnrlib.h>
 #include <vulkan/vulkan.h>
 
+#undef CreateSemaphore
 
 #define JNR_FN(FN) PFN_vk##FN jnr##FN
 
 // Device
-extern JNR_FN(CreateCommandPool);
 extern JNR_FN(CreateSwapchainKHR);
 extern JNR_FN(DestroySwapchainKHR);
 extern JNR_FN(GetSwapchainImagesKHR);
@@ -19,7 +19,29 @@ extern JNR_FN(CreatePipelineLayout);
 extern JNR_FN(DestroyPipelineLayout);
 extern JNR_FN(CreateGraphicsPipelines);
 extern JNR_FN(DestroyPipeline);
-extern JNR_FN(CreateRenderPass);
+extern JNR_FN(CreateCommandPool);
+extern JNR_FN(DestroyCommandPool);
+extern JNR_FN(AllocateCommandBuffers);
+extern JNR_FN(ResetCommandPool);
+extern JNR_FN(BeginCommandBuffer);
+extern JNR_FN(EndCommandBuffer);
+extern JNR_FN(CmdBeginRendering);
+extern JNR_FN(CmdEndRendering);
+extern JNR_FN(AcquireNextImageKHR);
+extern JNR_FN(CreateFence);
+extern JNR_FN(DestroyFence);
+extern JNR_FN(CreateSemaphore);
+extern JNR_FN(DestroySemaphore);
+extern JNR_FN(DeviceWaitIdle);
+extern JNR_FN(QueueSubmit);
+extern JNR_FN(QueuePresentKHR);
+extern JNR_FN(CmdPipelineBarrier);
+extern JNR_FN(CmdClearColorImage);
+extern JNR_FN(CmdDrawIndexed);
+extern JNR_FN(CmdDraw);
+extern JNR_FN(CmdBindPipeline);
+extern JNR_FN(CmdSetViewport);
+extern JNR_FN(CmdSetScissor);
 
 // Instance
 extern JNR_FN(DestroyInstance);

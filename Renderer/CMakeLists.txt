@@ -35,7 +35,7 @@ foreach(SHADER_SOURCE ${EDITOR_SHADERS})
     set(COMPILED_SHADER "${CMAKE_CURRENT_BINARY_DIR}/${SHADER_FILE_NAME}.spv")
 
     add_custom_command(OUTPUT ${SHADER_FILE_NAME}.spv
-                       COMMAND glslc ${SHADER_SOURCE} -o ${COMPILED_SHADER}
+                       COMMAND glslc -g ${SHADER_SOURCE} -o ${COMPILED_SHADER}
                        DEPENDS ${SHADER_SOURCE})
     set(target_name "Shader_${SHADER_FILE_NAME}")
     add_custom_target(${target_name} ALL

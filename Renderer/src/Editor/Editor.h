@@ -5,6 +5,8 @@
 
 #include "CreateInfoUtils.h"
 
+#include "VulkanHelpers/CommandList.h"
+
 namespace Editor
 {
     class Editor : public Jnrlib::ISingletone<Editor>
@@ -30,6 +32,8 @@ namespace Editor
     private:
         GLFWwindow* mWindow;
 
+        std::unique_ptr<CommandList> mCommandList;
+        std::unique_ptr<Pipeline> mBasicPipeline;
     };
 
 }

@@ -4,8 +4,14 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 
+namespace Editor
+{
+    class CommandList;
+}
+
 class Pipeline
 {
+    friend class Editor::CommandList;
 public:
     Pipeline(std::string const& name);
     ~Pipeline();
@@ -16,6 +22,12 @@ public:
     void SetDescriptorSetLayout();
     void AddPushConstants();
     */
+
+    /* TODO: Add color outputs by taking an image as a parameter */
+    void AddBackbufferColorOutput();
+    void SetBackbufferDepthStencilOutput();
+
+    void Bake();
     
 
 public:
@@ -56,15 +68,15 @@ public:
         return mViewportState;
     }
 
-    void Bake(std::vector<VkFormat> const& colorOutputFormats = std::vector<VkFormat>{},
-              VkFormat depthFormat = VK_FORMAT_UNDEFINED, VkFormat stencilFormat = VK_FORMAT_UNDEFINED);
-
 private:
     void InitDefaultPipelineState();
 
 private:
     std::string mName;
 
+    std::vector<VkFormat> mColorOutputs;
+    VkFormat mDepthFormat;
+    VkFormat mStencilFormat;
     std::vector<VkPipelineShaderStageCreateInfo> mShaderModules;
 
     VkPipelineColorBlendStateCreateInfo mBlendState{};
@@ -77,6 +89,7 @@ private:
     VkPipelineVertexInputStateCreateInfo mVertexInputState{};
     VkPipelineViewportStateCreateInfo mViewportState{};
 
+    VkPipelineRenderingCreateInfo mRenderingInfo{};
     VkGraphicsPipelineCreateInfo mPipelineInfo{};
 
     VkPipeline mPipeline = VK_NULL_HANDLE;

@@ -35,7 +35,6 @@
 #define GET_DEV_FN_OPT(fn, inst)             GET_DEV_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
 
 // Device
-JNR_FN(CreateCommandPool);
 JNR_FN(CreateSwapchainKHR);
 JNR_FN(DestroySwapchainKHR);
 JNR_FN(GetSwapchainImagesKHR);
@@ -47,7 +46,29 @@ JNR_FN(CreatePipelineLayout);
 JNR_FN(DestroyPipelineLayout);
 JNR_FN(CreateGraphicsPipelines);
 JNR_FN(DestroyPipeline);
-JNR_FN(CreateRenderPass);
+JNR_FN(CreateCommandPool);
+JNR_FN(DestroyCommandPool);
+JNR_FN(AllocateCommandBuffers);
+JNR_FN(ResetCommandPool);
+JNR_FN(BeginCommandBuffer);
+JNR_FN(EndCommandBuffer);
+JNR_FN(CmdBeginRendering);
+JNR_FN(CmdEndRendering);
+JNR_FN(AcquireNextImageKHR);
+JNR_FN(CreateFence);
+JNR_FN(DestroyFence);
+JNR_FN(CreateSemaphore);
+JNR_FN(DestroySemaphore);
+JNR_FN(DeviceWaitIdle);
+JNR_FN(QueueSubmit);
+JNR_FN(QueuePresentKHR);
+JNR_FN(CmdPipelineBarrier);
+JNR_FN(CmdClearColorImage);
+JNR_FN(CmdDrawIndexed);
+JNR_FN(CmdBindPipeline);
+JNR_FN(CmdDraw);
+JNR_FN(CmdSetViewport);
+JNR_FN(CmdSetScissor);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -110,7 +131,6 @@ void Editor::LoadFunctionsInstance(VkInstance instance)
 
 void Editor::LoadFunctionsDevice(VkDevice device)
 {
-    GET_DEV_FN(CreateCommandPool, device);
     GET_DEV_FN(CreateSwapchainKHR, device);
     GET_DEV_FN(DestroySwapchainKHR, device);
     GET_DEV_FN(GetSwapchainImagesKHR, device);
@@ -122,5 +142,27 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(DestroyPipelineLayout, device);
     GET_DEV_FN(CreateGraphicsPipelines, device);
     GET_DEV_FN(DestroyPipeline, device);
-    GET_DEV_FN(CreateRenderPass, device);
+    GET_DEV_FN(CreateCommandPool, device);
+    GET_DEV_FN(DestroyCommandPool, device);
+    GET_DEV_FN(AllocateCommandBuffers, device);
+    GET_DEV_FN(ResetCommandPool, device);
+    GET_DEV_FN(BeginCommandBuffer, device);
+    GET_DEV_FN(EndCommandBuffer, device);
+    GET_DEV_FN(CmdBeginRendering, device);
+    GET_DEV_FN(CmdEndRendering, device);
+    GET_DEV_FN(AcquireNextImageKHR, device);
+    GET_DEV_FN(CreateFence, device);
+    GET_DEV_FN(DestroyFence, device);
+    GET_DEV_FN(CreateSemaphore, device);
+    GET_DEV_FN(DestroySemaphore, device);
+    GET_DEV_FN(DeviceWaitIdle, device);
+    GET_DEV_FN(QueueSubmit, device);
+    GET_DEV_FN(QueuePresentKHR, device);
+    GET_DEV_FN(CmdPipelineBarrier, device);
+    GET_DEV_FN(CmdClearColorImage, device);
+    GET_DEV_FN(CmdDrawIndexed, device);
+    GET_DEV_FN(CmdBindPipeline, device);
+    GET_DEV_FN(CmdDraw, device);
+    GET_DEV_FN(CmdSetViewport, device);
+    GET_DEV_FN(CmdSetScissor, device);
 }

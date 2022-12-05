@@ -4,21 +4,36 @@
 #include "vulkan/vulkan.h"
 #include "CreateInfoUtils.h"
 #include "VulkanHelpers/VulkanHelpers.h"
-
+#include "VulkanHelpers/CommandList.h"
+#include "VulkanHelpers/SynchronizationObjects.h"
 
 namespace Editor
 {
     class Renderer : public Jnrlib::ISingletone<Renderer>
     {
         MAKE_SINGLETONE_CAPABLE(Renderer);
-
+        friend class CommandList;
     private:
         Renderer(CreateInfo::EditorRenderer const&);
         ~Renderer();
     
     public:
+        void WaitIdle();
+
+    public:
         VkDevice GetDevice();
         VkPipelineLayout GetEmptyPipelineLayout();
+
+        std::unique_ptr<CommandList> GetCommandList(CommandListType type);
+
+        VkFormat GetBackbufferFormat();
+        VkFormat GetDefaultStencilFormat();
+        VkFormat GetDefaultDepthFormat();
+        VkExtent2D GetBackbufferExtent();
+
+        uint32_t AcquireNextImage(GPUSynchronizationObject*);
+
+        VkImageView GetSwapchainImageView(uint32_t index);
 
     private:
         void InitInstance(CreateInfo::EditorRenderer const& info);
@@ -105,10 +120,13 @@ namespace Editor
         VkQueue mPresentQueue;
 
         VkSurfaceKHR mRenderingSurface;
+        VkFormat mSwapchainFormat;
+        VkExtent2D mSwapchainExtent;
         SwapchainSupportDetails mSwapchainDetails;
         VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
         std::vector<VkImage> mSwapchainImages;
         std::vector<VkImageView> mSwapchainImageViews;
+        std::vector<VkImageLayout> mSwapchainImageLayouts;
 
         /* Some "default" variables will be store in the renderer, so they will be available as soon
          * as rendering is needed and will be released as soon as rendering is not needed
