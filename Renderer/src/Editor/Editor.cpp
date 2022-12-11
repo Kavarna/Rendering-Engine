@@ -14,8 +14,7 @@ Editor::Editor::Editor(bool enableValidationLayers)
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitBasicPipeline();
-        mCommandList = Renderer::Get()->GetCommandList(CommandListType::Graphics);
-        mCommandList->Init(1);
+        InitCommandLists();
     }
     catch (std::exception const& e)
     {
@@ -26,8 +25,15 @@ Editor::Editor::Editor(bool enableValidationLayers)
 Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
+    
     mBasicPipeline.reset();
-    mCommandList.reset();
+    
+    for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
+    {
+        mCommandLists[i].reset();
+        mCommandListIsDone[i].reset();
+    }
+    
     Renderer::Destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
@@ -130,18 +136,20 @@ void Editor::Editor::InitBasicPipeline()
         blendState.attachmentCount = 1;
         blendState.pAttachments = &attachmentInfo;
     }
-    std::vector<VkDynamicState> dynamicStates = {
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-    };
-    auto& dynamicState = mBasicPipeline->GetDynamicStateCreateInfo();
-    {
-        dynamicState.dynamicStateCount = 2;
-        dynamicState.pDynamicStates = dynamicStates.data();
-    }
     mBasicPipeline->AddBackbufferColorOutput();
     mBasicPipeline->SetBackbufferDepthStencilOutput();
     mBasicPipeline->Bake();
+}
+
+void Editor::Editor::InitCommandLists()
+{
+    for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
+    {
+        mCommandLists[i] = Renderer::Get()->GetCommandList(CommandListType::Graphics);
+        mCommandLists[i]->Init();
+
+        mCommandListIsDone[i] = std::make_unique<CPUSynchronizationObject>(true);
+    }
 }
 
 void Editor::Editor::Run()
@@ -163,38 +171,23 @@ void Editor::Editor::Run()
 
 void Editor::Editor::Frame()
 {
-    auto renderer = Renderer::Get();
+    auto& cmdList = mCommandLists[mCurrentFrame];
+    auto& isCmdListDone = mCommandListIsDone[mCurrentFrame];
+    isCmdListDone->Wait();
+    isCmdListDone->Reset();
 
-
-    mCommandList->Begin();
+    cmdList->Begin();
     {
-        mCommandList->BeginRenderingOnBackbuffer(Jnrlib::Black);
+        cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
         {
-            mCommandList->BindPipeline(mBasicPipeline.get());
-
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = (float)renderer->GetBackbufferExtent().width;
-            viewport.height = (float)renderer->GetBackbufferExtent().height;
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = renderer->GetBackbufferExtent();
-
-            mCommandList->SetScissor({scissor});
-            mCommandList->SetViewports({viewport});
-
-            mCommandList->Draw(3);
+            cmdList->BindPipeline(mBasicPipeline.get());
+            cmdList->Draw(3);
         }
-        mCommandList->EndRendering();
-
-
+        cmdList->EndRendering();
     }
-    mCommandList->End();
+    cmdList->End();
 
-    mCommandList->SubmitToScreen();
-    Renderer::Get()->WaitIdle();
+    cmdList->SubmitToScreen(isCmdListDone.get());
+
+    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }

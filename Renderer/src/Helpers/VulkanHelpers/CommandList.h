@@ -30,7 +30,7 @@ namespace Editor
         };
 
     public:
-        void Init(uint32_t numCommandBuffers);
+        void Init(uint32_t numCommandBuffers = 1);
         void ResetAll();
 
         void Begin(uint32_t cmdBufIndex = 0);
@@ -46,8 +46,7 @@ namespace Editor
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void EndRendering(uint32_t cmdBufIndex = 0);
 
-        void SubmitToScreen();
-
+        void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);
 
     private:
         VkCommandPool mCommandPool;

@@ -42,10 +42,8 @@ extern JNR_FN(CmdDraw);
 extern JNR_FN(CmdBindPipeline);
 extern JNR_FN(CmdSetViewport);
 extern JNR_FN(CmdSetScissor);
-extern JNR_FN(CreateRenderPass);
-extern JNR_FN(CreateFramebuffer);
-extern JNR_FN(CmdBeginRenderPass);
-extern JNR_FN(CmdEndRenderPass);
+extern JNR_FN(WaitForFences);
+extern JNR_FN(ResetFences);
 
 // Instance
 extern JNR_FN(DestroyInstance);

@@ -184,7 +184,7 @@ void Editor::CommandList::EndRendering(uint32_t cmdBufIndex)
     jnrCmdEndRendering(mCommandBuffers[cmdBufIndex]);
 }
 
-void Editor::CommandList::SubmitToScreen()
+void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
 {
     if (mRenderingFinished == nullptr)
         mRenderingFinished = std::make_unique<GPUSynchronizationObject>();
@@ -213,7 +213,7 @@ void Editor::CommandList::SubmitToScreen()
         if (mType == CommandListType::Graphics)
         {
             ThrowIfFailed(
-                jnrQueueSubmit(renderer->mGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE)
+                jnrQueueSubmit(renderer->mGraphicsQueue, 1, &submitInfo, signalWhenFinished == nullptr ? VK_NULL_HANDLE : signalWhenFinished->GetFence())
             );
         }
     }
