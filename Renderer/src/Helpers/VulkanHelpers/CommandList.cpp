@@ -129,7 +129,7 @@ void Editor::CommandList::TransitionBackbufferTo(TransitionInfo const& transitio
     renderer->mSwapchainImageLayouts[mImageIndex] = transitionInfo.newLayout;
 }
 
-void Editor::CommandList::BeginRenderingOnBackbuffer(uint32_t cmdBufIndex)
+void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
 {
     if (mBackbufferAvailable == nullptr)
         mBackbufferAvailable = std::make_unique<GPUSynchronizationObject>();
@@ -148,10 +148,10 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(uint32_t cmdBufIndex)
     }
 
     VkClearValue clearValue{};
-    clearValue.color.float32[0] = 1.0f;
-    clearValue.color.float32[1] = 1.0f;
-    clearValue.color.float32[2] = 1.0f;
-    clearValue.color.float32[3] = 1.0f;
+    clearValue.color.float32[0] = (float)backgroundColor.r;
+    clearValue.color.float32[1] = (float)backgroundColor.g;
+    clearValue.color.float32[2] = (float)backgroundColor.b;
+    clearValue.color.float32[3] = (float)backgroundColor.a;
     VkRenderingAttachmentInfo colorAttachment{};
     {
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -173,6 +173,7 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(uint32_t cmdBufIndex)
             .extent = renderer->GetBackbufferExtent()
         };
         renderingInfo.viewMask = 0;
+        renderingInfo.layerCount = 1;
     }
 
     jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
@@ -237,4 +238,3 @@ void Editor::CommandList::SubmitToScreen()
         ThrowIfFailed(jnrQueuePresentKHR(renderer->mPresentQueue, &presentInfo));
     }
 }
-

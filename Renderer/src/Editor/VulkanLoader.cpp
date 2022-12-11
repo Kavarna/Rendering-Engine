@@ -69,6 +69,10 @@ JNR_FN(CmdBindPipeline);
 JNR_FN(CmdDraw);
 JNR_FN(CmdSetViewport);
 JNR_FN(CmdSetScissor);
+JNR_FN(CreateRenderPass);
+JNR_FN(CreateFramebuffer);
+JNR_FN(CmdBeginRenderPass);
+JNR_FN(CmdEndRenderPass);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -165,4 +169,8 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CmdDraw, device);
     GET_DEV_FN(CmdSetViewport, device);
     GET_DEV_FN(CmdSetScissor, device);
+    GET_DEV_FN(CreateRenderPass, device);
+    GET_DEV_FN(CreateFramebuffer, device);
+    GET_DEV_FN(CmdBeginRenderPass, device);
+    GET_DEV_FN(CmdEndRenderPass, device);
 }

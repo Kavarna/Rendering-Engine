@@ -43,10 +43,11 @@ namespace Editor
 
         void TransitionBackbufferTo(TransitionInfo const& transitionInfo,  uint32_t cmdBufIndex = 0);
 
-        void BeginRenderingOnBackbuffer(uint32_t cmdBufIndex = 0);
+        void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void EndRendering(uint32_t cmdBufIndex = 0);
 
         void SubmitToScreen();
+
 
     private:
         VkCommandPool mCommandPool;

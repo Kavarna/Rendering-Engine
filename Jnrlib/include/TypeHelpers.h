@@ -113,4 +113,6 @@ namespace Jnrlib
     constexpr Float EPSILON = (Float)0.0001f;
 
     constexpr Float PI = glm::pi<Float>();
+
+    constexpr Color Black = Color(Zero);
 }

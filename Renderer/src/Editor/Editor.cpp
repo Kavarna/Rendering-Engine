@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "VulkanHelpers/Pipeline.h"
 #include "VulkanHelpers/PipelineManager.h"
+#include "FileHelpers.h"
 
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
@@ -48,6 +49,23 @@ void Editor::Editor::InitWindow()
     CHECK(mWindow != nullptr) << "Unable to create window";
 
     LOG(INFO) << "Successfully created window";
+}
+
+VkShaderModule createShaderModule(const std::vector<char>& code)
+{
+    auto device = Editor::Renderer::Get()->GetDevice();
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    VkShaderModule shaderModule;
+    if (jnrCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    return shaderModule;
 }
 
 CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidationLayers)
@@ -145,25 +163,35 @@ void Editor::Editor::Run()
 
 void Editor::Editor::Frame()
 {
+    auto renderer = Renderer::Get();
+
+
     mCommandList->Begin();
     {
-        mCommandList->BeginRenderingOnBackbuffer();
+        mCommandList->BeginRenderingOnBackbuffer(Jnrlib::Black);
         {
-            int32_t width, height;
-            glfwGetWindowSize(mWindow, &width, &height);
-            VkViewport vp{};
-            VkRect2D sc{};
-            vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
-            vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
-            sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
-
             mCommandList->BindPipeline(mBasicPipeline.get());
-            mCommandList->SetViewports({vp});
-            mCommandList->SetScissor({sc});
+
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = (float)renderer->GetBackbufferExtent().width;
+            viewport.height = (float)renderer->GetBackbufferExtent().height;
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            VkRect2D scissor{};
+            scissor.offset = {0, 0};
+            scissor.extent = renderer->GetBackbufferExtent();
+
+            mCommandList->SetScissor({scissor});
+            mCommandList->SetViewports({viewport});
 
             mCommandList->Draw(3);
         }
         mCommandList->EndRendering();
+
+
     }
     mCommandList->End();
 

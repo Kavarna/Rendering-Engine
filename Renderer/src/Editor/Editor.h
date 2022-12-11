@@ -32,6 +32,8 @@ namespace Editor
     private:
         GLFWwindow* mWindow;
 
+        std::vector<VkFramebuffer> swapChainFramebuffers;
+
         std::unique_ptr<CommandList> mCommandList;
         std::unique_ptr<Pipeline> mBasicPipeline;
     };
