@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Jnrlib.h>
+#include "Buffer.h"
 #include "SynchronizationObjects.h"
 
 class Pipeline;
@@ -16,7 +17,7 @@ namespace Editor
     class CommandList
     {
     public:
-        CommandList(VkCommandPool commandPool, CommandListType cmdListType);
+        CommandList(CommandListType cmdListType);
         ~CommandList();
     
     public:
@@ -47,6 +48,14 @@ namespace Editor
         void EndRendering(uint32_t cmdBufIndex = 0);
 
         void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);
+
+    public:
+        template <typename T>
+        void BindVertexBuffer(Buffer<T>* buffer, uint32_t cmdBufIndex = 0)
+        {
+            VkDeviceSize offsets[] = {0};
+            jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], 0, 1, &buffer->mBuffer, offsets);
+        }
 
     private:
         VkCommandPool mCommandPool;

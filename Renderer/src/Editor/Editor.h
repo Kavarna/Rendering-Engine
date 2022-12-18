@@ -6,6 +6,7 @@
 #include "CreateInfoUtils.h"
 
 #include "VulkanHelpers/CommandList.h"
+#include "VulkanHelpers/Buffer.h"
 
 namespace Editor
 {
@@ -20,10 +21,14 @@ namespace Editor
         Editor(bool enableValidationLayers);
         ~Editor();
 
+    public:
+        void OnResize(uint32_t width, uint32_t height);
+
     private:
         void InitWindow();
         void InitBasicPipeline();
         void InitCommandLists();
+        void InitVertexBuffer();
 
         CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 
@@ -33,8 +38,14 @@ namespace Editor
     private:
         GLFWwindow* mWindow;
 
-        std::vector<VkFramebuffer> swapChainFramebuffers;
+        uint32_t mWidth, mHeight;
 
+        struct Vertex
+        {
+            glm::vec3 position;
+        };
+
+        std::unique_ptr<Buffer<Vertex>> mVertexBuffer;
         std::unique_ptr<CPUSynchronizationObject> mCommandListIsDone[2];
         std::unique_ptr<CommandList> mCommandLists[2];
         uint32_t mCurrentFrame = 0;

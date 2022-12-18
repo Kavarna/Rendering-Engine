@@ -71,6 +71,7 @@ JNR_FN(CmdSetViewport);
 JNR_FN(CmdSetScissor);
 JNR_FN(WaitForFences);
 JNR_FN(ResetFences);
+JNR_FN(CmdBindVertexBuffers);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -169,4 +170,5 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CmdSetScissor, device);
     GET_DEV_FN(WaitForFences, device);
     GET_DEV_FN(ResetFences, device);
+    GET_DEV_FN(CmdBindVertexBuffers, device);
 }

@@ -4,8 +4,8 @@
 #include "vulkan/vulkan.h"
 #include "CreateInfoUtils.h"
 #include "VulkanHelpers/VulkanHelpers.h"
-#include "VulkanHelpers/CommandList.h"
 #include "VulkanHelpers/SynchronizationObjects.h"
+#include "VulkanHelpers/MemoryAllocator.h"
 
 namespace Editor
 {
@@ -16,15 +16,12 @@ namespace Editor
     private:
         Renderer(CreateInfo::EditorRenderer const&);
         ~Renderer();
-    
-    public:
-        void WaitIdle();
 
     public:
         VkDevice GetDevice();
         VkPipelineLayout GetEmptyPipelineLayout();
 
-        std::unique_ptr<CommandList> GetCommandList(CommandListType type);
+        VmaAllocator GetAllocator();
 
         VkFormat GetBackbufferFormat();
         VkFormat GetDefaultStencilFormat();
@@ -32,8 +29,10 @@ namespace Editor
         VkExtent2D GetBackbufferExtent();
 
         uint32_t AcquireNextImage(GPUSynchronizationObject*);
-
         VkImageView GetSwapchainImageView(uint32_t index);
+
+        void WaitIdle();
+        void OnResize();
 
     private:
         void InitInstance(CreateInfo::EditorRenderer const& info);
@@ -42,6 +41,7 @@ namespace Editor
         void InitDevice(CreateInfo::EditorRenderer const& info);
         void InitSurface();
         void InitSwapchain();
+        void InitAllocator();
 
     private:
         struct QueueFamilyIndices
@@ -126,7 +126,9 @@ namespace Editor
         VkSwapchainKHR mSwapchain = VK_NULL_HANDLE;
         std::vector<VkImage> mSwapchainImages;
         std::vector<VkImageView> mSwapchainImageViews;
-        std::vector<VkImageLayout> mSwapchainImageLayouts;
+        std::vector<VkImageLayout> mSwapchainImageLayouts; // Used in command buffer to figure out what to do with transitions
+
+        VmaAllocator mAllocator;
 
         /* Some "default" variables will be store in the renderer, so they will be available as soon
          * as rendering is needed and will be released as soon as rendering is not needed

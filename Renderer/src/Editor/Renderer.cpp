@@ -4,7 +4,10 @@
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 
+
 using namespace Editor;
+
+static constexpr const uint32_t API_VERSION = VK_API_VERSION_1_3;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -45,7 +48,7 @@ Renderer::Renderer(CreateInfo::EditorRenderer const& info)
     InitSurface();
     PickPhysicalDevice();
     InitDevice(info);
-    InitSwapchain();
+    InitAllocator();
 
     LOG(INFO) << "Vulkan renderer initialised successfully";
 }
@@ -62,6 +65,9 @@ Renderer::~Renderer()
     }
     jnrDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
     jnrDestroySurfaceKHR(mInstance, mRenderingSurface, nullptr);
+ 
+    vmaDestroyAllocator(mAllocator);
+    
     jnrDestroyDevice(mDevice, nullptr);
     if (mInstanceExtensions.debugUtils.has_value())
     {
@@ -77,6 +83,11 @@ void Editor::Renderer::WaitIdle()
     ThrowIfFailed(jnrDeviceWaitIdle(mDevice));
 }
 
+void Editor::Renderer::OnResize()
+{
+    InitSwapchain();
+}
+
 VkDevice Renderer::GetDevice()
 {
     return mDevice;
@@ -88,7 +99,7 @@ void Renderer::InitInstance(CreateInfo::EditorRenderer const& info)
     {
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pNext = nullptr;
-        appInfo.apiVersion = VK_API_VERSION_1_3;
+        appInfo.apiVersion = API_VERSION;
         appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
         appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 1);
         appInfo.pApplicationName = "JNReditor";
@@ -373,6 +384,23 @@ void Renderer::InitSwapchain()
 
 }
 
+void Editor::Renderer::InitAllocator()
+{
+    VmaVulkanFunctions vulkanFunctions = {};
+    vulkanFunctions.vkGetInstanceProcAddr = jnrGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = jnrGetDeviceProcAddr;
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.vulkanApiVersion = API_VERSION;
+    allocatorCreateInfo.physicalDevice = mPhysicalDevice;
+    allocatorCreateInfo.device = mDevice;
+    allocatorCreateInfo.instance = mInstance;
+    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+
+    ThrowIfFailed(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
+}
+
 Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()
 {
     SwapchainSupportDetails result;
@@ -637,23 +665,9 @@ VkPipelineLayout Renderer::GetEmptyPipelineLayout()
     return mEmptyPipelineLayout;
 }
 
-std::unique_ptr<CommandList> Renderer::GetCommandList(CommandListType type)
+VmaAllocator Editor::Renderer::GetAllocator()
 {
-    uint32_t queueIndex = (uint32_t)(-1);
-    if (type == CommandListType::Graphics)
-        queueIndex = mQueueIndices.graphicsFamily.value();
-    CHECK(queueIndex != (uint32_t)(-1)) << "Invalid command list provided";
-
-    VkCommandPoolCreateInfo poolInfo{};
-    {
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        poolInfo.queueFamilyIndex = queueIndex;
-    }
-    VkCommandPool cmdPool;
-    ThrowIfFailed(jnrCreateCommandPool(mDevice, &poolInfo, nullptr, &cmdPool));
-    
-    return std::make_unique<CommandList>(cmdPool, type);
+    return mAllocator;
 }
 
 VkFormat Editor::Renderer::GetBackbufferFormat()

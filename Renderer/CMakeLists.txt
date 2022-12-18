@@ -8,6 +8,9 @@ include_directories("src")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 add_executable("Renderer" ${SOURCES})
 
+set(VULKAN_SDK "$ENV{VULKAN_SDK}")
+
+include_directories("${VULKAN_SDK}")
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
 target_link_libraries("Renderer" Vulkan::Vulkan)

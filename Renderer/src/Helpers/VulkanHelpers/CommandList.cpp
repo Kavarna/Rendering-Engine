@@ -1,3 +1,4 @@
+#include "CommandList.h"
 #include "PipelineManager.h"
 #include "Editor/VulkanLoader.h"
 #include "Editor/Renderer.h"
@@ -5,9 +6,24 @@
 
 using namespace Editor;
 
-Editor::CommandList::CommandList(VkCommandPool commandPool, CommandListType cmdListType) :
-    mCommandPool(commandPool), mType(cmdListType)
-{ }
+Editor::CommandList::CommandList(CommandListType cmdListType) :
+    mType(cmdListType)
+{
+    auto renderer = Renderer::Get();
+    uint32_t queueIndex = (uint32_t)(-1);
+    if (cmdListType == CommandListType::Graphics)
+        queueIndex = renderer->mQueueIndices.graphicsFamily.value();
+    CHECK(queueIndex != (uint32_t)(-1)) << "Invalid command list provided";
+
+    VkCommandPoolCreateInfo poolInfo{};
+    {
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = queueIndex;
+    }
+
+    ThrowIfFailed(jnrCreateCommandPool(renderer->mDevice, &poolInfo, nullptr, &mCommandPool));
+}
 
 Editor::CommandList::~CommandList()
 {

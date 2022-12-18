@@ -7,14 +7,22 @@
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
 
+
+/* Redirects for callbacks */
+void OnResizeCallback(GLFWwindow* window, int width, int height)
+{
+    Editor::Editor::Get()->OnResize(width, height);
+}
+
 Editor::Editor::Editor(bool enableValidationLayers)
 {
     try
     {
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
-        InitBasicPipeline();
         InitCommandLists();
+        InitVertexBuffer();
+        OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
     }
     catch (std::exception const& e)
     {
@@ -26,6 +34,7 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
     
+    mVertexBuffer.reset();
     mBasicPipeline.reset();
     
     for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
@@ -41,6 +50,17 @@ Editor::Editor::~Editor()
     LOG(INFO) << "Successfully destroyed window";
 }
 
+void Editor::Editor::OnResize(uint32_t width, uint32_t height)
+{
+    mWidth = width;
+    mHeight = height;
+
+    Renderer::Get()->WaitIdle();
+    Renderer::Get()->OnResize();
+
+    InitBasicPipeline();
+}
+
 void Editor::Editor::InitWindow()
 {
     CHECK(glfwInit() == GLFW_TRUE) << "Unable to initialize GLFW";
@@ -53,6 +73,8 @@ void Editor::Editor::InitWindow()
         "JNReditor", nullptr, nullptr
     );
     CHECK(mWindow != nullptr) << "Unable to create window";
+
+    glfwSetWindowSizeCallback(mWindow, OnResizeCallback);
 
     LOG(INFO) << "Successfully created window";
 }
@@ -105,8 +127,6 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
 
 void Editor::Editor::InitBasicPipeline()
 {
-    int32_t width, height;
-    glfwGetWindowSize(mWindow, &width, &height);
     mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
     {
         mBasicPipeline->AddShader("Shaders/basic.vert.spv");
@@ -116,15 +136,40 @@ void Editor::Editor::InitBasicPipeline()
     VkRect2D sc{};
     auto& viewport = mBasicPipeline->GetViewportStateCreateInfo();
     {
-        vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
-        vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
-        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
+        vp.width = (FLOAT)mWidth; vp.minDepth = 0.0f; vp.x = 0;
+        vp.height = (FLOAT)mHeight; vp.maxDepth = 1.0f; vp.y = 0;
+        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)mWidth, .height = (uint32_t)mHeight};
         viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewport.viewportCount = 1;
         viewport.pViewports = &vp;
         viewport.scissorCount = 1;
         viewport.pScissors = &sc;
     }
+
+    VkVertexInputAttributeDescription attributeDescription{};
+    {
+        attributeDescription.binding = 0;
+        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription.location = 0;
+        attributeDescription.offset = offsetof(Vertex, position);
+    }
+
+    VkVertexInputBindingDescription bindingDescription{};
+    {
+        bindingDescription.binding = 0;
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        bindingDescription.stride = sizeof(Vertex);
+    }
+
+    auto& vertexInput = mBasicPipeline->GetVertexInputStateCreateInfo();
+    {
+        vertexInput.vertexAttributeDescriptionCount = 1;
+        vertexInput.pVertexAttributeDescriptions = &attributeDescription;
+        vertexInput.vertexBindingDescriptionCount = 1;
+        vertexInput.pVertexBindingDescriptions = &bindingDescription;
+
+    }
+
     VkPipelineColorBlendAttachmentState attachmentInfo{};
     auto& blendState = mBasicPipeline->GetColorBlendStateCreateInfo();
     {
@@ -136,6 +181,12 @@ void Editor::Editor::InitBasicPipeline()
         blendState.attachmentCount = 1;
         blendState.pAttachments = &attachmentInfo;
     }
+    
+    auto& rasterizerState = mBasicPipeline->GetRasterizationStateCreateInfo();
+    {
+        rasterizerState.cullMode = VK_CULL_MODE_NONE;
+    }
+
     mBasicPipeline->AddBackbufferColorOutput();
     mBasicPipeline->SetBackbufferDepthStencilOutput();
     mBasicPipeline->Bake();
@@ -145,11 +196,26 @@ void Editor::Editor::InitCommandLists()
 {
     for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
     {
-        mCommandLists[i] = Renderer::Get()->GetCommandList(CommandListType::Graphics);
+        mCommandLists[i] = std::make_unique<CommandList>(CommandListType::Graphics);
         mCommandLists[i]->Init();
 
         mCommandListIsDone[i] = std::make_unique<CPUSynchronizationObject>(true);
     }
+}
+
+void Editor::Editor::InitVertexBuffer()
+{
+    Vertex vertices[] = {
+        {glm::vec3(0.5, -0.5, 0.0)},
+        {glm::vec3(0.5, 0.5, 0.0)},
+        {glm::vec3(-0.5, 0.5, 0.0)},
+        {glm::vec3(0.5, -0.5, 0.0)},
+        {glm::vec3(-0.5, 0.5, 0.0)},
+        {glm::vec3(-0.5, -0.5, 0.0)},
+    };
+    mVertexBuffer = std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
+                                                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    mVertexBuffer->Copy(vertices);
 }
 
 void Editor::Editor::Run()
@@ -181,7 +247,8 @@ void Editor::Editor::Frame()
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
         {
             cmdList->BindPipeline(mBasicPipeline.get());
-            cmdList->Draw(3);
+            cmdList->BindVertexBuffer(mVertexBuffer.get());
+            cmdList->Draw(6);
         }
         cmdList->EndRendering();
     }

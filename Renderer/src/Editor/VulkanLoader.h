@@ -44,6 +44,7 @@ extern JNR_FN(CmdSetViewport);
 extern JNR_FN(CmdSetScissor);
 extern JNR_FN(WaitForFences);
 extern JNR_FN(ResetFences);
+extern JNR_FN(CmdBindVertexBuffers);
 
 // Instance
 extern JNR_FN(DestroyInstance);
