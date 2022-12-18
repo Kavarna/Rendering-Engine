@@ -200,6 +200,29 @@ void Editor::CommandList::EndRendering(uint32_t cmdBufIndex)
     jnrCmdEndRendering(mCommandBuffers[cmdBufIndex]);
 }
 
+void Editor::CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
+{
+    auto renderer = Renderer::Get();
+    VkSubmitInfo submitInfo{};
+    {
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = (uint32_t)mCommandBuffers.size();
+        submitInfo.pCommandBuffers = mCommandBuffers.data();
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
+    }
+
+    if (mType == CommandListType::Graphics)
+    {
+        ThrowIfFailed(
+            jnrQueueSubmit(renderer->mGraphicsQueue, 1, &submitInfo, signalWhenFinished == nullptr ? VK_NULL_HANDLE : signalWhenFinished->GetFence())
+        );
+    }
+}
+
 void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
 {
     if (mRenderingFinished == nullptr)
@@ -211,7 +234,6 @@ void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFin
         VkSemaphore waitSemaphores[] = {mBackbufferAvailable->GetSemaphore()};
         VkSemaphore signalSemaphores[] = {mRenderingFinished->GetSemaphore()};
 
-        /* TODO: Establish the wait stages depending on the command buffer content */
         VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
         VkSubmitInfo submitInfo{};
@@ -253,4 +275,11 @@ void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFin
 
         ThrowIfFailed(jnrQueuePresentKHR(renderer->mPresentQueue, &presentInfo));
     }
+}
+
+void Editor::CommandList::SubmitAndWait()
+{
+    CPUSynchronizationObject cpuWait;
+    Submit(&cpuWait);
+    cpuWait.Wait();
 }

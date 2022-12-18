@@ -53,6 +53,12 @@ void CPUSynchronizationObject::Wait()
     
 }
 
+void CPUSynchronizationObject::WaitAndReset()
+{
+    Wait();
+    Reset();
+}
+
 void CPUSynchronizationObject::Reset()
 {
     auto device = Editor::Renderer::Get()->GetDevice();

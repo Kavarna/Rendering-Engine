@@ -31,6 +31,8 @@ public:
     /// </summary>
     void Wait();
 
+    void WaitAndReset();
+
     void Reset();
 
 private:

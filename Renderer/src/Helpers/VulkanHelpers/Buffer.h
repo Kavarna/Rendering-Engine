@@ -11,7 +11,7 @@ class Buffer
 {
     friend class Editor::CommandList;
 public:
-    Buffer(uint64_t count, VkBufferUsageFlagBits usage, VmaAllocationCreateFlags allocationFlags = 0) :
+    Buffer(uint64_t count, VkBufferUsageFlags usage, VmaAllocationCreateFlags allocationFlags = 0) :
         mCount(count)
     {
         mMappable = ((allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT) != 0 ||

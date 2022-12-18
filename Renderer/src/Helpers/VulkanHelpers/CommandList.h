@@ -47,7 +47,9 @@ namespace Editor
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void EndRendering(uint32_t cmdBufIndex = 0);
 
+        void Submit(CPUSynchronizationObject* signalWhenFinished);
         void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);
+        void SubmitAndWait();
 
     public:
         template <typename T>
@@ -55,6 +57,33 @@ namespace Editor
         {
             VkDeviceSize offsets[] = {0};
             jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], 0, 1, &buffer->mBuffer, offsets);
+        }
+
+        template<typename T>
+        void CopyBuffer(Buffer<T>* dst, Buffer<T>* src, uint32_t cmdBufIndex = 0)
+        {
+            CopyBuffer(dst, 0, src, 0, cmdBufIndex);
+        }
+
+        template<typename T>
+        void CopyBuffer(Buffer<T>* dst, uint32_t dstOffset, Buffer<T>* src, uint32_t cmdBufIndex = 0)
+        {
+            CopyBuffer(dst, dstOffset, src, 0, cmdBufIndex);
+        }
+
+        template<typename T>
+        void CopyBuffer(Buffer<T>* dst, uint32_t dstOffset, Buffer<T>* src, uint32_t srcOffset, uint32_t cmdBufIndex = 0)
+        {
+            CHECK(dst->mCount >= src->mCount) << "Cannot copy a larger buffer into a smaller one";
+
+
+            VkBufferCopy copyInfo{};
+            {
+                copyInfo.srcOffset = srcOffset;
+                copyInfo.dstOffset = dstOffset;
+                copyInfo.size = sizeof(T) * src->mCount;
+            }
+            jnrCmdCopyBuffer(mCommandBuffers[cmdBufIndex], src->mBuffer, dst->mBuffer, 1, &copyInfo);
         }
 
     private:

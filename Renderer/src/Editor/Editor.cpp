@@ -23,6 +23,9 @@ Editor::Editor::Editor(bool enableValidationLayers)
         InitCommandLists();
         InitVertexBuffer();
         OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+
+        mCommandLists[0]->End();
+        mCommandLists[0]->SubmitAndWait();
     }
     catch (std::exception const& e)
     {
@@ -201,6 +204,9 @@ void Editor::Editor::InitCommandLists()
 
         mCommandListIsDone[i] = std::make_unique<CPUSynchronizationObject>(true);
     }
+
+    /* The first command list will be used during initialization */
+    mCommandLists[0]->Begin();
 }
 
 void Editor::Editor::InitVertexBuffer()
@@ -213,9 +219,15 @@ void Editor::Editor::InitVertexBuffer()
         {glm::vec3(-0.5, 0.5, 0.0)},
         {glm::vec3(-0.5, -0.5, 0.0)},
     };
+    std::unique_ptr<Buffer<Vertex>> localVertexBuffer =
+        std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
+                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+    localVertexBuffer->Copy(vertices);
+
     mVertexBuffer = std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
-                                                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    mVertexBuffer->Copy(vertices);
+                                                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+
+    mCommandLists[0]->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());
 }
 
 void Editor::Editor::Run()

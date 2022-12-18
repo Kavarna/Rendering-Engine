@@ -45,6 +45,7 @@ extern JNR_FN(CmdSetScissor);
 extern JNR_FN(WaitForFences);
 extern JNR_FN(ResetFences);
 extern JNR_FN(CmdBindVertexBuffers);
+extern JNR_FN(CmdCopyBuffer);
 
 // Instance
 extern JNR_FN(DestroyInstance);
