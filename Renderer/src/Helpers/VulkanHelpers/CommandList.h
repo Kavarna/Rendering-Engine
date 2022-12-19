@@ -47,6 +47,11 @@ namespace Editor
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void EndRendering(uint32_t cmdBufIndex = 0);
 
+        void InitImGui(uint32_t cmdBufIndex = 0);
+
+        void BeginRenderingUI(uint32_t cmdBufIndex = 0);
+        void EndRenderingUI(uint32_t cmdBufIndex = 0);
+
         void Submit(CPUSynchronizationObject* signalWhenFinished);
         void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);
         void SubmitAndWait();

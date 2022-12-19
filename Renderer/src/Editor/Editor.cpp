@@ -4,6 +4,9 @@
 #include "VulkanHelpers/PipelineManager.h"
 #include "FileHelpers.h"
 
+#include "imgui.h"
+
+
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
 
@@ -24,6 +27,7 @@ Editor::Editor::Editor(bool enableValidationLayers)
         InitVertexBuffer();
         OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
+        mCommandLists[0]->InitImGui();
         mCommandLists[0]->End();
         mCommandLists[0]->SubmitAndWait();
     }
@@ -257,11 +261,19 @@ void Editor::Editor::Frame()
     cmdList->Begin();
     {
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
+     
         {
             cmdList->BindPipeline(mBasicPipeline.get());
             cmdList->BindVertexBuffer(mVertexBuffer.get());
             cmdList->Draw(6);
         }
+
+        cmdList->BeginRenderingUI();
+        {
+            ImGui::ShowDemoWindow();
+        }
+        cmdList->EndRenderingUI();
+        
         cmdList->EndRendering();
     }
     cmdList->End();

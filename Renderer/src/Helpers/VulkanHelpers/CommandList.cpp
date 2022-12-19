@@ -3,6 +3,7 @@
 #include "Editor/VulkanLoader.h"
 #include "Editor/Renderer.h"
 #include "VulkanHelpers/Pipeline.h"
+#include "Helpers/VulkanHelpers/ImGuiImplementation.h"
 
 using namespace Editor;
 
@@ -75,6 +76,7 @@ void Editor::CommandList::Begin(uint32_t cmdBufIndex)
 
 void Editor::CommandList::End(uint32_t cmdBufIndex)
 {
+    auto renderer = Renderer::Get();
     if (mImageIndex != -1)
     {
         /* Then we must have used the back buffer so transition it back */
@@ -90,6 +92,7 @@ void Editor::CommandList::End(uint32_t cmdBufIndex)
         }
 
     }
+
     ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[cmdBufIndex]));
 }
 
@@ -198,6 +201,33 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgr
 void Editor::CommandList::EndRendering(uint32_t cmdBufIndex)
 {
     jnrCmdEndRendering(mCommandBuffers[cmdBufIndex]);
+}
+
+void Editor::CommandList::InitImGui(uint32_t cmdBufIndex)
+{
+    ImGui_ImplVulkan_CreateFontsTexture(mCommandBuffers[cmdBufIndex]);
+}
+
+void Editor::CommandList::BeginRenderingUI(uint32_t cmdBufIndex)
+{
+    ImGui_ImplVulkan_NewFrame(mCommandBuffers[cmdBufIndex]);
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+}
+
+void Editor::CommandList::EndRenderingUI(uint32_t cmdBufIndex)
+{
+    ImGui::Render();
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), mCommandBuffers[cmdBufIndex]);
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
+
 }
 
 void Editor::CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)

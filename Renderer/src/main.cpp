@@ -66,7 +66,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
     editorOptions.add_options()
         ("enable-validation-layers",
 #if DEBUG
-         value<bool>()->default_value(true),
+         value<bool>()->default_value(false),
 #else
          value<bool>()->default_value(false),
 #endif

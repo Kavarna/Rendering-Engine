@@ -46,6 +46,8 @@ extern JNR_FN(WaitForFences);
 extern JNR_FN(ResetFences);
 extern JNR_FN(CmdBindVertexBuffers);
 extern JNR_FN(CmdCopyBuffer);
+extern JNR_FN(CreateDescriptorPool);
+extern JNR_FN(DestroyDescriptorPool);
 
 // Instance
 extern JNR_FN(DestroyInstance);

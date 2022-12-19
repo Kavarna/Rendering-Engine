@@ -6,11 +6,13 @@ add_definitions(-DVK_NO_PROTOTYPES)
 include_directories("src/Helpers")
 include_directories("src")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
+FILE(GLOB IMGUI_SOURCES "../external/imgui/*.h" "../external/imgui/*.cpp")
+list (APPEND SOURCES ${IMGUI_SOURCES})
 add_executable("Renderer" ${SOURCES})
 
 set(VULKAN_SDK "$ENV{VULKAN_SDK}")
 
-include_directories("${VULKAN_SDK}")
+include_directories("${VULKAN_SDK}/Include/vma/")
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
 target_link_libraries("Renderer" Vulkan::Vulkan)
@@ -27,6 +29,10 @@ make_filters("${SOURCES}")
 set_target_properties("Renderer" PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
 set_property(TARGET "Renderer" PROPERTY CXX_STANDARD 20)
+
+# Add external dependencies
+include_directories("../external/glfw/include")
+include_directories("../external/imgui/")
 
 # Handle shaders
 file(GLOB_RECURSE EDITOR_SHADERS "src/Editor/Shaders/*.vert" "src/Editor/Shaders/*.frag")

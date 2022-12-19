@@ -4,6 +4,10 @@
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 
+#include "Helpers/VulkanHelpers/CommandList.h"
+
+#include "Helpers/VulkanHelpers/ImGuiImplementation.h"
+
 
 using namespace Editor;
 
@@ -49,12 +53,18 @@ Renderer::Renderer(CreateInfo::EditorRenderer const& info)
     PickPhysicalDevice();
     InitDevice(info);
     InitAllocator();
+    InitSwapchain();
+    InitDearImGui();
 
     LOG(INFO) << "Vulkan renderer initialised successfully";
 }
 
 Renderer::~Renderer()
 {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     if (mEmptyPipelineLayout)
     {
         jnrDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, nullptr);
@@ -65,7 +75,8 @@ Renderer::~Renderer()
     }
     jnrDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
     jnrDestroySurfaceKHR(mInstance, mRenderingSurface, nullptr);
- 
+
+    jnrDestroyDescriptorPool(mDevice, mImGuiPool, nullptr);
     vmaDestroyAllocator(mAllocator);
     
     jnrDestroyDevice(mDevice, nullptr);
@@ -281,22 +292,22 @@ void Renderer::InitSurface()
 
 void Renderer::InitSwapchain()
 {
-    auto swapchainCapabilities = GetSwapchainCapabilities();
+    mSwapchainDetails = GetSwapchainCapabilities();
 
-    auto presentMode = SelectBestPresentMode(swapchainCapabilities.presentModes);
-    auto surfaceFormat = SelectBestSurfaceFormat(swapchainCapabilities.formats);
-    auto extent = SelectSwapchainExtent(swapchainCapabilities.capabilities);
+    auto presentMode = SelectBestPresentMode(mSwapchainDetails.presentModes);
+    auto surfaceFormat = SelectBestSurfaceFormat(mSwapchainDetails.formats);
+    auto extent = SelectSwapchainExtent(mSwapchainDetails.capabilities);
 
     uint32_t imageCount = 0;
-    if (swapchainCapabilities.capabilities.maxImageCount == 0)
+    if (mSwapchainDetails.capabilities.maxImageCount == 0)
     {
         /* If the maxImageCount is 0 => there is no limit, so just stick to the default*/
-        imageCount = swapchainCapabilities.capabilities.minImageCount + 1;
+        imageCount = mSwapchainDetails.capabilities.minImageCount + 1;
     }
     else
     {
-        imageCount = glm::clamp(swapchainCapabilities.capabilities.minImageCount + 1,
-                                swapchainCapabilities.capabilities.minImageCount, swapchainCapabilities.capabilities.maxImageCount);
+        imageCount = glm::clamp(mSwapchainDetails.capabilities.minImageCount + 1,
+                                mSwapchainDetails.capabilities.minImageCount, mSwapchainDetails.capabilities.maxImageCount);
     }
     CHECK(imageCount != 0) << "For some reason, the vulkan driver specified that 0 images can be used for the swapchain";
 
@@ -356,6 +367,11 @@ void Renderer::InitSwapchain()
     }
 
     {
+        /* Destroy the old images */
+        for (auto const& view : mSwapchainImageViews)
+        {
+            jnrDestroyImageView(mDevice, view, nullptr);
+        }
         /* Create views for images */
         mSwapchainImageViews.resize(mSwapchainImages.size());
         
@@ -399,6 +415,78 @@ void Editor::Renderer::InitAllocator()
 
 
     ThrowIfFailed(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
+}
+
+void CheckResult(VkResult err)
+{
+    ThrowIfFailed(err);
+}
+
+void Editor::Renderer::InitDearImGui()
+{
+    // Create Descriptor Pool
+    {
+        VkDescriptorPoolSize pool_sizes[] =
+        {
+            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+        };
+        VkDescriptorPoolCreateInfo pool_info = {};
+        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+        pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
+        pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
+        pool_info.pPoolSizes = pool_sizes;
+        ThrowIfFailed(jnrCreateDescriptorPool(mDevice, &pool_info, nullptr, &mImGuiPool));
+    }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    //io.ConfigViewportsNoAutoMerge = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    io.ConfigDockingTransparentPayload = true;
+
+    ImGui::StyleColorsDark();
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan(mWindow, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = mInstance;
+    init_info.PhysicalDevice = mPhysicalDevice;
+    init_info.Device = mDevice;
+    init_info.QueueFamily = *mQueueIndices.graphicsFamily;
+    init_info.Queue = mGraphicsQueue;
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = mImGuiPool;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = mSwapchainDetails.capabilities.minImageCount;
+    init_info.ImageCount = (uint32_t)mSwapchainImages.size();
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = CheckResult;
+    init_info.BackbufferFormat = mSwapchainFormat;
+    ImGui_ImplVulkan_Init(&init_info);
 }
 
 Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()

@@ -42,6 +42,7 @@ namespace Editor
         void InitSurface();
         void InitSwapchain();
         void InitAllocator();
+        void InitDearImGui();
 
     private:
         struct QueueFamilyIndices
@@ -128,6 +129,7 @@ namespace Editor
         std::vector<VkImageView> mSwapchainImageViews;
         std::vector<VkImageLayout> mSwapchainImageLayouts; // Used in command buffer to figure out what to do with transitions
 
+        VkDescriptorPool mImGuiPool;
         VmaAllocator mAllocator;
 
         /* Some "default" variables will be store in the renderer, so they will be available as soon
