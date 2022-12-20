@@ -132,6 +132,76 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     return info;
 }
 
+void Editor::Editor::ShowDockingSpace()
+{
+    // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+    // because it would be confusing to have two docking targets within each others.
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("DockSpace", nullptr, window_flags);
+    ImGui::PopStyleVar();
+
+    ImGui::PopStyleVar(2);
+
+    // Submit the DockSpace
+    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+    ImGui::DockSpace(dockspace_id);
+
+    static bool showDebugWindow = false, showDemoWindow = false;
+
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("New"))
+            {
+                LOG(INFO) << "New selected";
+            }
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Quit", "ALT+F4"))
+            {
+                mShouldClose = true;
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Debug"))
+        {
+            ImGui::MenuItem("Show debug window", 0, &showDebugWindow);
+            ImGui::MenuItem("Show demo window", 0, &showDemoWindow);
+            
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
+    }
+
+    if (showDebugWindow)
+    {
+        auto& io = ImGui::GetIO();
+        ImGui::Begin("Debug");
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
+    }
+    if (showDemoWindow)
+    {
+        ImGui::ShowDemoWindow();
+    }
+
+    ImGui::End();
+}
+
 void Editor::Editor::InitBasicPipeline()
 {
     mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
@@ -238,7 +308,7 @@ void Editor::Editor::Run()
 {
     try
     {
-        while (!glfwWindowShouldClose(mWindow))
+        while (!glfwWindowShouldClose(mWindow) && !mShouldClose)
         {
             Frame();
             glfwPollEvents();
@@ -261,16 +331,11 @@ void Editor::Editor::Frame()
     cmdList->Begin();
     {
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
-     
-        {
-            cmdList->BindPipeline(mBasicPipeline.get());
-            cmdList->BindVertexBuffer(mVertexBuffer.get());
-            cmdList->Draw(6);
-        }
 
         cmdList->BeginRenderingUI();
         {
-            ImGui::ShowDemoWindow();
+            ShowDockingSpace();
+            
         }
         cmdList->EndRenderingUI();
         

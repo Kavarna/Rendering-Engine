@@ -33,6 +33,9 @@ namespace Editor
         CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
+        void ShowDockingSpace();
+
+    private:
         void Frame();
 
     private:
@@ -51,6 +54,7 @@ namespace Editor
         uint32_t mCurrentFrame = 0;
 
         std::unique_ptr<Pipeline> mBasicPipeline;
+        bool mShouldClose = false;
     };
 
 }
