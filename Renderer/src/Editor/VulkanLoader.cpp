@@ -75,6 +75,11 @@ JNR_FN(CmdBindVertexBuffers);
 JNR_FN(CmdCopyBuffer);
 JNR_FN(CreateDescriptorPool);
 JNR_FN(DestroyDescriptorPool);
+JNR_FN(CreateDescriptorSetLayout);
+JNR_FN(DestroyDescriptorSetLayout);
+JNR_FN(AllocateDescriptorSets);
+JNR_FN(UpdateDescriptorSets);
+JNR_FN(CmdBindDescriptorSets);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -177,4 +182,9 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CmdCopyBuffer, device);
     GET_DEV_FN(CreateDescriptorPool, device);
     GET_DEV_FN(DestroyDescriptorPool, device);
+    GET_DEV_FN(CreateDescriptorSetLayout, device);
+    GET_DEV_FN(DestroyDescriptorSetLayout, device);
+    GET_DEV_FN(AllocateDescriptorSets, device);
+    GET_DEV_FN(UpdateDescriptorSets, device);
+    GET_DEV_FN(CmdBindDescriptorSets, device);
 }

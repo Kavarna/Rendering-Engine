@@ -8,6 +8,7 @@ namespace Editor
 {
     class CommandList;
 }
+class RootSignature;
 
 class Pipeline
 {
@@ -18,10 +19,8 @@ public:
 
 public:
     void AddShader(std::string const& path);
-    /* TODO: Add these functions 
-    void SetDescriptorSetLayout();
-    void AddPushConstants();
-    */
+
+    void SetRootSignature(RootSignature const* rootSignature);
 
     /* TODO: Add color outputs by taking an image as a parameter */
     void AddBackbufferColorOutput();
@@ -73,6 +72,8 @@ private:
 
 private:
     std::string mName;
+
+    RootSignature const* mRootSignature;
 
     std::vector<VkFormat> mColorOutputs;
     VkFormat mDepthFormat;

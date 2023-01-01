@@ -6,6 +6,7 @@
 
 #include "imgui.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
@@ -41,6 +42,9 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
     
+    mUniformBuffer.reset();
+    mDescriptorSet.reset();
+    mRootSignature.reset();
     mVertexBuffer.reset();
     mBasicPipeline.reset();
     
@@ -204,8 +208,17 @@ void Editor::Editor::ShowDockingSpace()
 
 void Editor::Editor::InitBasicPipeline()
 {
+    mDescriptorSet = std::make_unique<DescriptorSet>();
+    mDescriptorSet->AddInputBuffer(0, 1);
+    mDescriptorSet->Bake(MAX_FRAMES_IN_FLIGHT);
+
+    mRootSignature = std::make_unique<RootSignature>();
+    mRootSignature->AddDescriptorSet(mDescriptorSet.get());
+    mRootSignature->Bake();
+
     mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
     {
+        mBasicPipeline->SetRootSignature(mRootSignature.get());
         mBasicPipeline->AddShader("Shaders/basic.vert.spv");
         mBasicPipeline->AddShader("Shaders/basic.frag.spv");
     }
@@ -267,6 +280,9 @@ void Editor::Editor::InitBasicPipeline()
     mBasicPipeline->AddBackbufferColorOutput();
     mBasicPipeline->SetBackbufferDepthStencilOutput();
     mBasicPipeline->Bake();
+
+    mDescriptorSet->AddInputBuffer(mUniformBuffer.get(), 0, 0, 0);
+    mDescriptorSet->AddInputBuffer(mUniformBuffer.get(), 0, 0, 1);
 }
 
 void Editor::Editor::InitCommandLists()
@@ -302,6 +318,13 @@ void Editor::Editor::InitVertexBuffer()
                                                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
     mCommandLists[0]->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());
+
+    mUniformBuffer = std::make_unique<Buffer<UniformBuffer>>(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                             VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
+    {
+        UniformBuffer* ub = mUniformBuffer->GetElement();
+        ub->world = glm::rotate(glm::identity<glm::mat4>(), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f));
+    }
 }
 
 void Editor::Editor::Run()
@@ -323,6 +346,12 @@ void Editor::Editor::Run()
 
 void Editor::Editor::Frame()
 {
+    auto data = mUniformBuffer->GetElement();
+    data->world = glm::transpose(data->world);
+    data->world = glm::rotate(data->world, glm::half_pi<float>() * 1000, glm::vec3(0.0f, 0.0f, 1.0f));
+    data->world = glm::transpose(data->world);
+
+
     auto& cmdList = mCommandLists[mCurrentFrame];
     auto& isCmdListDone = mCommandListIsDone[mCurrentFrame];
     isCmdListDone->Wait();
@@ -331,14 +360,17 @@ void Editor::Editor::Frame()
     cmdList->Begin();
     {
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
-
-        cmdList->BeginRenderingUI();
         {
-            ShowDockingSpace();
-            
+            cmdList->BeginRenderingUI();
+            {
+                ShowDockingSpace();
+            }
+            cmdList->EndRenderingUI();
+            /*cmdList->BindPipeline(mBasicPipeline.get());
+            cmdList->BindDescriptorSet(mDescriptorSet.get(), mCurrentFrame, mRootSignature.get());
+            cmdList->BindVertexBuffer(mVertexBuffer.get());
+            cmdList->Draw(6);*/
         }
-        cmdList->EndRenderingUI();
-        
         cmdList->EndRendering();
     }
     cmdList->End();
@@ -346,4 +378,6 @@ void Editor::Editor::Frame()
     cmdList->SubmitToScreen(isCmdListDone.get());
 
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    Renderer::Get()->WaitIdle();
 }

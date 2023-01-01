@@ -5,6 +5,8 @@
 #include "SynchronizationObjects.h"
 
 class Pipeline;
+class DescriptorSet;
+class RootSignature;
 
 namespace Editor
 {
@@ -38,6 +40,7 @@ namespace Editor
         void End(uint32_t cmdBufIndex = 0);
 
         void BindPipeline(Pipeline* pipeline, uint32_t cmdBufIndex = 0);
+        void BindDescriptorSet(DescriptorSet* set, uint32_t descriptorSetInstance, RootSignature* rootSignature, uint32_t cmdBufIndex = 0);
         void SetScissor(std::vector<VkRect2D> const& scissors, uint32_t cmdBufIndex = 0);
         void SetViewports(std::vector<VkViewport> const& viewports, uint32_t cmdBufIndex = 0);
         void Draw(uint32_t vertexCount, uint32_t cmdBufIndex = 0);

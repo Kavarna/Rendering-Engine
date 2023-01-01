@@ -7,6 +7,7 @@
 
 #include "VulkanHelpers/CommandList.h"
 #include "VulkanHelpers/Buffer.h"
+#include "VulkanHelpers/RootSignature.h"
 
 namespace Editor
 {
@@ -53,6 +54,13 @@ namespace Editor
         std::unique_ptr<CommandList> mCommandLists[2];
         uint32_t mCurrentFrame = 0;
 
+        struct UniformBuffer
+        {
+            glm::mat4 world;
+        };
+        std::unique_ptr<Buffer<UniformBuffer>> mUniformBuffer;
+        std::unique_ptr<DescriptorSet> mDescriptorSet;
+        std::unique_ptr<RootSignature> mRootSignature;
         std::unique_ptr<Pipeline> mBasicPipeline;
         bool mShouldClose = false;
     };

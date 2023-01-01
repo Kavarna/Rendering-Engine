@@ -48,6 +48,11 @@ extern JNR_FN(CmdBindVertexBuffers);
 extern JNR_FN(CmdCopyBuffer);
 extern JNR_FN(CreateDescriptorPool);
 extern JNR_FN(DestroyDescriptorPool);
+extern JNR_FN(CreateDescriptorSetLayout);
+extern JNR_FN(DestroyDescriptorSetLayout);
+extern JNR_FN(AllocateDescriptorSets);
+extern JNR_FN(UpdateDescriptorSets);
+extern JNR_FN(CmdBindDescriptorSets);
 
 // Instance
 extern JNR_FN(DestroyInstance);

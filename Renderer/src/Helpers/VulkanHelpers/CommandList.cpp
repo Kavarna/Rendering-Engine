@@ -4,6 +4,7 @@
 #include "Editor/Renderer.h"
 #include "VulkanHelpers/Pipeline.h"
 #include "Helpers/VulkanHelpers/ImGuiImplementation.h"
+#include "RootSignature.h"
 
 using namespace Editor;
 
@@ -104,6 +105,13 @@ void Editor::CommandList::Draw(uint32_t vertexCount, uint32_t cmdBufIndex)
 void Editor::CommandList::BindPipeline(Pipeline* pipeline, uint32_t cmdBufIndex)
 {
     jnrCmdBindPipeline(mCommandBuffers[cmdBufIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->mPipeline);
+}
+
+void Editor::CommandList::BindDescriptorSet(DescriptorSet* set, uint32_t descriptorSetInstance, RootSignature* rootSignature, uint32_t cmdBufIndex)
+{
+    jnrCmdBindDescriptorSets(mCommandBuffers[cmdBufIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                             rootSignature->mPipelineLayout, 0, 1,
+                             &set->mDescriptorSets[descriptorSetInstance], 0, nullptr);
 }
 
 void Editor::CommandList::SetScissor(std::vector<VkRect2D> const& scissors, uint32_t cmdBufIndex)

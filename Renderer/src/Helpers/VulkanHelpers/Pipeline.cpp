@@ -4,6 +4,8 @@
 #include "Editor/Renderer.h"
 #include "Editor/VulkanLoader.h"
 
+#include "RootSignature.h"
+
 #include <boost/algorithm/string.hpp>
 
 static VkPipelineLayout gEmptyPipelineLayout = VK_NULL_HANDLE;
@@ -162,13 +164,23 @@ void Pipeline::AddShader(std::string const& path)
     mShaderModules.push_back(pipelineStageInfo);
 }
 
+void Pipeline::SetRootSignature(RootSignature const* rootSignature)
+{
+    mRootSignature = rootSignature;
+}
+
 void Pipeline::Bake()
 {
     VkPipelineLayout layout;
-    if (/* TODO: Is there a pipeline layout provided? */ false)
-        return;
+    if (mRootSignature)
+    {
+        layout = mRootSignature->mPipelineLayout;
+    }
+    else
+    {
+        layout = Editor::Renderer::Get()->GetEmptyPipelineLayout();
+    }
     
-    layout = Editor::Renderer::Get()->GetEmptyPipelineLayout();
     auto device = Editor::Renderer::Get()->GetDevice();
 
     {

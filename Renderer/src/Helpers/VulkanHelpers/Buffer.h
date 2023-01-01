@@ -10,12 +10,13 @@ template <typename T>
 class Buffer
 {
     friend class Editor::CommandList;
+    friend class DescriptorSet;
 public:
     Buffer(uint64_t count, VkBufferUsageFlags usage, VmaAllocationCreateFlags allocationFlags = 0) :
         mCount(count)
     {
-        mMappable = ((allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT) != 0 ||
-                     (allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT) != 0);
+        bool mappable = ((allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT) != 0 ||
+                         (allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT) != 0);
 
         auto allocator = Editor::Renderer::Get()->GetAllocator();
 
@@ -38,23 +39,36 @@ public:
         ThrowIfFailed(
             vmaCreateBuffer(allocator, &bufferInfo, &allocationInfo, &mBuffer, &mAllocation, &mAllocationInfo)
         );
+
+        if (mappable)
+        {
+            auto allocator = Editor::Renderer::Get()->GetAllocator();
+
+            vmaMapMemory(allocator, mAllocation, (void**)&mData);
+        }
     }
 
     void Copy(T* src)
     {
-        CHECK(mMappable) << "In order to copy into a buffer, it must be mappable";
-        
-        auto allocator = Editor::Renderer::Get()->GetAllocator();
+        CHECK(mData) << "In order to copy into a buffer, it must be mappable";
+        memcpy(mData, src, sizeof(T) * mCount);
+    }
 
-        void* data = nullptr;
-        vmaMapMemory(allocator, mAllocation, &data);
-        memcpy(data, src, sizeof(T) * mCount);
-        vmaUnmapMemory(allocator, mAllocation);
+    T* GetElement(uint32_t index = 0)
+    {
+        CHECK(mData) << "In order to get the address of an element inside the buffer, it must be mappable";
+        return &mData[index];
     }
 
     ~Buffer()
     {
         auto allocator = Editor::Renderer::Get()->GetAllocator();
+
+        if (mData != nullptr)
+        {
+            auto allocator = Editor::Renderer::Get()->GetAllocator();
+            vmaUnmapMemory(allocator, mAllocation);
+        }
 
         vmaDestroyBuffer(allocator, mBuffer, mAllocation);
     }
@@ -65,6 +79,6 @@ private:
     VmaAllocationInfo mAllocationInfo;
 
     uint64_t mCount;
-    bool mMappable;
+    T* mData = nullptr;
 };
 
