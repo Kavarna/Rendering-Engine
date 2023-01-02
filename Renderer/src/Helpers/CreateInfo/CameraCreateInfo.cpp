@@ -14,7 +14,7 @@ namespace CreateInfo
             aspectRatio = (float)width / (float)height;
         }
 
-        Jnrlib::Float h = tan(fieldOfView / Jnrlib::Two);
+        Jnrlib::Float h = tan(fieldOfView * Jnrlib::Half);
 
         viewportHeight = 2.0f * h;
         viewportWidth = viewportHeight * aspectRatio;

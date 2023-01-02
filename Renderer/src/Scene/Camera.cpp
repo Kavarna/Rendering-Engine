@@ -50,6 +50,6 @@ Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
 void Camera::CalculateLowerLeftCorner()
 {
     mLowerLeftCorner = mInfo.position +
-        mInfo.forwardDirection * mInfo.focalLength - mInfo.rightDirection * mInfo.viewportWidth / Jnrlib::Two +
-        mInfo.upDirection * mInfo.viewportHeight / Jnrlib::Two;
+        mInfo.forwardDirection * mInfo.focalLength - mInfo.rightDirection * mInfo.viewportWidth * Jnrlib::Half +
+        mInfo.upDirection * mInfo.viewportHeight * Jnrlib::Half;
 }

@@ -6,10 +6,11 @@
 
 #include "imgui.h"
 
+#define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 1920;
-constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 1080;
+constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 800;
+constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 600;
 
 
 /* Redirects for callbacks */
@@ -209,11 +210,12 @@ void Editor::Editor::ShowDockingSpace()
 void Editor::Editor::InitBasicPipeline()
 {
     mDescriptorSet = std::make_unique<DescriptorSet>();
-    mDescriptorSet->AddInputBuffer(0, 1);
+    mDescriptorSet->AddInputBuffer(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
     mDescriptorSet->Bake(MAX_FRAMES_IN_FLIGHT);
 
     mRootSignature = std::make_unique<RootSignature>();
     mRootSignature->AddDescriptorSet(mDescriptorSet.get());
+    mRootSignature->AddPushRange<glm::vec4>(0, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
     mRootSignature->Bake();
 
     mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
@@ -347,9 +349,9 @@ void Editor::Editor::Run()
 void Editor::Editor::Frame()
 {
     auto data = mUniformBuffer->GetElement();
-    data->world = glm::transpose(data->world);
+    /*data->world = glm::transpose(data->world);
     data->world = glm::rotate(data->world, glm::half_pi<float>() * 1000, glm::vec3(0.0f, 0.0f, 1.0f));
-    data->world = glm::transpose(data->world);
+    data->world = glm::transpose(data->world);*/
 
 
     auto& cmdList = mCommandLists[mCurrentFrame];
@@ -361,15 +363,23 @@ void Editor::Editor::Frame()
     {
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
         {
-            cmdList->BeginRenderingUI();
+            /*cmdList->BeginRenderingUI();
             {
                 ShowDockingSpace();
             }
-            cmdList->EndRenderingUI();
-            /*cmdList->BindPipeline(mBasicPipeline.get());
-            cmdList->BindDescriptorSet(mDescriptorSet.get(), mCurrentFrame, mRootSignature.get());
+            cmdList->EndRenderingUI();*/
+            cmdList->BindPipeline(mBasicPipeline.get());
             cmdList->BindVertexBuffer(mVertexBuffer.get());
-            cmdList->Draw(6);*/
+
+            cmdList->BindDescriptorSet(mDescriptorSet.get(), mCurrentFrame, mRootSignature.get());
+            glm::vec4 yellow = {
+                Jnrlib::Yellow.r, Jnrlib::Yellow.g, Jnrlib::Yellow.b, 1.0f
+            };
+            cmdList->BindPushRange<glm::vec4>(mRootSignature.get(), 0, 1, &yellow, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+            cmdList->Draw(6);
+
+            
         }
         cmdList->EndRendering();
     }
@@ -378,6 +388,4 @@ void Editor::Editor::Frame()
     cmdList->SubmitToScreen(isCmdListDone.get());
 
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-    Renderer::Get()->WaitIdle();
 }

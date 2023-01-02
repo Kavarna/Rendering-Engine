@@ -14,17 +14,6 @@ RootSignature::~RootSignature()
     }
 }
 
-void RootSignature::AddPushRange(uint32_t size, uint32_t offset, VkShaderStageFlags shaders)
-{
-    VkPushConstantRange pushRange{};
-    {
-        pushRange.offset = offset;
-        pushRange.size = size;
-        pushRange.stageFlags = shaders;
-    }
-    mPushRanges.push_back(pushRange);
-}
-
 void RootSignature::AddDescriptorSet(DescriptorSet* descriptorSet)
 {
     mDescriptorSetLayouts.push_back(descriptorSet);

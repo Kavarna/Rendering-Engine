@@ -3,10 +3,10 @@
 #include <Jnrlib.h>
 #include "Buffer.h"
 #include "SynchronizationObjects.h"
+#include "RootSignature.h"
 
 class Pipeline;
 class DescriptorSet;
-class RootSignature;
 
 namespace Editor
 {
@@ -60,6 +60,14 @@ namespace Editor
         void SubmitAndWait();
 
     public:
+        template <typename T>
+        void BindPushRange(RootSignature* rootSignature, uint32_t offset, uint32_t count, T const* data,
+                           VkShaderStageFlags stages = VK_SHADER_STAGE_ALL, uint32_t cmdBufIndex = 0)
+        {
+            jnrCmdPushConstants(mCommandBuffers[cmdBufIndex], rootSignature->mPipelineLayout, stages,
+                                offset, sizeof(T) * count, data);
+        }
+
         template <typename T>
         void BindVertexBuffer(Buffer<T>* buffer, uint32_t cmdBufIndex = 0)
         {

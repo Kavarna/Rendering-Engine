@@ -6,7 +6,7 @@ project("Rendering-Engine")
 
 # Options
 option(BUILD_TESTS "Build tests" OFF)
-option(USE_FLOAT64 "Use 64-bit floating point numbers" ON)
+option(USE_FLOAT64 "Use 64-bit floating point numbers" OFF)
 
 # Handle options
 if (BUILD_TESTS)

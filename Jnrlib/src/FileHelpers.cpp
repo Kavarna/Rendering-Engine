@@ -15,7 +15,6 @@ namespace Jnrlib
         std::vector<char> buffer(size);
         CHECK(file.read(buffer.data(), size).good()) << "Unable to read file " << path << " after opening it";
 
-
         return buffer;
     }
 }

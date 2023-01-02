@@ -5,6 +5,10 @@
 #include <vector>
 #include "Buffer.h"
 
+namespace Editor
+{
+    class CommandList;
+}
 
 class DescriptorSet
 {
@@ -49,7 +53,8 @@ public:
     /* TODO: Should make this non-copyable */
 
 public:
-    void AddPushRange(uint32_t size, uint32_t offset, VkShaderStageFlags shaders);
+    template <typename T>
+    void AddPushRange(uint32_t offset, uint32_t count = 1, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
     void AddDescriptorSet(DescriptorSet* descriptorSet);
 
     void Bake();
@@ -85,4 +90,16 @@ inline void DescriptorSet::AddInputBuffer(Buffer<T>* buffer, uint32_t binding, u
     }
 
     jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+}
+
+template<typename T>
+inline void RootSignature::AddPushRange(uint32_t offset, uint32_t count, VkShaderStageFlags stages)
+{
+    VkPushConstantRange pushRange{};
+    {
+        pushRange.offset = offset;
+        pushRange.size = count * sizeof(T);
+        pushRange.stageFlags = stages;
+    }
+    mPushRanges.push_back(pushRange);
 }
