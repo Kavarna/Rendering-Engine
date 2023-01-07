@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "SynchronizationObjects.h"
 #include "RootSignature.h"
+#include "LayoutTracker.h"
 
 class Pipeline;
 class DescriptorSet;
@@ -107,6 +108,8 @@ namespace Editor
         CommandListType mType;
 
         std::vector<VkCommandBuffer> mCommandBuffers;
+
+        ::LayoutTracker mLayoutTracker;
 
         /* TODO: Maybe do something smarter once multiple synchronization objects will be needed */
         std::unique_ptr<GPUSynchronizationObject> mBackbufferAvailable = nullptr;

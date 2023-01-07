@@ -43,6 +43,7 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
     
+    mRenderTarget.reset();
     mUniformBuffer.reset();
     mDescriptorSet.reset();
     mRootSignature.reset();
@@ -71,6 +72,16 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
     Renderer::Get()->OnResize();
 
     InitBasicPipeline();
+
+    Image::Info2D info;
+    {
+        info.width = width;
+        info.height = height;
+        info.format = VK_FORMAT_R8G8B8A8_UNORM;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    }
+    mRenderTarget.reset(new Image(info));
 }
 
 void Editor::Editor::InitWindow()

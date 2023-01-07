@@ -8,6 +8,7 @@
 #include "VulkanHelpers/CommandList.h"
 #include "VulkanHelpers/Buffer.h"
 #include "VulkanHelpers/RootSignature.h"
+#include "VulkanHelpers/Image.h"
 
 namespace Editor
 {
@@ -53,6 +54,8 @@ namespace Editor
         std::unique_ptr<CPUSynchronizationObject> mCommandListIsDone[2];
         std::unique_ptr<CommandList> mCommandLists[2];
         uint32_t mCurrentFrame = 0;
+
+        std::unique_ptr<Image> mRenderTarget;
 
         struct UniformBuffer
         {

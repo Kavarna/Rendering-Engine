@@ -132,7 +132,7 @@ void Editor::CommandList::TransitionBackbufferTo(TransitionInfo const& transitio
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         imageMemoryBarrier.srcAccessMask = transitionInfo.srcAccessMask;
         imageMemoryBarrier.dstAccessMask = transitionInfo.dstAccessMask;
-        imageMemoryBarrier.oldLayout = renderer->mSwapchainImageLayouts[mImageIndex];
+        imageMemoryBarrier.oldLayout = mLayoutTracker.GetBackbufferImageLayout(mImageIndex);
         imageMemoryBarrier.newLayout = transitionInfo.newLayout;
         imageMemoryBarrier.image = renderer->mSwapchainImages[mImageIndex];
        
@@ -153,7 +153,7 @@ void Editor::CommandList::TransitionBackbufferTo(TransitionInfo const& transitio
         1, &imageMemoryBarrier
     );
 
-    renderer->mSwapchainImageLayouts[mImageIndex] = transitionInfo.newLayout;
+    mLayoutTracker.TransitionBackBufferImage(mImageIndex, transitionInfo.newLayout);
 }
 
 void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
@@ -259,6 +259,9 @@ void Editor::CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
             jnrQueueSubmit(renderer->mGraphicsQueue, 1, &submitInfo, signalWhenFinished == nullptr ? VK_NULL_HANDLE : signalWhenFinished->GetFence())
         );
     }
+
+    /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
+    mLayoutTracker.Flush();
 }
 
 void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
@@ -313,6 +316,8 @@ void Editor::CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFin
 
         ThrowIfFailed(jnrQueuePresentKHR(renderer->mPresentQueue, &presentInfo));
     }
+
+    mLayoutTracker.Flush();
 }
 
 void Editor::CommandList::SubmitAndWait()

@@ -13,6 +13,7 @@ namespace Editor
     {
         MAKE_SINGLETONE_CAPABLE(Renderer);
         friend class CommandList;
+        friend class LayoutTracker;
     private:
         Renderer(CreateInfo::EditorRenderer const&);
         ~Renderer();
