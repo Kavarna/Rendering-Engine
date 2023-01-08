@@ -5,6 +5,7 @@
 #include "VulkanHelpers/Pipeline.h"
 #include "Helpers/VulkanHelpers/ImGuiImplementation.h"
 #include "RootSignature.h"
+#include "Image.h"
 
 using namespace Editor;
 
@@ -156,6 +157,37 @@ void Editor::CommandList::TransitionBackbufferTo(TransitionInfo const& transitio
     mLayoutTracker.TransitionBackBufferImage(mImageIndex, transitionInfo.newLayout);
 }
 
+void Editor::CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex)
+{
+    VkImageMemoryBarrier imageMemoryBarrier{};
+    {
+        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        imageMemoryBarrier.srcAccessMask = transitionInfo.srcAccessMask;
+        imageMemoryBarrier.dstAccessMask = transitionInfo.dstAccessMask;
+        imageMemoryBarrier.oldLayout = mLayoutTracker.GetImageLayout(img);
+        imageMemoryBarrier.newLayout = transitionInfo.newLayout;
+        imageMemoryBarrier.image = img->mImage;
+
+        imageMemoryBarrier.subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        };
+    }
+
+    jnrCmdPipelineBarrier(
+        mCommandBuffers[cmdBufIndex],
+        transitionInfo.srcStage,
+        transitionInfo.dstStage,
+        0, 0, nullptr, 0, nullptr,
+        1, &imageMemoryBarrier
+    );
+
+    mLayoutTracker.TransitionImage(img, transitionInfo.newLayout);
+}
+
 void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
 {
     if (mBackbufferAvailable == nullptr)
@@ -206,6 +238,51 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgr
     jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
 }
 
+void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
+{
+    auto renderer = Editor::Renderer::Get();
+    {
+        TransitionInfo ti{};
+        {
+            ti.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            ti.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            ti.dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        }
+        TransitionImageTo(img, ti, cmdBufIndex);
+    }
+    VkClearValue clearValue{};
+    clearValue.color.float32[0] = (float)backgroundColor.r;
+    clearValue.color.float32[1] = (float)backgroundColor.g;
+    clearValue.color.float32[2] = (float)backgroundColor.b;
+    clearValue.color.float32[3] = (float)backgroundColor.a;
+    VkRenderingAttachmentInfo colorAttachment{};
+    {
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.imageView = img->GetImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue = clearValue;
+    }
+    VkRenderingInfo renderingInfo{};
+    {
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &colorAttachment;
+        renderingInfo.pDepthAttachment = nullptr; /* TODO: Fill this */
+        renderingInfo.pStencilAttachment = nullptr; /* TODO: Fill this */
+        renderingInfo.renderArea = {
+            .offset = VkOffset2D{.x = 0, .y = 0},
+            .extent = img->GetExtent2D()
+        };
+        renderingInfo.viewMask = 0;
+        renderingInfo.layerCount = 1;
+    }
+
+    jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
+}
+
 void Editor::CommandList::EndRendering(uint32_t cmdBufIndex)
 {
     jnrCmdEndRendering(mCommandBuffers[cmdBufIndex]);
@@ -235,7 +312,6 @@ void Editor::CommandList::EndRenderingUI(uint32_t cmdBufIndex)
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
-
 }
 
 void Editor::CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)

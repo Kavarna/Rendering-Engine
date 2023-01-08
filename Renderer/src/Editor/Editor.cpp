@@ -29,9 +29,10 @@ Editor::Editor::Editor(bool enableValidationLayers)
         InitVertexBuffer();
         OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
-        mCommandLists[0]->InitImGui();
-        mCommandLists[0]->End();
-        mCommandLists[0]->SubmitAndWait();
+        mInitializationCmdList->InitImGui();
+        mInitializationCmdList->End();
+        mInitializationCmdList->SubmitAndWait();
+        mInitializationCmdList.reset();
     }
     catch (std::exception const& e)
     {
@@ -43,17 +44,17 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
     
-    mRenderTarget.reset();
     mUniformBuffer.reset();
     mDescriptorSet.reset();
     mRootSignature.reset();
     mVertexBuffer.reset();
     mBasicPipeline.reset();
     
-    for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
+    for (auto& frameResources : mPerFrameResources)
     {
-        mCommandLists[i].reset();
-        mCommandListIsDone[i].reset();
+        frameResources.commandListIsDone.reset();
+        frameResources.commandList.reset();
+        frameResources.renderTarget.reset();
     }
     
     Renderer::Destroy();
@@ -77,11 +78,14 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
     {
         info.width = width;
         info.height = height;
-        info.format = VK_FORMAT_R8G8B8A8_UNORM;
+        info.format = VK_FORMAT_B8G8R8A8_UNORM;
         info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
-    mRenderTarget.reset(new Image(info));
+    for (auto& frameResources : mPerFrameResources)
+    {
+        frameResources.renderTarget.reset(new Image(info));
+    }
 }
 
 void Editor::Editor::InitWindow()
@@ -300,16 +304,17 @@ void Editor::Editor::InitBasicPipeline()
 
 void Editor::Editor::InitCommandLists()
 {
-    for (uint32_t i = 0; i < ARRAYSIZE(mCommandLists); ++i)
+    for (auto& frameResources : mPerFrameResources)
     {
-        mCommandLists[i] = std::make_unique<CommandList>(CommandListType::Graphics);
-        mCommandLists[i]->Init();
+        frameResources.commandList = std::make_unique<CommandList>(CommandListType::Graphics);
+        frameResources.commandList->Init();
 
-        mCommandListIsDone[i] = std::make_unique<CPUSynchronizationObject>(true);
+        frameResources.commandListIsDone = std::make_unique<CPUSynchronizationObject>(true);
     }
 
-    /* The first command list will be used during initialization */
-    mCommandLists[0]->Begin();
+    mInitializationCmdList = std::make_unique<CommandList>(CommandListType::Graphics);
+    mInitializationCmdList->Init();
+    mInitializationCmdList->Begin();
 }
 
 void Editor::Editor::InitVertexBuffer()
@@ -330,7 +335,7 @@ void Editor::Editor::InitVertexBuffer()
     mVertexBuffer = std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
                                                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
 
-    mCommandLists[0]->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());
+    mInitializationCmdList->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());
 
     mUniformBuffer = std::make_unique<Buffer<UniformBuffer>>(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                              VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
@@ -365,20 +370,15 @@ void Editor::Editor::Frame()
     data->world = glm::transpose(data->world);*/
 
 
-    auto& cmdList = mCommandLists[mCurrentFrame];
-    auto& isCmdListDone = mCommandListIsDone[mCurrentFrame];
+    auto& cmdList = mPerFrameResources[mCurrentFrame].commandList;
+    auto& isCmdListDone = mPerFrameResources[mCurrentFrame].commandListIsDone;
     isCmdListDone->Wait();
     isCmdListDone->Reset();
 
     cmdList->Begin();
     {
-        cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
+        cmdList->BeginRenderingOnImage(mPerFrameResources[mCurrentFrame].renderTarget.get(), Jnrlib::Black);
         {
-            /*cmdList->BeginRenderingUI();
-            {
-                ShowDockingSpace();
-            }
-            cmdList->EndRenderingUI();*/
             cmdList->BindPipeline(mBasicPipeline.get());
             cmdList->BindVertexBuffer(mVertexBuffer.get());
 
@@ -389,6 +389,15 @@ void Editor::Editor::Frame()
             cmdList->BindPushRange<glm::vec4>(mRootSignature.get(), 0, 1, &yellow, VK_SHADER_STAGE_FRAGMENT_BIT);
 
             cmdList->Draw(6);
+        }
+        cmdList->EndRendering();
+        cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
+        {
+            cmdList->BeginRenderingUI();
+            {
+                ShowDockingSpace();
+            }
+            cmdList->EndRenderingUI();
 
             
         }

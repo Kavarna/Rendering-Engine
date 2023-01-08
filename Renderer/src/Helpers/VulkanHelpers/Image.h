@@ -3,9 +3,17 @@
 #include "Editor/VulkanLoader.h"
 #include "vma/vk_mem_alloc.h"
 
+namespace Editor
+{
+    class CommandList;
+}
+class LayoutTracker;
+
+
 class Image
 {
     friend class LayoutTracker;
+    friend class Editor::CommandList;
 public:
     struct Info2D
     {
@@ -22,11 +30,21 @@ public:
     Image(Info2D const& info);
     ~Image();
 
+    VkImageView GetImageView(VkImageAspectFlags aspectMask);
+    VkExtent2D GetExtent2D();
+
 private:
     VkImageCreateInfo mCreateInfo{};
     VkImage mImage;
+
+    std::unordered_map<VkImageAspectFlags, VkImageView> mImageViews;
     
     std::vector<uint32_t> mQueueFamilies;
+
+    VkFormat mFormat;
+    VkImageType mImageType;
+
+    VkExtent2D mExtent2D;
 
     VkImageLayout mLayout;
 

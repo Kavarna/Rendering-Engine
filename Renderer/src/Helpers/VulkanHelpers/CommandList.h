@@ -47,8 +47,10 @@ namespace Editor
         void Draw(uint32_t vertexCount, uint32_t cmdBufIndex = 0);
 
         void TransitionBackbufferTo(TransitionInfo const& transitionInfo,  uint32_t cmdBufIndex = 0);
+        void TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex = 0);
 
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
+        void BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void EndRendering(uint32_t cmdBufIndex = 0);
 
         void InitImGui(uint32_t cmdBufIndex = 0);

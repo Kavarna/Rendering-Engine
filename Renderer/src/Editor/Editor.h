@@ -50,12 +50,19 @@ namespace Editor
             glm::vec3 position;
         };
 
-        std::unique_ptr<Buffer<Vertex>> mVertexBuffer;
-        std::unique_ptr<CPUSynchronizationObject> mCommandListIsDone[2];
-        std::unique_ptr<CommandList> mCommandLists[2];
+        struct PerFrameResources
+        {
+            std::unique_ptr<CPUSynchronizationObject> commandListIsDone;
+            std::unique_ptr<CommandList> commandList;
+
+            std::unique_ptr<Image> renderTarget;
+        };
+        std::array<PerFrameResources, MAX_FRAMES_IN_FLIGHT> mPerFrameResources;
         uint32_t mCurrentFrame = 0;
 
-        std::unique_ptr<Image> mRenderTarget;
+        std::unique_ptr<CommandList> mInitializationCmdList;
+
+        std::unique_ptr<Buffer<Vertex>> mVertexBuffer;
 
         struct UniformBuffer
         {
