@@ -54,6 +54,8 @@ extern JNR_FN(AllocateDescriptorSets);
 extern JNR_FN(UpdateDescriptorSets);
 extern JNR_FN(CmdBindDescriptorSets);
 extern JNR_FN(CmdPushConstants);
+extern JNR_FN(CreateSampler);
+extern JNR_FN(DestroySampler);
 
 // Instance
 extern JNR_FN(DestroyInstance);

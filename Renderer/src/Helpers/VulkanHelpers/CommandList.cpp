@@ -188,6 +188,18 @@ void Editor::CommandList::TransitionImageTo(Image* img, TransitionInfo const& tr
     mLayoutTracker.TransitionImage(img, transitionInfo.newLayout);
 }
 
+void Editor::CommandList::TransitionImageToImguiLayout(Image* img, uint32_t cmdBufIndex)
+{
+    TransitionInfo ti = {};
+    {
+        ti.newLayout = Image::IMGUI_IMAGE_LAYOUT;
+        ti.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        ti.dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        ti.srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    }
+    TransitionImageTo(img, ti, cmdBufIndex);
+}
+
 void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
 {
     if (mBackbufferAvailable == nullptr)

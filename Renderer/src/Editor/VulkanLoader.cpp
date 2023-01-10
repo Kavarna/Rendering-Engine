@@ -81,6 +81,8 @@ JNR_FN(AllocateDescriptorSets);
 JNR_FN(UpdateDescriptorSets);
 JNR_FN(CmdBindDescriptorSets);
 JNR_FN(CmdPushConstants);
+JNR_FN(CreateSampler);
+JNR_FN(DestroySampler);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -189,4 +191,6 @@ void Editor::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(UpdateDescriptorSets, device);
     GET_DEV_FN(CmdBindDescriptorSets, device);
     GET_DEV_FN(CmdPushConstants, device);
+    GET_DEV_FN(CreateSampler, device);
+    GET_DEV_FN(DestroySampler, device);
 }

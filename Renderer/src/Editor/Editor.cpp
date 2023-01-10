@@ -80,7 +80,7 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
         info.height = height;
         info.format = VK_FORMAT_B8G8R8A8_UNORM;
         info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | Image::IMGUI_IMAGE_LAYOUT;
     }
     for (auto& frameResources : mPerFrameResources)
     {
@@ -152,7 +152,7 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     return info;
 }
 
-void Editor::Editor::ShowDockingSpace()
+void Editor::Editor::ShowDockingSpace(Image* img)
 {
     // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
     // because it would be confusing to have two docking targets within each others.
@@ -176,7 +176,7 @@ void Editor::Editor::ShowDockingSpace()
     ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
     ImGui::DockSpace(dockspace_id);
 
-    static bool showDebugWindow = false, showDemoWindow = false;
+    static bool showDebugWindow = false, showDemoWindow = false, showSceneWindow = false;
 
     if (ImGui::BeginMenuBar())
     {
@@ -200,6 +200,8 @@ void Editor::Editor::ShowDockingSpace()
         {
             ImGui::MenuItem("Show debug window", 0, &showDebugWindow);
             ImGui::MenuItem("Show demo window", 0, &showDemoWindow);
+            if (img)
+                ImGui::MenuItem("Show scene window", 0, &showSceneWindow);
             
             ImGui::EndMenu();
         }
@@ -217,6 +219,15 @@ void Editor::Editor::ShowDockingSpace()
     if (showDemoWindow)
     {
         ImGui::ShowDemoWindow();
+    }
+    if (showSceneWindow)
+    {
+        ImGui::Begin("Scene");
+        ImVec2 size;
+        size.x = img->GetExtent2D().width;
+        size.y = img->GetExtent2D().height;
+        ImGui::Image(img->GetTextureID(), size);
+        ImGui::End();
     }
 
     ImGui::End();
@@ -391,15 +402,14 @@ void Editor::Editor::Frame()
             cmdList->Draw(6);
         }
         cmdList->EndRendering();
+        cmdList->TransitionImageToImguiLayout(mPerFrameResources[mCurrentFrame].renderTarget.get());
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
         {
             cmdList->BeginRenderingUI();
             {
-                ShowDockingSpace();
+                ShowDockingSpace(mPerFrameResources[mCurrentFrame].renderTarget.get());
             }
-            cmdList->EndRenderingUI();
-
-            
+            cmdList->EndRenderingUI();            
         }
         cmdList->EndRendering();
     }

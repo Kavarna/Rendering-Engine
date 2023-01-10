@@ -2,6 +2,8 @@
 
 #include "Editor/Renderer.h"
 
+#include "ImGuiImplementation.h"
+
 Image::Image(Info2D const& info):
     mQueueFamilies(info.queueFamilies),
     mFormat(info.format),
@@ -60,6 +62,11 @@ Image::~Image()
     }
     mImageViews.clear();
 
+    if (mImguiTextureID)
+    {
+        ImGui_ImplVulkan_RemoveTexture(mImguiTextureID);
+    }
+
     vmaDestroyImage(allocator, mImage, mAllocation);
 }
 
@@ -104,4 +111,15 @@ VkImageView Image::GetImageView(VkImageAspectFlags aspectMask)
 VkExtent2D Image::GetExtent2D()
 {
     return mExtent2D;
+}
+
+ImTextureID Image::GetTextureID()
+{
+    if (mImguiTextureID != VK_NULL_HANDLE)
+        return mImguiTextureID;
+    auto renderer = Editor::Renderer::Get();
+    VkSampler sampler = renderer->GetPointSampler();
+    mImguiTextureID = ImGui_ImplVulkan_AddTexture(
+        sampler, GetImageView(VK_IMAGE_ASPECT_COLOR_BIT), IMGUI_IMAGE_LAYOUT);
+    return (ImTextureID)mImguiTextureID;
 }

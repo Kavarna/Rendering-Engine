@@ -2,6 +2,7 @@
 
 #include "Editor/VulkanLoader.h"
 #include "vma/vk_mem_alloc.h"
+#include "imgui.h"
 
 namespace Editor
 {
@@ -15,6 +16,7 @@ class Image
     friend class LayoutTracker;
     friend class Editor::CommandList;
 public:
+    static constexpr const VkImageLayout IMGUI_IMAGE_LAYOUT = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     struct Info2D
     {
         uint32_t width, height;
@@ -33,20 +35,22 @@ public:
     VkImageView GetImageView(VkImageAspectFlags aspectMask);
     VkExtent2D GetExtent2D();
 
+    ImTextureID GetTextureID();
+
 private:
     VkImageCreateInfo mCreateInfo{};
     VkImage mImage;
 
-    std::unordered_map<VkImageAspectFlags, VkImageView> mImageViews;
-    
-    std::vector<uint32_t> mQueueFamilies;
+    /* Pretty much used only to be working with the default back-end */
+    VkDescriptorSet mImguiTextureID = VK_NULL_HANDLE;
 
+    std::unordered_map<VkImageAspectFlags, VkImageView> mImageViews;
+    VkImageLayout mLayout;
+
+    std::vector<uint32_t> mQueueFamilies;
     VkFormat mFormat;
     VkImageType mImageType;
-
     VkExtent2D mExtent2D;
-
-    VkImageLayout mLayout;
 
     VmaAllocation mAllocation;
     VmaAllocationInfo mAllocationInfo;

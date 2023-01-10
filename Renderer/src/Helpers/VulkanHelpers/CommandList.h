@@ -48,6 +48,7 @@ namespace Editor
 
         void TransitionBackbufferTo(TransitionInfo const& transitionInfo,  uint32_t cmdBufIndex = 0);
         void TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex = 0);
+        void TransitionImageToImguiLayout(Image* img, uint32_t cmdBufIndex = 0);
 
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);
         void BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex = 0);

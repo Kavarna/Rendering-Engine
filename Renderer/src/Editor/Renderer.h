@@ -20,8 +20,6 @@ namespace Editor
 
     public:
         VkDevice GetDevice();
-        VkPipelineLayout GetEmptyPipelineLayout();
-
         VmaAllocator GetAllocator();
 
         VkFormat GetBackbufferFormat();
@@ -32,6 +30,13 @@ namespace Editor
         uint32_t AcquireNextImage(GPUSynchronizationObject*);
         VkImageView GetSwapchainImageView(uint32_t index);
 
+    public:
+        /* Default stuff */
+        VkPipelineLayout GetEmptyPipelineLayout();
+        VkSampler GetPointSampler();
+
+
+    public:
         void WaitIdle();
         void OnResize();
 
@@ -137,6 +142,7 @@ namespace Editor
          * as rendering is needed and will be released as soon as rendering is not needed
          */
         VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
+        VkSampler mPointSampler = VK_NULL_HANDLE;
     };
 }
 

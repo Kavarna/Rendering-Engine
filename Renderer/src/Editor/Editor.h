@@ -35,7 +35,7 @@ namespace Editor
         CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
-        void ShowDockingSpace();
+        void ShowDockingSpace(Image* img);
 
     private:
         void Frame();

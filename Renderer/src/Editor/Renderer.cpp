@@ -65,9 +65,13 @@ Renderer::~Renderer()
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    if (mEmptyPipelineLayout)
+    if (mEmptyPipelineLayout != VK_NULL_HANDLE)
     {
         jnrDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, nullptr);
+    }
+    if (mPointSampler != VK_NULL_HANDLE)
+    {
+        jnrDestroySampler(mDevice, mPointSampler, nullptr);
     }
     for (auto const& view : mSwapchainImageViews)
     {
@@ -750,6 +754,35 @@ VkPipelineLayout Renderer::GetEmptyPipelineLayout()
     );
 
     return mEmptyPipelineLayout;
+}
+
+VkSampler Editor::Renderer::GetPointSampler()
+{
+    if (mPointSampler != VK_NULL_HANDLE)
+        return mPointSampler;
+
+    VkSamplerCreateInfo samplerInfo = {};
+    {
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.anisotropyEnable = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.maxAnisotropy = 16.f;
+        samplerInfo.minFilter = VK_FILTER_NEAREST;
+        samplerInfo.magFilter = VK_FILTER_NEAREST;
+        samplerInfo.maxLod = 0.0f;
+        samplerInfo.minLod = 0.0f;
+        samplerInfo.mipLodBias = 0.0f;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerInfo.unnormalizedCoordinates = VK_TRUE;
+    }
+    ThrowIfFailed(
+        jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mPointSampler)
+    );
+
+    return mPointSampler;
 }
 
 VmaAllocator Editor::Renderer::GetAllocator()
