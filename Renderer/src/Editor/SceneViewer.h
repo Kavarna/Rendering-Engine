@@ -35,6 +35,7 @@ namespace Editor
         void RenderScene();
 
     private:
+        void InitDefaultRootSignature();
         void InitDefaultPipeline();
         void InitRenderTargets();
         void InitTestVertexBuffer();
@@ -52,17 +53,28 @@ namespace Editor
 
         RenderingContext mActiveRenderingContext{};
 
+        struct PerObject
+        {
+            glm::mat4 worldViewProjection;
+        };
         struct PerFrameResources
         {
             // TODO: Study how to make this an unique_ptr, beucase for some reason it doesn't work ;(
             std::shared_ptr<Image> renderTarget = nullptr;
 
+            std::shared_ptr<Buffer<PerObject>> objectBuffer;
+
+
             PerFrameResources() = default;
             ~PerFrameResources() = default;
         };
-
         std::vector<PerFrameResources> mPerFrameResources;
-        std::unique_ptr<Buffer<Vertex>> mTestVertexBuffer;
+
+        std::shared_ptr<DescriptorSet> mDefaultDescriptorSets;
+        std::unique_ptr<RootSignature> mDefaultRootSignature;
         std::unique_ptr<Pipeline> mDefaultPipeline;
+
+
+        std::unique_ptr<Buffer<Vertex>> mTestVertexBuffer;
     };
 }

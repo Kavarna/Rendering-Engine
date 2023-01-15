@@ -289,12 +289,13 @@ void Editor::Editor::Frame()
 
     cmdList->Begin();
     {
-        cmdList->BeginRenderingUI();
-        {
-            ShowDockingSpace();
-        }
+       
+        cmdList->UINewFrame();
+        ShowDockingSpace();
+
+        /* Render the UI on the backbuffer */
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
-        cmdList->EndRenderingUI();
+        cmdList->FlushUI();
         cmdList->EndRendering();
     }
     cmdList->End();

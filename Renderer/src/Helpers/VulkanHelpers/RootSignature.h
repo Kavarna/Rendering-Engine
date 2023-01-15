@@ -14,14 +14,16 @@ class DescriptorSet
 {
     friend class RootSignature;
     friend class Editor::CommandList;
+
 public:
     DescriptorSet();
     ~DescriptorSet();
 
-    /* TODO: Should make this non-copyable */
+    /* Make this non-copyable */
+    DescriptorSet(const DescriptorSet&) = delete;
+    DescriptorSet& operator=(const DescriptorSet&) = delete;
 
     void AddInputBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
-
     template <typename T>
     void AddInputBuffer(Buffer<T>* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
 
@@ -40,7 +42,6 @@ private:
     VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
     std::vector<VkDescriptorSet> mDescriptorSets;
 };
-
 
 class RootSignature
 {
@@ -76,14 +77,14 @@ inline void DescriptorSet::AddInputBuffer(Buffer<T>* buffer, uint32_t binding, u
     {
         bufferInfo.buffer = buffer->mBuffer;
         bufferInfo.offset = sizeof(T) * dstArrayElement;
-        bufferInfo.range = VK_WHOLE_SIZE; /* TDOO: This might give weird results, when trying to bind only an element from the buffer */
+        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
     }
     VkWriteDescriptorSet writeDescriptorSet{};
     {
         writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptorSet.descriptorCount = 1;
         writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSet.dstArrayElement = dstArrayElement;
+        writeDescriptorSet.dstArrayElement = 0;
         writeDescriptorSet.dstBinding = binding;
         writeDescriptorSet.dstSet = mDescriptorSets[instance];
         writeDescriptorSet.pBufferInfo = &bufferInfo;

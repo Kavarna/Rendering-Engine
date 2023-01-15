@@ -98,9 +98,9 @@ void Editor::CommandList::End(uint32_t cmdBufIndex)
     ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[cmdBufIndex]));
 }
 
-void Editor::CommandList::Draw(uint32_t vertexCount, uint32_t cmdBufIndex)
+void Editor::CommandList::Draw(uint32_t vertexCount, uint32_t firstVertex, uint32_t cmdBufIndex)
 {
-    jnrCmdDraw(mCommandBuffers[cmdBufIndex], vertexCount, 1, 0, 0);
+    jnrCmdDraw(mCommandBuffers[cmdBufIndex], vertexCount, 1, firstVertex, 0);
 }
 
 void Editor::CommandList::BindPipeline(Pipeline* pipeline, uint32_t cmdBufIndex)
@@ -305,14 +305,14 @@ void Editor::CommandList::InitImGui(uint32_t cmdBufIndex)
     ImGui_ImplVulkan_CreateFontsTexture(mCommandBuffers[cmdBufIndex]);
 }
 
-void Editor::CommandList::BeginRenderingUI(uint32_t cmdBufIndex)
+void Editor::CommandList::UINewFrame(uint32_t cmdBufIndex)
 {
     ImGui_ImplVulkan_NewFrame(mCommandBuffers[cmdBufIndex]);
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void Editor::CommandList::EndRenderingUI(uint32_t cmdBufIndex)
+void Editor::CommandList::FlushUI(uint32_t cmdBufIndex)
 {
     ImGui::Render();
 

@@ -44,7 +44,7 @@ namespace Editor
         void BindDescriptorSet(DescriptorSet* set, uint32_t descriptorSetInstance, RootSignature* rootSignature, uint32_t cmdBufIndex = 0);
         void SetScissor(std::vector<VkRect2D> const& scissors, uint32_t cmdBufIndex = 0);
         void SetViewports(std::vector<VkViewport> const& viewports, uint32_t cmdBufIndex = 0);
-        void Draw(uint32_t vertexCount, uint32_t cmdBufIndex = 0);
+        void Draw(uint32_t vertexCount, uint32_t firstVertex, uint32_t cmdBufIndex = 0);
 
         void TransitionBackbufferTo(TransitionInfo const& transitionInfo,  uint32_t cmdBufIndex = 0);
         void TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex = 0);
@@ -56,8 +56,8 @@ namespace Editor
 
         void InitImGui(uint32_t cmdBufIndex = 0);
 
-        void BeginRenderingUI(uint32_t cmdBufIndex = 0);
-        void EndRenderingUI(uint32_t cmdBufIndex = 0);
+        void UINewFrame(uint32_t cmdBufIndex = 0);
+        void FlushUI(uint32_t cmdBufIndex = 0);
 
         void Submit(CPUSynchronizationObject* signalWhenFinished);
         void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);
