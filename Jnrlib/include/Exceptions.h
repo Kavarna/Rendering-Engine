@@ -60,14 +60,6 @@ namespace Jnrlib
                 JNRException("How the hell did you get here?: " + e)
             { }
         };
-
-        class VulkanException : public JNRException
-        {
-        public:
-            VulkanException(uint32_t errorCode) :
-                JNRException("Vulkan function failed with error code " + Jnrlib::to_string(errorCode))
-            { }
-        };
     }
 }
 

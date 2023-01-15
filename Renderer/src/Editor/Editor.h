@@ -60,6 +60,7 @@ namespace Editor
         SceneViewer* mSceneViewer;
 
         bool mShouldClose = false;
+        bool mMinimized = false;
     };
 
 }

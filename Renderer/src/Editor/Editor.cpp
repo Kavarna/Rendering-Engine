@@ -62,6 +62,14 @@ Editor::Editor::~Editor()
 
 void Editor::Editor::OnResize(uint32_t width, uint32_t height)
 {
+    if (width < 5 || height < 5)
+    {
+        LOG(INFO) << "The window is too small for a resize. Skipping resize callback";
+        mMinimized = true;
+        return;
+    }
+    mMinimized = false;
+
     mWidth = width;
     mHeight = height;
 
@@ -258,6 +266,9 @@ void Editor::Editor::Run()
 
 void Editor::Editor::Frame()
 {
+    if (mMinimized)
+        return;
+
     auto& cmdList = mPerFrameResources[mCurrentFrame].commandList;
     auto& isCmdListDone = mPerFrameResources[mCurrentFrame].commandListIsDone;
 
