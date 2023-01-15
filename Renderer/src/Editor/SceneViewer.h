@@ -74,6 +74,7 @@ namespace Editor
         std::unique_ptr<RootSignature> mDefaultRootSignature;
         std::unique_ptr<Pipeline> mDefaultPipeline;
 
+        std::unique_ptr<Image> mDepthImage;
 
         std::unique_ptr<Buffer<Vertex>> mTestVertexBuffer;
     };

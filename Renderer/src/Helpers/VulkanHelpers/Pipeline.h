@@ -25,6 +25,7 @@ public:
     void AddBackbufferColorOutput();
     void AddImageColorOutput(class Image const* img);
     void SetBackbufferDepthStencilOutput();
+    void SetDepthImage(class Image const* img);
 
     void Bake();
     

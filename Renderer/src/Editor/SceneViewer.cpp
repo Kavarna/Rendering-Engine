@@ -19,6 +19,7 @@ Editor::SceneViewer::SceneViewer(uint32_t maxFrames, SceneFactory::ParsedScene c
 
 Editor::SceneViewer::~SceneViewer()
 {
+    mDepthImage.reset();
     mTestVertexBuffer.reset();
     mDefaultPipeline.reset();
     mPerFrameResources.clear();
@@ -88,7 +89,7 @@ void Editor::SceneViewer::RenderScene()
 
     }
 
-    cmdList->BeginRenderingOnImage(currentFrameResources.renderTarget.get(), Jnrlib::Black, cmdBufIndex);
+    cmdList->BeginRenderingOnImage(currentFrameResources.renderTarget.get(), Jnrlib::Black, mDepthImage.get(), cmdBufIndex);
     {
         cmdList->BindPipeline(mDefaultPipeline.get(), cmdBufIndex);
         cmdList->BindVertexBuffer(mTestVertexBuffer.get(), cmdBufIndex);
@@ -210,6 +211,19 @@ void Editor::SceneViewer::InitDefaultPipeline()
     {
         rasterizerState.cullMode = VK_CULL_MODE_NONE;
     }
+
+    auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
+    {
+        depthState.depthTestEnable = VK_TRUE;
+        depthState.depthWriteEnable = VK_TRUE;
+        depthState.depthBoundsTestEnable = VK_TRUE;
+        depthState.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthState.depthBoundsTestEnable = VK_TRUE;
+        depthState.minDepthBounds = 0.0f;
+        depthState.maxDepthBounds = 1.0f;
+    }
+
+    mDefaultPipeline->SetDepthImage(mDepthImage.get());
     mDefaultPipeline->SetRootSignature(mDefaultRootSignature.get());
     mDefaultPipeline->AddImageColorOutput(mPerFrameResources[0].renderTarget.get());
     mDefaultPipeline->Bake();
@@ -230,6 +244,16 @@ void Editor::SceneViewer::InitRenderTargets()
         frameResources.renderTarget.reset();
         frameResources.renderTarget = std::make_shared<Image>(info);
     }
+
+    Image::Info2D depthInfo;
+    {
+        depthInfo.width = (uint32_t)mWidth;
+        depthInfo.height = (uint32_t)mHeight;
+        depthInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    mDepthImage.reset(new Image(depthInfo));
 }
 
 void Editor::SceneViewer::InitTestVertexBuffer()

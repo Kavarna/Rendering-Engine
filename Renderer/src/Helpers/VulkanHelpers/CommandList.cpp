@@ -159,6 +159,17 @@ void Editor::CommandList::TransitionBackbufferTo(TransitionInfo const& transitio
 
 void Editor::CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex)
 {
+    /* TODO: Do not transition if the old layout is already new layout */
+    VkImageAspectFlags aspectMask = 0;
+    if (transitionInfo.newLayout & VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+    {
+        aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+        /* TODO: Maybe add stencil? */
+    }
+    else
+    {
+        aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+    }
     VkImageMemoryBarrier imageMemoryBarrier{};
     {
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -169,7 +180,7 @@ void Editor::CommandList::TransitionImageTo(Image* img, TransitionInfo const& tr
         imageMemoryBarrier.image = img->mImage;
 
         imageMemoryBarrier.subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectMask,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -250,9 +261,11 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgr
     jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
 }
 
-void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
+void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, uint32_t cmdBufIndex)
 {
     auto renderer = Editor::Renderer::Get();
+    /* TODO: Maybe batch these transitions? */
+    /* Transition the image to color attachment */
     {
         TransitionInfo ti{};
         {
@@ -263,13 +276,25 @@ void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const&
         }
         TransitionImageTo(img, ti, cmdBufIndex);
     }
-    VkClearValue clearValue{};
-    clearValue.color.float32[0] = (float)backgroundColor.r;
-    clearValue.color.float32[1] = (float)backgroundColor.g;
-    clearValue.color.float32[2] = (float)backgroundColor.b;
-    clearValue.color.float32[3] = (float)backgroundColor.a;
+    /* Transition image to depth */
+    {
+        TransitionInfo ti{};
+        {
+            ti.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            ti.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            ti.dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        }
+        TransitionImageTo(depth, ti, cmdBufIndex);
+    }
     VkRenderingAttachmentInfo colorAttachment{};
     {
+        VkClearValue clearValue{};
+        clearValue.color.float32[0] = (float)backgroundColor.r;
+        clearValue.color.float32[1] = (float)backgroundColor.g;
+        clearValue.color.float32[2] = (float)backgroundColor.b;
+        clearValue.color.float32[3] = (float)backgroundColor.a;
+
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         colorAttachment.imageView = img->GetImageView(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -277,12 +302,23 @@ void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const&
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.clearValue = clearValue;
     }
+    VkRenderingAttachmentInfo depthAttachment{};
+    {
+        VkClearValue clearValue{};
+        clearValue.depthStencil.depth = 1.0f;
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.imageView = depth->GetImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.clearValue = clearValue;
+    }
     VkRenderingInfo renderingInfo{};
     {
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
-        renderingInfo.pDepthAttachment = nullptr; /* TODO: Fill this */
+        renderingInfo.pDepthAttachment = &depthAttachment;
         renderingInfo.pStencilAttachment = nullptr; /* TODO: Fill this */
         renderingInfo.renderArea = {
             .offset = VkOffset2D{.x = 0, .y = 0},

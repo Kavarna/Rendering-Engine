@@ -47,6 +47,11 @@ void Pipeline::SetBackbufferDepthStencilOutput()
     mStencilFormat = Editor::Renderer::Get()->GetDefaultStencilFormat();
 }
 
+void Pipeline::SetDepthImage(Image const* img)
+{
+    mDepthFormat = img->GetFormat();
+}
+
 void Pipeline::InitDefaultPipelineState()
 {
     {
@@ -116,10 +121,10 @@ void Pipeline::InitDefaultPipelineState()
 
     mPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     mPipelineInfo.flags = 0;
-    mPipelineInfo.layout; // TODO: Fill this later
+    mPipelineInfo.layout;
 
     mPipelineInfo.pColorBlendState = &mBlendState;
-    // mPipelineInfo.pDepthStencilState = &mDepthStencilState;
+    mPipelineInfo.pDepthStencilState = &mDepthStencilState;
     mPipelineInfo.pDynamicState = &mDynamicState;
     mPipelineInfo.pInputAssemblyState = &mInputAssemblyState;
     mPipelineInfo.pMultisampleState = &mMultisampleState;
