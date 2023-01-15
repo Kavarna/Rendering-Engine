@@ -33,9 +33,11 @@ public:
     ~Image();
 
     VkImageView GetImageView(VkImageAspectFlags aspectMask);
-    VkExtent2D GetExtent2D();
+    VkExtent2D GetExtent2D() const;
 
     ImTextureID GetTextureID();
+
+    VkFormat GetFormat() const;
 
 private:
     VkImageCreateInfo mCreateInfo{};

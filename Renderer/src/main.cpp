@@ -129,6 +129,7 @@ int main(int argc, char const* argv[])
 
     if (options->mode == ApplicationMode::TESTING)
     {
+        /* TODO: Make it possible to pass flags here ::testing::GTEST_FLAG(filter) = "*Pool*"; */
 #ifdef BUILD_TESTS
         testing::InitGoogleTest();
         RUN_ALL_TESTS();
@@ -161,6 +162,16 @@ int main(int argc, char const* argv[])
     else if (options->mode == ApplicationMode::EDITOR)
     {
         LOG(INFO) << "Starting application in editor mode";
+        std::vector<SceneFactory::ParsedScene> parsedScenes;
+        parsedScenes.reserve(options->sceneFiles.size());
+        for (const auto& it : options->sceneFiles)
+        {
+            if (auto parsedScene = SceneFactory::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+            {
+                parsedScenes.emplace_back(std::move(*parsedScene));
+            }
+        }
+
         Editor::Editor::Get(options->enableValidationLayer)->Run();
         Editor::Editor::Destroy();
     }

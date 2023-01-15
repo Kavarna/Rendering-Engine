@@ -22,8 +22,8 @@ public:
 
     void SetRootSignature(RootSignature const* rootSignature);
 
-    /* TODO: Add color outputs by taking an image as a parameter */
     void AddBackbufferColorOutput();
+    void AddImageColorOutput(class Image const* img);
     void SetBackbufferDepthStencilOutput();
 
     void Bake();
@@ -73,11 +73,11 @@ private:
 private:
     std::string mName;
 
-    RootSignature const* mRootSignature;
+    RootSignature const* mRootSignature = nullptr;
 
     std::vector<VkFormat> mColorOutputs;
-    VkFormat mDepthFormat;
-    VkFormat mStencilFormat;
+    VkFormat mDepthFormat = VK_FORMAT_UNDEFINED;
+    VkFormat mStencilFormat = VK_FORMAT_UNDEFINED;
     std::vector<VkPipelineShaderStageCreateInfo> mShaderModules;
 
     VkPipelineColorBlendStateCreateInfo mBlendState{};

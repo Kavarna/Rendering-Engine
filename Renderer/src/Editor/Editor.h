@@ -6,9 +6,10 @@
 #include "CreateInfoUtils.h"
 
 #include "VulkanHelpers/CommandList.h"
-#include "VulkanHelpers/Buffer.h"
-#include "VulkanHelpers/RootSignature.h"
-#include "VulkanHelpers/Image.h"
+#include "Scene/SceneFactory.h"
+#include "ImguiWindow.h"
+
+#include "SceneViewer.h"
 
 namespace Editor
 {
@@ -20,7 +21,7 @@ namespace Editor
         void Run();
 
     private:
-        Editor(bool enableValidationLayers);
+        Editor(bool enableValidationLayers, std::vector<SceneFactory::ParsedScene> const& scenes = {});
         ~Editor();
 
     public:
@@ -28,14 +29,13 @@ namespace Editor
 
     private:
         void InitWindow();
-        void InitBasicPipeline();
         void InitCommandLists();
-        void InitVertexBuffer();
+        void InitImguiWindows(SceneFactory::ParsedScene const* scene);
 
         CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
-        void ShowDockingSpace(Image* img);
+        void ShowDockingSpace();
 
     private:
         void Frame();
@@ -45,33 +45,20 @@ namespace Editor
 
         uint32_t mWidth, mHeight;
 
-        struct Vertex
-        {
-            glm::vec3 position;
-        };
-
         struct PerFrameResources
         {
-            std::unique_ptr<CPUSynchronizationObject> commandListIsDone;
-            std::unique_ptr<CommandList> commandList;
-
-            std::unique_ptr<Image> renderTarget;
+            std::unique_ptr<CPUSynchronizationObject> commandListIsDone = nullptr;
+            std::unique_ptr<CommandList> commandList = nullptr;
         };
         std::array<PerFrameResources, MAX_FRAMES_IN_FLIGHT> mPerFrameResources;
         uint32_t mCurrentFrame = 0;
 
         std::unique_ptr<CommandList> mInitializationCmdList;
 
-        std::unique_ptr<Buffer<Vertex>> mVertexBuffer;
+        std::vector<std::unique_ptr<ImguiWindow>> mImguiWindows;
 
-        struct UniformBuffer
-        {
-            glm::mat4 world;
-        };
-        std::unique_ptr<Buffer<UniformBuffer>> mUniformBuffer;
-        std::unique_ptr<DescriptorSet> mDescriptorSet;
-        std::unique_ptr<RootSignature> mRootSignature;
-        std::unique_ptr<Pipeline> mBasicPipeline;
+        SceneViewer* mSceneViewer;
+
         bool mShouldClose = false;
     };
 

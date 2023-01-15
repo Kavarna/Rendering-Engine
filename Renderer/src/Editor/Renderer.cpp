@@ -458,7 +458,10 @@ void Editor::Renderer::InitDearImGui()
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    /* If this is ever needed, a vulkan backend should be rewritten as other windows are creating a separate
+    * command buffer which doesn't communicate with VulkanHelpers::CommandList and thus a lot of error might appear
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+    */
     io.ConfigViewportsNoAutoMerge = true;
     io.ConfigViewportsNoTaskBarIcon = true;
     io.ConfigDockingTransparentPayload = true;

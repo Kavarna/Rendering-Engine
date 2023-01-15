@@ -5,6 +5,7 @@
 #include "Editor/VulkanLoader.h"
 
 #include "RootSignature.h"
+#include "Image.h"
 
 #include <boost/algorithm/string.hpp>
 
@@ -33,6 +34,11 @@ void Pipeline::AddBackbufferColorOutput()
 {
     VkFormat format = Editor::Renderer::Get()->GetBackbufferFormat();
     mColorOutputs.push_back(format);
+}
+
+void Pipeline::AddImageColorOutput(Image const* img)
+{
+    mColorOutputs.push_back(img->GetFormat());
 }
 
 void Pipeline::SetBackbufferDepthStencilOutput()

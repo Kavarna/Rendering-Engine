@@ -19,14 +19,15 @@ void OnResizeCallback(GLFWwindow* window, int width, int height)
     Editor::Editor::Get()->OnResize(width, height);
 }
 
-Editor::Editor::Editor(bool enableValidationLayers)
+Editor::Editor::Editor(bool enableValidationLayers, std::vector<SceneFactory::ParsedScene> const& scenes)
 {
+    CHECK(scenes.size() <= 1) << "Unable to edit multiple scenes at once";
     try
     {
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitCommandLists();
-        InitVertexBuffer();
+        InitImguiWindows(scenes.size() == 1 ? &scenes[0] : nullptr);
         OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
         mInitializationCmdList->InitImGui();
@@ -44,19 +45,14 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
     
-    mUniformBuffer.reset();
-    mDescriptorSet.reset();
-    mRootSignature.reset();
-    mVertexBuffer.reset();
-    mBasicPipeline.reset();
-    
-    for (auto& frameResources : mPerFrameResources)
+    mImguiWindows.clear();
+
+    for (auto& perResourceFrames : mPerFrameResources)
     {
-        frameResources.commandListIsDone.reset();
-        frameResources.commandList.reset();
-        frameResources.renderTarget.reset();
+        perResourceFrames.commandList.reset();
+        perResourceFrames.commandListIsDone.reset();
     }
-    
+
     Renderer::Destroy();
     glfwDestroyWindow(mWindow);
     glfwTerminate();
@@ -71,21 +67,6 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
 
     Renderer::Get()->WaitIdle();
     Renderer::Get()->OnResize();
-
-    InitBasicPipeline();
-
-    Image::Info2D info;
-    {
-        info.width = width;
-        info.height = height;
-        info.format = VK_FORMAT_B8G8R8A8_UNORM;
-        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | Image::IMGUI_IMAGE_LAYOUT;
-    }
-    for (auto& frameResources : mPerFrameResources)
-    {
-        frameResources.renderTarget.reset(new Image(info));
-    }
 }
 
 void Editor::Editor::InitWindow()
@@ -152,7 +133,7 @@ CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     return info;
 }
 
-void Editor::Editor::ShowDockingSpace(Image* img)
+void Editor::Editor::ShowDockingSpace()
 {
     // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
     // because it would be confusing to have two docking targets within each others.
@@ -176,7 +157,7 @@ void Editor::Editor::ShowDockingSpace(Image* img)
     ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
     ImGui::DockSpace(dockspace_id);
 
-    static bool showDebugWindow = false, showDemoWindow = false, showSceneWindow = false;
+    static bool showDebugWindow = false, showDemoWindow = false;
 
     if (ImGui::BeginMenuBar())
     {
@@ -196,12 +177,19 @@ void Editor::Editor::ShowDockingSpace(Image* img)
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Edit"))
+        {
+            if (mSceneViewer && ImGui::MenuItem("Scene viewer", nullptr, &mSceneViewer->mIsOpen))
+            {
+                LOG(INFO) << "Scene viewer is shown";
+            }
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("Debug"))
         {
             ImGui::MenuItem("Show debug window", 0, &showDebugWindow);
             ImGui::MenuItem("Show demo window", 0, &showDemoWindow);
-            if (img)
-                ImGui::MenuItem("Show scene window", 0, &showSceneWindow);
             
             ImGui::EndMenu();
         }
@@ -220,97 +208,13 @@ void Editor::Editor::ShowDockingSpace(Image* img)
     {
         ImGui::ShowDemoWindow();
     }
-    if (showSceneWindow)
+
+    for (auto& imguiWindow : mImguiWindows)
     {
-        ImGui::Begin("Scene");
-        ImVec2 size;
-        size.x = img->GetExtent2D().width;
-        size.y = img->GetExtent2D().height;
-        ImGui::Image(img->GetTextureID(), size);
-        ImGui::End();
+        imguiWindow->OnImguiRender();
     }
 
     ImGui::End();
-}
-
-void Editor::Editor::InitBasicPipeline()
-{
-    mDescriptorSet = std::make_unique<DescriptorSet>();
-    mDescriptorSet->AddInputBuffer(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
-    mDescriptorSet->Bake(MAX_FRAMES_IN_FLIGHT);
-
-    mRootSignature = std::make_unique<RootSignature>();
-    mRootSignature->AddDescriptorSet(mDescriptorSet.get());
-    mRootSignature->AddPushRange<glm::vec4>(0, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
-    mRootSignature->Bake();
-
-    mBasicPipeline = std::make_unique<Pipeline>("BasicPipeline");
-    {
-        mBasicPipeline->SetRootSignature(mRootSignature.get());
-        mBasicPipeline->AddShader("Shaders/basic.vert.spv");
-        mBasicPipeline->AddShader("Shaders/basic.frag.spv");
-    }
-    VkViewport vp{};
-    VkRect2D sc{};
-    auto& viewport = mBasicPipeline->GetViewportStateCreateInfo();
-    {
-        vp.width = (FLOAT)mWidth; vp.minDepth = 0.0f; vp.x = 0;
-        vp.height = (FLOAT)mHeight; vp.maxDepth = 1.0f; vp.y = 0;
-        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)mWidth, .height = (uint32_t)mHeight};
-        viewport.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewport.viewportCount = 1;
-        viewport.pViewports = &vp;
-        viewport.scissorCount = 1;
-        viewport.pScissors = &sc;
-    }
-
-    VkVertexInputAttributeDescription attributeDescription{};
-    {
-        attributeDescription.binding = 0;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription.location = 0;
-        attributeDescription.offset = offsetof(Vertex, position);
-    }
-
-    VkVertexInputBindingDescription bindingDescription{};
-    {
-        bindingDescription.binding = 0;
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        bindingDescription.stride = sizeof(Vertex);
-    }
-
-    auto& vertexInput = mBasicPipeline->GetVertexInputStateCreateInfo();
-    {
-        vertexInput.vertexAttributeDescriptionCount = 1;
-        vertexInput.pVertexAttributeDescriptions = &attributeDescription;
-        vertexInput.vertexBindingDescriptionCount = 1;
-        vertexInput.pVertexBindingDescriptions = &bindingDescription;
-
-    }
-
-    VkPipelineColorBlendAttachmentState attachmentInfo{};
-    auto& blendState = mBasicPipeline->GetColorBlendStateCreateInfo();
-    {
-        attachmentInfo.blendEnable = VK_FALSE;
-        attachmentInfo.colorWriteMask = 
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-        blendState.attachmentCount = 1;
-        blendState.pAttachments = &attachmentInfo;
-    }
-    
-    auto& rasterizerState = mBasicPipeline->GetRasterizationStateCreateInfo();
-    {
-        rasterizerState.cullMode = VK_CULL_MODE_NONE;
-    }
-
-    mBasicPipeline->AddBackbufferColorOutput();
-    mBasicPipeline->SetBackbufferDepthStencilOutput();
-    mBasicPipeline->Bake();
-
-    mDescriptorSet->AddInputBuffer(mUniformBuffer.get(), 0, 0, 0);
-    mDescriptorSet->AddInputBuffer(mUniformBuffer.get(), 0, 0, 1);
 }
 
 void Editor::Editor::InitCommandLists()
@@ -328,32 +232,11 @@ void Editor::Editor::InitCommandLists()
     mInitializationCmdList->Begin();
 }
 
-void Editor::Editor::InitVertexBuffer()
+void Editor::Editor::InitImguiWindows(SceneFactory::ParsedScene const* scene)
 {
-    Vertex vertices[] = {
-        {glm::vec3(0.5, -0.5, 0.0)},
-        {glm::vec3(0.5, 0.5, 0.0)},
-        {glm::vec3(-0.5, 0.5, 0.0)},
-        {glm::vec3(0.5, -0.5, 0.0)},
-        {glm::vec3(-0.5, 0.5, 0.0)},
-        {glm::vec3(-0.5, -0.5, 0.0)},
-    };
-    std::unique_ptr<Buffer<Vertex>> localVertexBuffer =
-        std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
-                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    localVertexBuffer->Copy(vertices);
-
-    mVertexBuffer = std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
-                                                     VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-
-    mInitializationCmdList->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());
-
-    mUniformBuffer = std::make_unique<Buffer<UniformBuffer>>(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                             VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
-    {
-        UniformBuffer* ub = mUniformBuffer->GetElement();
-        ub->world = glm::rotate(glm::identity<glm::mat4>(), glm::half_pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f));
-    }
+    auto sceneViewer = std::make_unique<SceneViewer>(MAX_FRAMES_IN_FLIGHT, scene);
+    mSceneViewer = sceneViewer.get();
+    mImguiWindows.emplace_back(std::move(sceneViewer));
 }
 
 void Editor::Editor::Run()
@@ -375,42 +258,32 @@ void Editor::Editor::Run()
 
 void Editor::Editor::Frame()
 {
-    auto data = mUniformBuffer->GetElement();
-    /*data->world = glm::transpose(data->world);
-    data->world = glm::rotate(data->world, glm::half_pi<float>() * 1000, glm::vec3(0.0f, 0.0f, 1.0f));
-    data->world = glm::transpose(data->world);*/
-
-
     auto& cmdList = mPerFrameResources[mCurrentFrame].commandList;
     auto& isCmdListDone = mPerFrameResources[mCurrentFrame].commandListIsDone;
-    isCmdListDone->Wait();
-    isCmdListDone->Reset();
+
+    {
+        /* Prepare for rendering */
+        isCmdListDone->Wait();
+        isCmdListDone->Reset();
+
+        /* Prepare the scene viewer */
+        {
+            SceneViewer::RenderingContext ctx;
+            ctx.activeFrame = mCurrentFrame;
+            ctx.cmdBufIndex = 0;
+            ctx.cmdList = cmdList.get();
+            mSceneViewer->SetRenderingContext(ctx);
+        }
+    }
 
     cmdList->Begin();
     {
-        cmdList->BeginRenderingOnImage(mPerFrameResources[mCurrentFrame].renderTarget.get(), Jnrlib::Black);
+        cmdList->BeginRenderingUI();
         {
-            cmdList->BindPipeline(mBasicPipeline.get());
-            cmdList->BindVertexBuffer(mVertexBuffer.get());
-
-            cmdList->BindDescriptorSet(mDescriptorSet.get(), mCurrentFrame, mRootSignature.get());
-            glm::vec4 yellow = {
-                Jnrlib::Yellow.r, Jnrlib::Yellow.g, Jnrlib::Yellow.b, 1.0f
-            };
-            cmdList->BindPushRange<glm::vec4>(mRootSignature.get(), 0, 1, &yellow, VK_SHADER_STAGE_FRAGMENT_BIT);
-
-            cmdList->Draw(6);
+            ShowDockingSpace();
         }
-        cmdList->EndRendering();
-        cmdList->TransitionImageToImguiLayout(mPerFrameResources[mCurrentFrame].renderTarget.get());
         cmdList->BeginRenderingOnBackbuffer(Jnrlib::Black);
-        {
-            cmdList->BeginRenderingUI();
-            {
-                ShowDockingSpace(mPerFrameResources[mCurrentFrame].renderTarget.get());
-            }
-            cmdList->EndRenderingUI();            
-        }
+        cmdList->EndRenderingUI();
         cmdList->EndRendering();
     }
     cmdList->End();

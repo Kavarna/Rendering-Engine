@@ -108,7 +108,12 @@ VkImageView Image::GetImageView(VkImageAspectFlags aspectMask)
     return imageView;
 }
 
-VkExtent2D Image::GetExtent2D()
+VkFormat Image::GetFormat() const
+{
+    return mFormat;
+}
+
+VkExtent2D Image::GetExtent2D() const
 {
     return mExtent2D;
 }
