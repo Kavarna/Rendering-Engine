@@ -164,8 +164,8 @@ void Editor::CommandList::TransitionImageTo(Image* img, TransitionInfo const& tr
     if (transitionInfo.newLayout & VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
     {
         aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-        /* TODO: Maybe add stencil? */
     }
+    /* TODO: Maybe add stencil? */
     else
     {
         aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
@@ -248,8 +248,8 @@ void Editor::CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgr
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
-        renderingInfo.pDepthAttachment = nullptr; /* TODO: Fill this */
-        renderingInfo.pStencilAttachment = nullptr; /* TODO: Fill this */
+        renderingInfo.pDepthAttachment = nullptr;
+        renderingInfo.pStencilAttachment = nullptr;
         renderingInfo.renderArea = {
             .offset = VkOffset2D{.x = 0, .y = 0},
             .extent = renderer->GetBackbufferExtent()
@@ -319,7 +319,7 @@ void Editor::CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const&
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
         renderingInfo.pDepthAttachment = &depthAttachment;
-        renderingInfo.pStencilAttachment = nullptr; /* TODO: Fill this */
+        renderingInfo.pStencilAttachment = nullptr;
         renderingInfo.renderArea = {
             .offset = VkOffset2D{.x = 0, .y = 0},
             .extent = img->GetExtent2D()

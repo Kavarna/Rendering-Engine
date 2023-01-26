@@ -12,7 +12,11 @@ Editor::SceneViewer::SceneViewer(uint32_t maxFrames, SceneFactory::ParsedScene c
     mMaxFrames(maxFrames)
 {
     CHECK(maxFrames >= 1) << "There should be at least one frame";
-    mPerFrameResources.resize(maxFrames);
+    for (uint32_t i = 0; i < mMaxFrames; ++i)
+    {
+        PerFrameResources resources{};
+        mPerFrameResources.push_back(std::move(resources));
+    }
     InitTestVertexBuffer();
     InitDefaultRootSignature();
 }
@@ -145,7 +149,7 @@ void Editor::SceneViewer::InitDefaultRootSignature()
 
     for (uint32_t i = 0; i < mMaxFrames; ++i)
     {
-        mPerFrameResources[i].objectBuffer = std::make_shared<Buffer<PerObject>>(
+        mPerFrameResources[i].objectBuffer = std::make_unique<Buffer<PerObject>>(
             2, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         mDefaultDescriptorSets->AddInputBuffer<PerObject>(mPerFrameResources[i].objectBuffer.get(), 0, 0, 2 * i + 0);
         mDefaultDescriptorSets->AddInputBuffer<PerObject>(mPerFrameResources[i].objectBuffer.get(), 0, 1, 2 * i + 1);
@@ -242,7 +246,7 @@ void Editor::SceneViewer::InitRenderTargets()
     for (auto& frameResources : mPerFrameResources)
     {
         frameResources.renderTarget.reset();
-        frameResources.renderTarget = std::make_shared<Image>(info);
+        frameResources.renderTarget = std::make_unique<Image>(info);
     }
 
     Image::Info2D depthInfo;

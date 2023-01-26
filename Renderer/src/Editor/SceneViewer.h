@@ -59,14 +59,17 @@ namespace Editor
         };
         struct PerFrameResources
         {
-            // TODO: Study how to make this an unique_ptr, beucase for some reason it doesn't work ;(
-            std::shared_ptr<Image> renderTarget = nullptr;
-
-            std::shared_ptr<Buffer<PerObject>> objectBuffer;
-
+            std::unique_ptr<Image> renderTarget = nullptr;
+            std::unique_ptr<Buffer<PerObject>> objectBuffer = nullptr;
 
             PerFrameResources() = default;
             ~PerFrameResources() = default;
+
+            PerFrameResources(PerFrameResources&&) = default;
+            PerFrameResources& operator=(PerFrameResources&&) = default;
+
+            PerFrameResources(PerFrameResources const&) = delete;
+            PerFrameResources& operator=(PerFrameResources const&) = delete;
         };
         std::vector<PerFrameResources> mPerFrameResources;
 
