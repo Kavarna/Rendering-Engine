@@ -6,8 +6,9 @@
 #include "gtest/gtest.h"
 #endif
 #include "Jnrlib.h"
-#include "Scene/SceneFactory.h"
-#include "Renderer/Renderer.h"
+#include "Scene/SceneParser.h"
+#include "Vulkan/Renderer.h"
+#include "Common/MaterialManager.h"
 #include "ThreadPool.h"
 #include "Editor/Editor.h"
 
@@ -141,32 +142,35 @@ int main(int argc, char const* argv[])
     }
     else if (options->mode == ApplicationMode::RENDER)
     {
+        using Common::SceneParser;
         LOG(INFO) << "Starting application in render mode";
         LOG(INFO) << "Running for config files: " << options->sceneFiles;
 
-        std::vector<SceneFactory::ParsedScene> parsedScenes;
+        std::vector<SceneParser::ParsedScene> parsedScenes;
         parsedScenes.reserve(options->sceneFiles.size());
         for (const auto& it : options->sceneFiles)
         {
-            if (auto parsedScene = SceneFactory::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+            if (auto parsedScene = SceneParser::Get()->LoadSceneFromFile(it); parsedScene.has_value())
             {
                 parsedScenes.emplace_back(std::move(*parsedScene));
+                Common::MaterialManager::Get()->AddMaterials(parsedScene->materialsInfo);
             }
         }
         
         for (auto& parsedScene : parsedScenes)
         {
-            Renderer::RenderScene(parsedScene.scene, parsedScene.rendererInfo);
+            // Renderer::RenderScene(parsedScene);
         }
     }
     else if (options->mode == ApplicationMode::EDITOR)
     {
+        using Common::SceneParser;
         LOG(INFO) << "Starting application in editor mode";
-        std::vector<SceneFactory::ParsedScene> parsedScenes;
+        std::vector<SceneParser::ParsedScene> parsedScenes;
         parsedScenes.reserve(options->sceneFiles.size());
         for (const auto& it : options->sceneFiles)
         {
-            if (auto parsedScene = SceneFactory::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+            if (auto parsedScene = SceneParser::Get()->LoadSceneFromFile(it); parsedScene.has_value())
             {
                 parsedScenes.emplace_back(std::move(*parsedScene));
             }

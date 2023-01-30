@@ -1,13 +1,14 @@
 #pragma once
 
 
-#include "Scene/SceneFactory.h"
+#include "Scene/SceneParser.h"
 #include "ImguiWindow.h"
 
-#include "VulkanHelpers/RootSignature.h"
-#include "VulkanHelpers/Image.h"
-#include "VulkanHelpers/Pipeline.h"
-#include "VulkanHelpers/Buffer.h"
+#include "Vulkan/CommandList.h"
+#include "Vulkan/RootSignature.h"
+#include "Vulkan/Image.h"
+#include "Vulkan/Pipeline.h"
+#include "Vulkan/Buffer.h"
 
 #include "Pool.h"
 
@@ -19,11 +20,11 @@ namespace Editor
         struct RenderingContext
         {
             uint32_t activeFrame = 0;
-            CommandList* cmdList = nullptr;
+            Vulkan::CommandList* cmdList = nullptr;
             uint32_t cmdBufIndex = 0;
         };
     public:
-        SceneViewer(uint32_t maxFrames, SceneFactory::ParsedScene const* scene);
+        SceneViewer(uint32_t maxFrames, Common::SceneParser::ParsedScene const* scene);
         ~SceneViewer();
 
         void SetRenderingContext(RenderingContext const& ctx);
@@ -59,8 +60,8 @@ namespace Editor
         };
         struct PerFrameResources
         {
-            std::unique_ptr<Image> renderTarget = nullptr;
-            std::unique_ptr<Buffer<PerObject>> objectBuffer = nullptr;
+            std::unique_ptr<Vulkan::Image> renderTarget = nullptr;
+            std::unique_ptr<Vulkan::Buffer<PerObject>> objectBuffer = nullptr;
 
             PerFrameResources() = default;
             ~PerFrameResources() = default;
@@ -73,12 +74,12 @@ namespace Editor
         };
         std::vector<PerFrameResources> mPerFrameResources;
 
-        std::shared_ptr<DescriptorSet> mDefaultDescriptorSets;
-        std::unique_ptr<RootSignature> mDefaultRootSignature;
-        std::unique_ptr<Pipeline> mDefaultPipeline;
+        std::shared_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;
+        std::unique_ptr<Vulkan::RootSignature> mDefaultRootSignature;
+        std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
 
-        std::unique_ptr<Image> mDepthImage;
+        std::unique_ptr<Vulkan::Image> mDepthImage;
 
-        std::unique_ptr<Buffer<Vertex>> mTestVertexBuffer;
+        std::unique_ptr<Vulkan::Buffer<Vertex>> mTestVertexBuffer;
     };
 }

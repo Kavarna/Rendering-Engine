@@ -2,13 +2,15 @@
 
 #include "imgui.h"
 
-#include "VulkanHelpers/CommandList.h"
-#include "VulkanHelpers/Buffer.h"
+#include "Vulkan/CommandList.h"
+#include "Vulkan/Buffer.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-Editor::SceneViewer::SceneViewer(uint32_t maxFrames, SceneFactory::ParsedScene const* scene) :
+using namespace Vulkan;
+
+Editor::SceneViewer::SceneViewer(uint32_t maxFrames, Common::SceneParser::ParsedScene const* scene) :
     mMaxFrames(maxFrames)
 {
     CHECK(maxFrames >= 1) << "There should be at least one frame";
@@ -123,7 +125,7 @@ void Editor::SceneViewer::RenderScene()
 
 void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
 {   
-    Editor::Renderer::Get()->WaitIdle();
+    Renderer::Get()->WaitIdle();
 
     mWidth = newWidth;
     mHeight = newHeight;

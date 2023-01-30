@@ -1,0 +1,85 @@
+{
+    "renderer-type": "pathtracing",
+    "num-samples": 50,
+    "max-depth": 100,
+    "output-file": "result.png",
+    "image-info": {
+        "width": 512,
+        "height": 512
+    },
+    "camera": {
+        "position": "(-5.0, 8.0, -2.0)",
+        "forward-direction": "(1.0, -1.0, 1.0)",
+        "right-direction": "(1.0, 0.0, 0.0)",
+        "up-direction": "(0.0, 1.0, 0.0)",
+        "aspect-ratio": -1,
+        "viewport-height": -1,
+        "viewport-width": -1,
+        "focal-length": 1.0,
+        "field-of-view": 0.9
+    },
+    "materials": [
+        {
+            "name": "red",
+            "type": "Lambertian",
+            "attenuation": "(1.0, 0.0, 0.0, 1.0)"
+        },
+        {
+            "name": "green",
+            "type": "Lambertian",
+            "attenuation": "(0.0, 1.0, 0.0, 1.0)"
+        },
+        {
+            "name": "yellow",
+            "type": "Lambertian",
+            "attenuation": "(1.0, 1.0, 0.0, 1.0)"
+        },
+        {
+            "name": "strong_metal",
+            "type": "Metal",
+            "attenuation": "(0.8, 0.8, 0.8, 1.0)",
+            "fuziness": 1.0
+        },
+        {
+            "name": "soft_metal",
+            "type": "Metal",
+            "attenuation": "(0.8, 0.8, 0.3, 1.0)",
+            "fuziness": 0.3
+        },
+        {
+            "name": "glass",
+            "type": "dielectric",
+            "refraction-index": 1.5
+        }
+    ],
+    "objects": [
+        {
+            "type": "Sphere",
+            "name": "Red-Sphere",
+            "radius": 1.0,
+            "position": "(0.0, 1.0, 5.0)",
+            "material": "red"
+        },
+        {
+            "type": "Sphere",
+            "name": "Metal-Sphere1",
+            "radius": 1.0,
+            "position": "(2.0, 1.0, 5.0)",
+            "material": "soft_metal"
+        },
+        {
+            "type": "Sphere",
+            "name": "Glass-Sphere",
+            "radius": 1.0,
+            "position": "(-2.0, 1.0, 5.0)",
+            "material": "glass"
+        },
+        {
+            "type": "Sphere",
+            "name": "Earth",
+            "radius": 1000.0,
+            "position": "(0.0, -1000.0, 0.0)",
+            "material": "green"
+        }
+    ]
+}

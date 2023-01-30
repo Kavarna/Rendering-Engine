@@ -4,13 +4,13 @@
 
 
 
-void Renderer::RenderScene(std::unique_ptr<Scene>& scene, CreateInfo::Renderer const& rendererInfo)
+void Renderer::RenderScene(std::unique_ptr<Common::Scene>& scene, CreateInfo::Renderer const& rendererInfo)
 {
 	using namespace std::placeholders;
 
 	const auto& imageInfo = scene->GetImageInfo();
 
-	PngDumper dumper((uint32_t)imageInfo.width, (uint32_t)imageInfo.height, scene->GetOutputFile());
+	Common::PngDumper dumper((uint32_t)imageInfo.width, (uint32_t)imageInfo.height, scene->GetOutputFile());
 
 	switch (rendererInfo.rendererType)
 	{

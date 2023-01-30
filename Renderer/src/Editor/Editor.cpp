@@ -1,13 +1,13 @@
 #include "Editor.h"
-#include "Renderer.h"
-#include "VulkanHelpers/Pipeline.h"
-#include "VulkanHelpers/PipelineManager.h"
+#include "Vulkan/Renderer.h"
 #include "FileHelpers.h"
 
 #include "imgui.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
+
+using namespace Vulkan;
 
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 800;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 600;
@@ -19,7 +19,7 @@ void OnResizeCallback(GLFWwindow* window, int width, int height)
     Editor::Editor::Get()->OnResize(width, height);
 }
 
-Editor::Editor::Editor(bool enableValidationLayers, std::vector<SceneFactory::ParsedScene> const& scenes)
+Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes)
 {
     CHECK(scenes.size() <= 1) << "Unable to edit multiple scenes at once";
     try
@@ -95,26 +95,9 @@ void Editor::Editor::InitWindow()
     LOG(INFO) << "Successfully created window";
 }
 
-VkShaderModule createShaderModule(const std::vector<char>& code)
+CreateInfo::VulkanRenderer Editor::Editor::CreateRendererInfo(bool enableValidationLayers)
 {
-    auto device = Editor::Renderer::Get()->GetDevice();
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    VkShaderModule shaderModule;
-    if (jnrCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create shader module!");
-    }
-
-    return shaderModule;
-}
-
-CreateInfo::EditorRenderer Editor::Editor::CreateRendererInfo(bool enableValidationLayers)
-{
-    CreateInfo::EditorRenderer info = {};
+    CreateInfo::VulkanRenderer info = {};
     {
         info.window = mWindow;
         info.deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -240,7 +223,7 @@ void Editor::Editor::InitCommandLists()
     mInitializationCmdList->Begin();
 }
 
-void Editor::Editor::InitImguiWindows(SceneFactory::ParsedScene const* scene)
+void Editor::Editor::InitImguiWindows(Common::SceneParser::ParsedScene const* scene)
 {
     auto sceneViewer = std::make_unique<SceneViewer>(MAX_FRAMES_IN_FLIGHT, scene);
     mSceneViewer = sceneViewer.get();

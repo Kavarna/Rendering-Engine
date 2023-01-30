@@ -3,10 +3,9 @@
 
 #include <Jnrlib.h>
 
-#include "CreateInfoUtils.h"
-
-#include "VulkanHelpers/CommandList.h"
-#include "Scene/SceneFactory.h"
+#include "CreateInfo/VulkanRendererCreateInfo.h"
+#include "Vulkan/CommandList.h"
+#include "Scene/SceneParser.h"
 #include "ImguiWindow.h"
 
 #include "SceneViewer.h"
@@ -21,7 +20,7 @@ namespace Editor
         void Run();
 
     private:
-        Editor(bool enableValidationLayers, std::vector<SceneFactory::ParsedScene> const& scenes = {});
+        Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes = {});
         ~Editor();
 
     public:
@@ -30,9 +29,9 @@ namespace Editor
     private:
         void InitWindow();
         void InitCommandLists();
-        void InitImguiWindows(SceneFactory::ParsedScene const* scene);
+        void InitImguiWindows(Common::SceneParser::ParsedScene const* scene);
 
-        CreateInfo::EditorRenderer CreateRendererInfo(bool enableValidationLayers);
+        CreateInfo::VulkanRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
         void ShowDockingSpace();
@@ -47,13 +46,13 @@ namespace Editor
 
         struct PerFrameResources
         {
-            std::unique_ptr<CPUSynchronizationObject> commandListIsDone = nullptr;
-            std::unique_ptr<CommandList> commandList = nullptr;
+            std::unique_ptr<Vulkan::CPUSynchronizationObject> commandListIsDone = nullptr;
+            std::unique_ptr<Vulkan::CommandList> commandList = nullptr;
         };
         std::array<PerFrameResources, MAX_FRAMES_IN_FLIGHT> mPerFrameResources;
         uint32_t mCurrentFrame = 0;
 
-        std::unique_ptr<CommandList> mInitializationCmdList;
+        std::unique_ptr<Vulkan::CommandList> mInitializationCmdList;
 
         std::vector<std::unique_ptr<ImguiWindow>> mImguiWindows;
 

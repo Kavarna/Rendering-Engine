@@ -3,7 +3,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_definitions(-DVK_NO_PROTOTYPES)
 
-include_directories("src/Helpers")
+include_directories("src/Common")
 include_directories("src")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 FILE(GLOB IMGUI_SOURCES "../external/imgui/*.h" "../external/imgui/*.cpp")
@@ -35,13 +35,14 @@ include_directories("../external/glfw/include")
 include_directories("../external/imgui/")
 
 # Handle shaders
-file(GLOB_RECURSE EDITOR_SHADERS "src/Editor/Shaders/*.vert" "src/Editor/Shaders/*.frag")
+file(GLOB_RECURSE EDITOR_SHADERS "src/Vulkan/Shaders/*.vert" "src/Vulkan/Shaders/*.frag")
 
 foreach(SHADER_SOURCE ${EDITOR_SHADERS})
 
     get_filename_component(SHADER_FILE_NAME ${SHADER_SOURCE} NAME)
-    message(STATUS "Found shader : ${SHADER_FILE_NAME}")
     set(COMPILED_SHADER "${CMAKE_CURRENT_BINARY_DIR}/${SHADER_FILE_NAME}.spv")
+
+    message(STATUS "Found shader: ${SHADER_FILE_NAME} and it will be compiled in ${COMPILED_SHADER}")
 
     add_custom_command(OUTPUT ${SHADER_FILE_NAME}.spv
                        COMMAND glslc -g ${SHADER_SOURCE} -o ${COMPILED_SHADER}
