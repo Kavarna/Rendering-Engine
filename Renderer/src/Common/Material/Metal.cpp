@@ -4,8 +4,8 @@
 
 using namespace Common;
 
-Metal::Metal(CreateInfo::Material const& info) :
-    IMaterial(info.name)
+Metal::Metal(CreateInfo::Material const& info, uint32_t materialIndex) :
+    IMaterial(info.name, materialIndex)
 {
     CHECK((info.mask & CreateInfo::Material::Attenuation) != 0) << "Metal material has to have attenuation";
     CHECK((info.mask & CreateInfo::Material::Fuzziness) != 0) << "Metal material has to have fuziness";

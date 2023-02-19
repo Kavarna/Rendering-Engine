@@ -9,12 +9,12 @@
 
 using namespace Vulkan;
 
-Editor::SceneViewer::SceneViewer(Common::Scene const* scene)
+Editor::SceneViewer::SceneViewer(Common::Scene const* scene, Vulkan::CommandList* cmdList)
     : mScene(scene)
 {
     for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
     {
-        mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene);
+        mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
         /* TODO: Create another camera for the scene viewer */
         mPerFrameResources[i].renderSystem->SetCamera(&scene->GetCamera());
     }

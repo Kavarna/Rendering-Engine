@@ -7,7 +7,7 @@ namespace Common
     class Metal : public IMaterial
     {
     public:
-        Metal(CreateInfo::Material const& info);
+        Metal(CreateInfo::Material const& info, uint32_t materialIndex);
 
     public:
         [[nodiscard]]

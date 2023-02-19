@@ -13,8 +13,8 @@ Float Reflectance(Float cosine, Float referenceIndex)
     return r0 + (One - r0) * (Float)pow((One - cosine), 5);
 }
 
-Dielectric::Dielectric(CreateInfo::Material const& info) :
-    IMaterial(info.name)
+Dielectric::Dielectric(CreateInfo::Material const& info, uint32_t materialIndex) :
+    IMaterial(info.name, materialIndex)
 {
     CHECK((info.mask & CreateInfo::Material::RefractionIndex) != 0) << "Dielectric material has to have a index of refraction";
 

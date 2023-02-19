@@ -4,8 +4,8 @@
 
 using namespace Common;
 
-Lambertian::Lambertian(CreateInfo::Material const& info) : 
-    IMaterial(info.name)
+Lambertian::Lambertian(CreateInfo::Material const& info, uint32_t materialIndex) :
+    IMaterial(info.name, materialIndex)
 {
     CHECK((info.mask & CreateInfo::Material::Attenuation) != 0) << "Lambertian material has to have attenuation";
     

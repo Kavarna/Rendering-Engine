@@ -22,7 +22,11 @@ layout(set = 0, binding = 1) uniform UniformBufferObject
 
 layout(location = 0) in vec3 position;
 
+layout(location = 0) out flat uint materialIndex;
+
 void main()
 {
-    gl_Position = uniformObject.viewProj * objectBuffer.objects[PushConstant.objectIndex].world * vec4(position, 1.0);
+    PerObjectInfo ob = objectBuffer.objects[PushConstant.objectIndex];
+    gl_Position = uniformObject.viewProj * ob.world * vec4(position, 1.0);
+    materialIndex = ob.materialIndex;
 }

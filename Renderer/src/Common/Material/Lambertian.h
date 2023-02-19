@@ -8,7 +8,7 @@ namespace Common
     class Lambertian : public IMaterial
     {
     public:
-        Lambertian(CreateInfo::Material const& info);
+        Lambertian(CreateInfo::Material const& info, uint32_t materialIndex);
 
     public:
         [[nodiscard]]

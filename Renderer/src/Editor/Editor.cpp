@@ -242,7 +242,7 @@ void Editor::Editor::InitScene(Common::SceneParser::ParsedScene const* parsedSce
 
 void Editor::Editor::InitImguiWindows()
 {
-    auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get());
+    auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get(), mInitializationCmdList.get());
     mSceneViewer = sceneViewer.get();
     mImguiWindows.emplace_back(std::move(sceneViewer));
 }

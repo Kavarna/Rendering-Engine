@@ -28,16 +28,33 @@ std::shared_ptr<IMaterial> MaterialManager::GetMaterial(std::string const& name)
 	return nullptr;
 }
 
+std::vector<MaterialManager::ShaderMaterial> MaterialManager::GetShaderMaterials()
+{
+	return mShaderMaterials;
+}
+
 std::shared_ptr<IMaterial> MaterialManager::CreateMaterial(CreateInfo::Material const& matInfo)
 {
 	switch (matInfo.type)
 	{
 		case CreateInfo::MaterialType::Lambertian:
-			return std::make_shared<Lambertian>(matInfo);
+		{
+			auto materialPtr = std::make_shared<Lambertian>(matInfo, (uint32_t)mMaterials.size());
+			mShaderMaterials.emplace_back(ShaderMaterial{.color = matInfo.attenuation});
+			return materialPtr;
+		}
 		case CreateInfo::MaterialType::Metal:
-			return std::make_shared<Metal>(matInfo);
+		{
+			auto materialPtr = std::make_shared<Metal>(matInfo, (uint32_t)mMaterials.size());
+			mShaderMaterials.emplace_back(ShaderMaterial{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)});
+			return materialPtr;
+		}
 		case CreateInfo::MaterialType::Dieletric:
-			return std::make_shared<Dielectric>(matInfo);
+		{
+			auto materialPtr = std::make_shared<Dielectric>(matInfo, (uint32_t)mMaterials.size());
+			mShaderMaterials.emplace_back(ShaderMaterial{.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)});
+			return materialPtr;
+		}
 		case CreateInfo::MaterialType::None:
 		default:
 			return nullptr;

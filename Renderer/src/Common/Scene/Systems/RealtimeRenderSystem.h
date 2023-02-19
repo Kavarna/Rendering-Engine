@@ -15,7 +15,7 @@ namespace Common::Systems
     class RealtimeRender : public Jnrlib::ISingletone<RealtimeRender>
     {
     public:
-        RealtimeRender(Common::Scene const* scene);
+        RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList);
         ~RealtimeRender();
 
     public:
@@ -28,6 +28,7 @@ namespace Common::Systems
         void InitDefaultRootSignature();
         void InitPerObjectBuffer();
         void InitUniformBuffer();
+        void InitMaterialsBuffer(Vulkan::CommandList* cmdList);
 
     private:
 
@@ -46,6 +47,8 @@ namespace Common::Systems
         };
 
         std::unique_ptr<Vulkan::Buffer> mUniformBuffer;
+        std::unique_ptr<Vulkan::Buffer> mMaterialsBuffer;
+
         // TODO: Make these a bit more dynamic (?) - take them as parameters
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;
         std::unique_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;

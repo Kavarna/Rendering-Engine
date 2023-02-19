@@ -5,6 +5,8 @@
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
 
+#include "MaterialManager.h"
+
 #include "glm/gtc/matrix_transform.hpp"
 
 using namespace Common;
@@ -12,12 +14,13 @@ using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Common::Scene const* scene) :
+RealtimeRender::RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList) :
     mScene(scene)
 {
     InitDefaultRootSignature();
     InitPerObjectBuffer();
     InitUniformBuffer();
+    InitMaterialsBuffer(cmdList);
 }
 
 RealtimeRender::~RealtimeRender()
@@ -41,9 +44,7 @@ void RealtimeRender::RenderScene(Vulkan::CommandList* cmdList, uint32_t cmdBufIn
 
             objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
             objectInfo->world = glm::scale(objectInfo->world, base.scaling);
-
-            /* TODO: Make this flexible */
-            objectInfo->materialIndex = 0;
+            objectInfo->materialIndex = sphere.material->GetMaterialIndex();
         }
 
         {
@@ -51,7 +52,6 @@ void RealtimeRender::RenderScene(Vulkan::CommandList* cmdList, uint32_t cmdBufIn
             if (mCamera)
             {
                 uniformBuffer->viewProj = mCamera->GetProjection() * mCamera->GetView();
-                // uniformBuffer->viewProj = mCamera->GetProjection();
             }
             else
             {
@@ -89,6 +89,8 @@ void RealtimeRender::InitDefaultRootSignature()
     {
         mDefaultDescriptorSets->AddStorageBuffer(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
         mDefaultDescriptorSets->AddInputBuffer(1, 1, VK_SHADER_STAGE_VERTEX_BIT);
+
+        mDefaultDescriptorSets->AddStorageBuffer(2, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
     }
     mDefaultDescriptorSets->Bake();
     mDefaultRootSignature = std::make_unique<RootSignature>();
@@ -112,6 +114,29 @@ void RealtimeRender::InitUniformBuffer()
     mUniformBuffer = std::make_unique<Buffer>(sizeof(UniformBuffer), 1,
                                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
     mDefaultDescriptorSets->BindInputBuffer(mUniformBuffer.get(), 1, 0, 0);
+}
+
+void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
+{
+    auto materialManager = MaterialManager::Get();
+    auto materials = materialManager->GetShaderMaterials();
+
+    {
+        auto localMaterialsBuffer = std::make_unique<Vulkan::Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)),
+                                                                     materials.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                                                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        localMaterialsBuffer->Copy(materials.data());
+
+
+
+        mMaterialsBuffer = std::make_unique<Vulkan::Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
+                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+
+        cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
+        cmdList->AddLocalBuffer(std::move(localMaterialsBuffer));
+    }
+
+    mDefaultDescriptorSets->BindStorageBuffer(mMaterialsBuffer.get(), 2, 0, 0);
 }
 
 

@@ -7,7 +7,7 @@ namespace Common
     class Dielectric : public IMaterial
     {
     public:
-        Dielectric(CreateInfo::Material const& info);
+        Dielectric(CreateInfo::Material const& info, uint32_t materialIndex);
 
     public:
         [[nodiscard]]
