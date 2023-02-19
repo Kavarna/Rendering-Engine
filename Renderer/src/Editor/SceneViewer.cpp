@@ -5,40 +5,36 @@
 #include "Vulkan/CommandList.h"
 #include "Vulkan/Buffer.h"
 
-#define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace Vulkan;
 
-Editor::SceneViewer::SceneViewer(uint32_t maxFrames, Common::SceneParser::ParsedScene const* scene) :
-    mMaxFrames(maxFrames)
+Editor::SceneViewer::SceneViewer(Common::Scene const* scene)
+    : mScene(scene)
 {
-    CHECK(maxFrames >= 1) << "There should be at least one frame";
-    for (uint32_t i = 0; i < mMaxFrames; ++i)
+    for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
     {
-        PerFrameResources resources{};
-        mPerFrameResources.push_back(std::move(resources));
+        mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene);
+        /* TODO: Create another camera for the scene viewer */
+        mPerFrameResources[i].renderSystem->SetCamera(&scene->GetCamera());
     }
-    InitTestVertexBuffer();
-    InitDefaultRootSignature();
 }
 
 Editor::SceneViewer::~SceneViewer()
 {
     mDepthImage.reset();
-    mTestVertexBuffer.reset();
     mDefaultPipeline.reset();
-    mPerFrameResources.clear();
 }
 
 void Editor::SceneViewer::SetRenderingContext(RenderingContext const& ctx)
 {
-    CHECK(ctx.activeFrame < mMaxFrames) << "Active frame (" << ctx.activeFrame << ") must be less than max frames(" << mMaxFrames << ")";
+    CHECK(ctx.activeFrame < Common::Constants::FRAMES_IN_FLIGHT)
+        << "Active frame (" << ctx.activeFrame << ") must be less than max frames(" << Common::Constants::FRAMES_IN_FLIGHT<< ")";
     mActiveRenderingContext = ctx;
 }
 
 void Editor::SceneViewer::OnRender()
-{
+{    
     ImGui::Begin("Scene viewer");
 
     auto frameHeight = ImGui::GetFrameHeight();
@@ -79,45 +75,10 @@ void Editor::SceneViewer::RenderScene()
     auto& cmdList = mActiveRenderingContext.cmdList;
     auto cmdBufIndex = mActiveRenderingContext.cmdBufIndex;
 
-    static float angle = 0.0f;
-    angle += 0.00001f;
-
-    /* Update part */
-    {
-        for (uint32_t i = 0; i < 2; ++i)
-        {
-            auto* el = currentFrameResources.objectBuffer->GetElement(i);
-            int multiplier = 1;
-            if (i == 1)
-                multiplier = -1;
-            el->worldViewProjection = glm::rotate(glm::identity<glm::mat4>(), multiplier * angle * glm::pi<float>(), glm::vec3(0.0f, 0.0f, 1.0f));
-        }
-
-    }
-
     cmdList->BeginRenderingOnImage(currentFrameResources.renderTarget.get(), Jnrlib::Black, mDepthImage.get(), cmdBufIndex);
     {
         cmdList->BindPipeline(mDefaultPipeline.get(), cmdBufIndex);
-        cmdList->BindVertexBuffer(mTestVertexBuffer.get(), cmdBufIndex);
-        
-        /* Draw first square */
-        {
-            glm::vec4 color = Jnrlib::Yellow;
-            cmdList->BindPushRange<glm::vec4>(mDefaultRootSignature.get(), 0, 1, &color, VK_SHADER_STAGE_FRAGMENT_BIT, cmdBufIndex);
-            cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 2 * mActiveRenderingContext.activeFrame + 0, mDefaultRootSignature.get(), cmdBufIndex);
-
-            cmdList->Draw(6, 0, cmdBufIndex);
-        }
-
-        /* Draw second square */
-        {
-            glm::vec4 color = Jnrlib::Red;
-            cmdList->BindPushRange<glm::vec4>(mDefaultRootSignature.get(), 0, 1, &color, VK_SHADER_STAGE_FRAGMENT_BIT, cmdBufIndex);
-            cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 2 * mActiveRenderingContext.activeFrame + 1, mDefaultRootSignature.get(), cmdBufIndex);
-
-            cmdList->Draw(6, 6, cmdBufIndex);
-        }
-
+        currentFrameResources.renderSystem->RenderScene(cmdList, cmdBufIndex);
     }
     cmdList->EndRendering(cmdBufIndex);
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get(), cmdBufIndex);
@@ -133,29 +94,6 @@ void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
 
     InitRenderTargets();
     InitDefaultPipeline();
-}
-
-void Editor::SceneViewer::InitDefaultRootSignature()
-{
-    mDefaultDescriptorSets = std::make_unique<DescriptorSet>();
-    {
-        mDefaultDescriptorSets->AddInputBuffer(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
-    }
-    mDefaultDescriptorSets->Bake(2 * mMaxFrames);
-    mDefaultRootSignature = std::make_unique<RootSignature>();
-    {
-        mDefaultRootSignature->AddPushRange<glm::vec4>(0, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
-        mDefaultRootSignature->AddDescriptorSet(mDefaultDescriptorSets.get());
-    }
-    mDefaultRootSignature->Bake();
-
-    for (uint32_t i = 0; i < mMaxFrames; ++i)
-    {
-        mPerFrameResources[i].objectBuffer = std::make_unique<Buffer<PerObject>>(
-            2, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-        mDefaultDescriptorSets->AddInputBuffer<PerObject>(mPerFrameResources[i].objectBuffer.get(), 0, 0, 2 * i + 0);
-        mDefaultDescriptorSets->AddInputBuffer<PerObject>(mPerFrameResources[i].objectBuffer.get(), 0, 1, 2 * i + 1);
-    }
 }
 
 void Editor::SceneViewer::InitDefaultPipeline()
@@ -177,28 +115,16 @@ void Editor::SceneViewer::InitDefaultPipeline()
         viewport.scissorCount = 1;
         viewport.pScissors = &sc;
     }
-    VkVertexInputAttributeDescription attributeDescription{};
-    {
-        attributeDescription.binding = 0;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription.location = 0;
-        attributeDescription.offset = offsetof(Vertex, position);
-    }
 
-    VkVertexInputBindingDescription bindingDescription{};
-    {
-        bindingDescription.binding = 0;
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        bindingDescription.stride = sizeof(Vertex);
-    }
+    auto vertexAttributeDescription = Common::Vertex::GetInputAttributeDescription();
+    auto vertexBindingDescription = Common::Vertex::GetInputBindingDescription();
 
     auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
     {
-        vertexInput.vertexAttributeDescriptionCount = 1;
-        vertexInput.pVertexAttributeDescriptions = &attributeDescription;
-        vertexInput.vertexBindingDescriptionCount = 1;
-        vertexInput.pVertexBindingDescriptions = &bindingDescription;
-
+        vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexAttributeDescription.size();
+        vertexInput.pVertexAttributeDescriptions = vertexAttributeDescription.data();
+        vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexBindingDescription.size();
+        vertexInput.pVertexBindingDescriptions = vertexBindingDescription.data();
     }
 
     VkPipelineColorBlendAttachmentState attachmentInfo{};
@@ -215,7 +141,8 @@ void Editor::SceneViewer::InitDefaultPipeline()
 
     auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
     {
-        rasterizerState.cullMode = VK_CULL_MODE_NONE;
+        // rasterizerState.cullMode = VK_CULL_MODE_NONE;
+        // rasterizerState.polygonMode = VK_POLYGON_MODE_LINE;
     }
 
     auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
@@ -230,7 +157,7 @@ void Editor::SceneViewer::InitDefaultPipeline()
     }
 
     mDefaultPipeline->SetDepthImage(mDepthImage.get());
-    mDefaultPipeline->SetRootSignature(mDefaultRootSignature.get());
+    mDefaultPipeline->SetRootSignature(mPerFrameResources[0].renderSystem->GetRootSiganture());
     mDefaultPipeline->AddImageColorOutput(mPerFrameResources[0].renderTarget.get());
     mDefaultPipeline->Bake();
 }
@@ -262,28 +189,4 @@ void Editor::SceneViewer::InitRenderTargets()
     mDepthImage.reset(new Image(depthInfo));
 }
 
-void Editor::SceneViewer::InitTestVertexBuffer()
-{
-    Vertex vertices[] = {
-        /* First quad */
-        {glm::vec3(0.5, -0.5, 0.1)},
-        {glm::vec3(0.5, 0.5, 0.1)},
-        {glm::vec3(-0.5, 0.5, 0.1)},
-        {glm::vec3(0.5, -0.5, 0.1)},
-        {glm::vec3(-0.5, 0.5, 0.1)},
-        {glm::vec3(-0.5, -0.5, 0.1)},
 
-        /* Second quad */
-        {glm::vec3(0.5, -0.5, 0.0)},
-        {glm::vec3(0.5, 0.5, 0.0)},
-        {glm::vec3(-0.5, 0.5, 0.0)},
-        {glm::vec3(0.5, -0.5, 0.0)},
-        {glm::vec3(-0.5, 0.5, 0.0)},
-        {glm::vec3(-0.5, -0.5, 0.0)},
-    };
-
-    mTestVertexBuffer = std::make_unique<Buffer<Vertex>>(sizeof(vertices) / sizeof(vertices[0]),
-                                                         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-    mTestVertexBuffer->Copy(vertices);
-
-}

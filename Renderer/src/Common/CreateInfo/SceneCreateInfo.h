@@ -4,7 +4,6 @@
 #include <Jnrlib.h>
 
 #include <nlohmann/json.hpp>
-#include "Primitive.h"
 
 namespace CreateInfo
 {
@@ -51,6 +50,8 @@ namespace CreateInfo
         ImageInfo imageInfo;
 
         std::vector<Primitive> primitives;
+
+        bool alsoBuildForRealTimeRendering = false;
 
         friend std::ostream& operator << (std::ostream& stream, Scene const& cameraInfo);
         friend std::istream& operator >> (std::istream& stream, Scene& cameraInfo);

@@ -20,10 +20,13 @@ namespace Vulkan
         DescriptorSet(const DescriptorSet&) = delete;
         DescriptorSet& operator=(const DescriptorSet&) = delete;
 
-        void AddInputBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
-        template <typename T>
-        void AddInputBuffer(Vulkan::Buffer<T>* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
+        void AddStorageBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
+        void BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
 
+        void AddInputBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
+        void BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
+
+        void BakeLayout();
         /* Bake multiple instances */
         void Bake(uint32_t instances = 1);
 
@@ -32,6 +35,7 @@ namespace Vulkan
         VkDescriptorPoolCreateInfo mPoolInfo{};
 
         uint32_t mInputBufferCount = 0;
+        uint32_t mStorageBufferCount = 0;
 
         std::vector<VkDescriptorSetLayoutBinding> mBindings;
         VkDescriptorSetLayout mLayout = VK_NULL_HANDLE;
@@ -65,31 +69,6 @@ namespace Vulkan
 
     };
 
-}
-
-template<typename T>
-inline void Vulkan::DescriptorSet::AddInputBuffer(Vulkan::Buffer<T>* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
-{
-    auto device = Renderer::Get()->GetDevice();
-    uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
-    VkDescriptorBufferInfo bufferInfo{};
-    {
-        bufferInfo.buffer = buffer->mBuffer;
-        bufferInfo.offset = sizeof(T) * dstArrayElement;
-        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
-    }
-    VkWriteDescriptorSet writeDescriptorSet{};
-    {
-        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptorSet.descriptorCount = 1;
-        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptorSet.dstArrayElement = 0;
-        writeDescriptorSet.dstBinding = binding;
-        writeDescriptorSet.dstSet = mDescriptorSets[instance];
-        writeDescriptorSet.pBufferInfo = &bufferInfo;
-    }
-
-    jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 }
 
 template<typename T>

@@ -465,6 +465,7 @@ void Renderer::InitDearImGui()
     ImGui::StyleColorsClassic();
 
     ImGuiStyle& style = ImGui::GetStyle();
+    style.WindowMinSize = ImVec2(64, 64);
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         style.WindowRounding = 0.0f;

@@ -97,9 +97,66 @@ void CommandList::End(uint32_t cmdBufIndex)
     ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[cmdBufIndex]));
 }
 
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer* dst, Vulkan::Buffer* src, uint32_t cmdBufIndex)
+{
+    CopyBuffer(dst, 0, src, 0, cmdBufIndex);
+}
+
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src, uint32_t cmdBufIndex)
+{
+    CopyBuffer(dst, dstOffset, src, 0, cmdBufIndex);
+}
+
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src, uint32_t srcOffset, uint32_t cmdBufIndex)
+{
+    CHECK(dst->mCount >= src->mCount) << "Cannot copy a larger buffer into a smaller one";
+
+
+    VkBufferCopy copyInfo{};
+    {
+        copyInfo.srcOffset = srcOffset;
+        copyInfo.dstOffset = dstOffset;
+        copyInfo.size = src->GetElementSize() * src->mCount;
+    }
+    jnrCmdCopyBuffer(mCommandBuffers[cmdBufIndex], src->mBuffer, dst->mBuffer, 1, &copyInfo);
+}
+
+void Vulkan::CommandList::BindVertexBuffer(Vulkan::Buffer const* buffer, uint32_t firstIndex, uint32_t cmdBufIndex)
+{
+    VkDeviceSize offsets[] = {0};
+    jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], firstIndex, 1, &buffer->mBuffer, offsets);
+}
+
+void Vulkan::CommandList::BindVertexBuffers(Vulkan::Buffer const* buffers[], uint32_t firstIndex, uint32_t cmdBufIndex)
+{
+    constexpr uint32_t count = sizeof(buffers) / sizeof(buffers[0]);
+    VkBuffer _buffers[count] = {};
+    VkDeviceSize offsets[] = {0};
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        _buffers[i] = buffers[i]->mBuffer;
+    }
+    jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], firstIndex, count, _buffers, offsets);
+}
+
+void Vulkan::CommandList::BindIndexBuffer(Vulkan::Buffer const* buffer, uint32_t cmdBufIndex)
+{
+    VkIndexType indexType = VK_INDEX_TYPE_NONE_KHR;
+    if (buffer->GetElementSize() == sizeof(uint32_t))
+        indexType = VK_INDEX_TYPE_UINT32;
+    else if (buffer->GetElementSize() == sizeof(uint16_t))
+        indexType = VK_INDEX_TYPE_UINT16;
+    jnrCmdBindIndexBuffer(mCommandBuffers[cmdBufIndex], buffer->mBuffer, 0, indexType);
+}
+
 void CommandList::Draw(uint32_t vertexCount, uint32_t firstVertex, uint32_t cmdBufIndex)
 {
     jnrCmdDraw(mCommandBuffers[cmdBufIndex], vertexCount, 1, firstVertex, 0);
+}
+
+void Vulkan::CommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t cmdBufIndex)
+{
+    jnrCmdDrawIndexed(mCommandBuffers[cmdBufIndex], indexCount, 1, firstIndex, vertexOffset, 0);
 }
 
 void CommandList::BindPipeline(Pipeline* pipeline, uint32_t cmdBufIndex)
@@ -361,6 +418,11 @@ void CommandList::FlushUI(uint32_t cmdBufIndex)
     }
 }
 
+void Vulkan::CommandList::AddLocalBuffer(std::unique_ptr<Buffer>&& buffer)
+{
+    mMemoryTracker.AddBuffer(std::move(buffer));
+}
+
 void CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
 {
     auto renderer = Renderer::Get();
@@ -385,6 +447,7 @@ void CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
 
     /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
     mLayoutTracker.Flush();
+    mMemoryTracker.Flush();
 }
 
 void CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
@@ -441,6 +504,7 @@ void CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
     }
 
     mLayoutTracker.Flush();
+    mMemoryTracker.Flush();
 }
 
 void CommandList::SubmitAndWait()

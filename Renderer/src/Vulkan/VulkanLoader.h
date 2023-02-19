@@ -56,6 +56,7 @@ extern JNR_FN(CmdBindDescriptorSets);
 extern JNR_FN(CmdPushConstants);
 extern JNR_FN(CreateSampler);
 extern JNR_FN(DestroySampler);
+extern JNR_FN(CmdBindIndexBuffer);
 
 // Instance
 extern JNR_FN(DestroyInstance);

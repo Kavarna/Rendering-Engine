@@ -62,6 +62,46 @@ DescriptorSet::~DescriptorSet()
     }
 }
 
+void Vulkan::DescriptorSet::AddStorageBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    {
+        layoutBinding.binding = binding;
+        layoutBinding.descriptorCount = descriptorCount;
+        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        layoutBinding.pImmutableSamplers = nullptr;
+        layoutBinding.stageFlags = stages;
+    }
+
+    mBindings.push_back(layoutBinding);
+
+    mStorageBufferCount++;
+}
+
+void Vulkan::DescriptorSet::BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+{
+    auto device = Renderer::Get()->GetDevice();
+    uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
+    VkDescriptorBufferInfo bufferInfo{};
+    {
+        bufferInfo.buffer = buffer->mBuffer;
+        bufferInfo.offset = buffer->GetElementSize() * dstArrayElement;
+        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
+    }
+    VkWriteDescriptorSet writeDescriptorSet{};
+    {
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        writeDescriptorSet.dstArrayElement = dstArrayElement;
+        writeDescriptorSet.dstBinding = binding;
+        writeDescriptorSet.dstSet = mDescriptorSets[instance];
+        writeDescriptorSet.pBufferInfo = &bufferInfo;
+    }
+
+    jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+}
+
 void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
@@ -70,7 +110,7 @@ void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, V
         layoutBinding.descriptorCount = descriptorCount;
         layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         layoutBinding.pImmutableSamplers = nullptr;
-        layoutBinding.stageFlags = VK_SHADER_STAGE_ALL;
+        layoutBinding.stageFlags = stages;
     }
 
     mBindings.push_back(layoutBinding);
@@ -78,9 +118,35 @@ void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, V
     mInputBufferCount++;
 }
 
-void DescriptorSet::Bake(uint32_t instances)
+void Vulkan::DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
+    uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
+    VkDescriptorBufferInfo bufferInfo{};
+    {
+        bufferInfo.buffer = buffer->mBuffer;
+        bufferInfo.offset = buffer->GetElementSize() * dstArrayElement;
+        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
+    }
+    VkWriteDescriptorSet writeDescriptorSet{};
+    {
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptorSet.dstArrayElement = dstArrayElement;
+        writeDescriptorSet.dstBinding = binding;
+        writeDescriptorSet.dstSet = mDescriptorSets[instance];
+        writeDescriptorSet.pBufferInfo = &bufferInfo;
+    }
+
+    jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+}
+
+
+void Vulkan::DescriptorSet::BakeLayout()
+{
+    auto device = Renderer::Get()->GetDevice();
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     {
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -91,20 +157,39 @@ void DescriptorSet::Bake(uint32_t instances)
     ThrowIfFailed(
         jnrCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mLayout)
     );
+}
 
-    VkDescriptorPoolSize sizes[1] = {};
-    VkDescriptorPoolSize& inputBufferSize = sizes[0];
+void DescriptorSet::Bake(uint32_t instances)
+{
+    auto device = Renderer::Get()->GetDevice();
+
+    if (mLayout == VK_NULL_HANDLE)
+        BakeLayout();
+
+    std::vector<VkDescriptorPoolSize> sizes = {};
+    if (mInputBufferCount != 0)
     {
-        inputBufferSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        inputBufferSize.descriptorCount = mInputBufferCount;
+        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        {
+            inputBufferSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            inputBufferSize.descriptorCount = mInputBufferCount;
+        }
+    }
+    if (mStorageBufferCount != 0)
+    {
+        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        {
+            inputBufferSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            inputBufferSize.descriptorCount = mStorageBufferCount;
+        }
     }
     VkDescriptorPoolCreateInfo& poolInfo = mPoolInfo;
     {
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.flags = 0;
         poolInfo.maxSets = (uint32_t)mBindings.size() * instances;
-        poolInfo.poolSizeCount = sizeof(sizes) / sizeof(sizes[0]);
-        poolInfo.pPoolSizes = sizes;
+        poolInfo.poolSizeCount = (uint32_t)sizes.size();
+        poolInfo.pPoolSizes = sizes.data();
     }
     ThrowIfFailed(
         jnrCreateDescriptorPool(device, &poolInfo, nullptr, &mDescriptorPool)

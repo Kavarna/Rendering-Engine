@@ -21,12 +21,19 @@ namespace Common
         Jnrlib::Float const& GetViewportHeight() const;
 
         Jnrlib::Direction const& GetLowerLeftCorner() const;
+        
+        glm::mat4x4 const& GetView() const;
+        glm::mat4x4 const& GetProjection() const;
 
     private:
         void CalculateLowerLeftCorner();
+        void CalculateMatrices();
 
     private:
         CreateInfo::Camera mInfo;
+
+        glm::mat4x4 mView;
+        mutable glm::mat4x4 mProjection;
 
         Jnrlib::Direction mLowerLeftCorner;
     };

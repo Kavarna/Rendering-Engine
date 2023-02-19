@@ -6,9 +6,8 @@
 #include "Exceptions.h"
 #include "TypeHelpers.h"
 #include "RandomHelpers.h"
+#include "MathHelpers.h"
 
 #include "glog/logging.h"
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include "glm/glm.hpp"
 

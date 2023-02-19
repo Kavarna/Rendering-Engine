@@ -11,7 +11,7 @@ namespace Renderer
     class PathTracing
     {
     public:
-        PathTracing(Common::PngDumper& dumper, Common::Scene const& scene, uint32_t numSamples, uint32_t maxDepth);
+        PathTracing(Common::PngDumper& dumper, Common::Scene& scene, uint32_t numSamples, uint32_t maxDepth);
 
         void Render();
 
@@ -22,7 +22,7 @@ namespace Renderer
 
     private:
         Common::PngDumper& mDumper;
-        Common::Scene const& mScene;
+        Common::Scene& mScene;
 
         const uint32_t mNumSamples;
         const uint32_t mMaxDepth;

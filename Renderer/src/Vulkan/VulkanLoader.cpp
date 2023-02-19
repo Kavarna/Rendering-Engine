@@ -83,6 +83,7 @@ JNR_FN(CmdBindDescriptorSets);
 JNR_FN(CmdPushConstants);
 JNR_FN(CreateSampler);
 JNR_FN(DestroySampler);
+JNR_FN(CmdBindIndexBuffer);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -193,4 +194,5 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CmdPushConstants, device);
     GET_DEV_FN(CreateSampler, device);
     GET_DEV_FN(DestroySampler, device);
+    GET_DEV_FN(CmdBindIndexBuffer, device);
 }

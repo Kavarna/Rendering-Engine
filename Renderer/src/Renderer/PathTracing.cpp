@@ -4,7 +4,7 @@
 using namespace Renderer;
 using namespace Common;
 
-PathTracing::PathTracing(PngDumper& dumper, Scene const& scene, uint32_t numSamples, uint32_t maxDepth) :
+PathTracing::PathTracing(PngDumper& dumper, Scene& scene, uint32_t numSamples, uint32_t maxDepth) :
     mDumper(dumper),
     mScene(scene),
     mNumSamples(numSamples),

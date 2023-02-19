@@ -4,7 +4,6 @@
 
 #include "imgui.h"
 
-#define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace Vulkan;
@@ -27,7 +26,8 @@ Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::ScenePar
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitCommandLists();
-        InitImguiWindows(scenes.size() == 1 ? &scenes[0] : nullptr);
+        InitScene(&scenes[0]);
+        InitImguiWindows();
         OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
 
         mInitializationCmdList->InitImGui();
@@ -44,6 +44,8 @@ Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::ScenePar
 Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
+
+    mActiveScene.reset();
     
     mImguiWindows.clear();
 
@@ -90,6 +92,7 @@ void Editor::Editor::InitWindow()
     );
     CHECK(mWindow != nullptr) << "Unable to create window";
 
+    glfwMakeContextCurrent(mWindow);
     glfwSetWindowSizeCallback(mWindow, OnResizeCallback);
 
     LOG(INFO) << "Successfully created window";
@@ -223,9 +226,23 @@ void Editor::Editor::InitCommandLists()
     mInitializationCmdList->Begin();
 }
 
-void Editor::Editor::InitImguiWindows(Common::SceneParser::ParsedScene const* scene)
+void Editor::Editor::InitScene(Common::SceneParser::ParsedScene const* parsedScene)
 {
-    auto sceneViewer = std::make_unique<SceneViewer>(MAX_FRAMES_IN_FLIGHT, scene);
+    if (parsedScene == nullptr)
+    {
+        mActiveScene = nullptr;
+        return;
+    }
+
+    std::unique_ptr<Common::Camera> camera = std::make_unique<Common::Camera>(parsedScene->cameraInfo);
+    mActiveScene = std::make_unique<Common::Scene>(parsedScene->sceneInfo);
+    mActiveScene->SetCamera(std::move(camera));
+    mActiveScene->InitializeGraphics(mInitializationCmdList.get(), 0);
+}
+
+void Editor::Editor::InitImguiWindows()
+{
+    auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get());
     mSceneViewer = sceneViewer.get();
     mImguiWindows.emplace_back(std::move(sceneViewer));
 }
@@ -285,5 +302,5 @@ void Editor::Editor::Frame()
 
     cmdList->SubmitToScreen(isCmdListDone.get());
 
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    mCurrentFrame = (mCurrentFrame + 1) % Common::Constants::FRAMES_IN_FLIGHT;
 }

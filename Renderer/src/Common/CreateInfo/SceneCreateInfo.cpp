@@ -3,8 +3,6 @@
 #include "TypeHelpers.h"
 #include <boost/algorithm/string.hpp>
 
-#include "Sphere.h"
-
 using json = nlohmann::json;
 
 
@@ -114,6 +112,7 @@ namespace CreateInfo
     void to_json(nlohmann::json& j, const Scene& sceneInfo)
     {
         j["output-file"] = sceneInfo.outputFile;
+        j["also-build-for-realtime-rendering"] = sceneInfo.alsoBuildForRealTimeRendering;
         to_json(j["image-info"], sceneInfo.imageInfo);
 
         for (const auto& primitive : sceneInfo.primitives)
@@ -140,6 +139,14 @@ namespace CreateInfo
                 from_json(object, primitive);
                 p.primitives.emplace_back(primitive);
             }
+        }
+        if (j.contains("also-build-for-realtime-rendering"))
+        {
+            j.at("also-build-for-realtime-rendering").get_to(p.alsoBuildForRealTimeRendering);
+        }
+        else
+        {
+            p.alsoBuildForRealTimeRendering = false;
         }
     }
 

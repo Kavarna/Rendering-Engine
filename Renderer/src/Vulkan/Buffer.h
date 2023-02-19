@@ -8,13 +8,13 @@
 
 namespace Vulkan
 {
-    template <typename T>
     class Buffer
     {
         friend class CommandList;
         friend class DescriptorSet;
     public:
-        Buffer(uint64_t count, VkBufferUsageFlags usage, VmaAllocationCreateFlags allocationFlags = 0) :
+        Buffer(uint64_t elementSize, uint64_t count, VkBufferUsageFlags usage, VmaAllocationCreateFlags allocationFlags = 0) :
+            mElementSize(elementSize),
             mCount(count)
         {
             bool mappable = ((allocationFlags & VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT) != 0 ||
@@ -27,7 +27,7 @@ namespace Vulkan
                 bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
                 bufferInfo.queueFamilyIndexCount = 1; /* TODO: If needed improve this */
                 bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-                bufferInfo.size = sizeof(T) * count;
+                bufferInfo.size = elementSize * count;
                 bufferInfo.usage = usage;
             }
 
@@ -50,16 +50,21 @@ namespace Vulkan
             }
         }
 
-        void Copy(T* src)
+        void Copy(void* src)
         {
             CHECK(mData) << "In order to copy into a buffer, it must be mappable";
-            memcpy(mData, src, sizeof(T) * mCount);
+            memcpy(mData, src, mElementSize * mCount);
         }
 
-        T* GetElement(uint32_t index = 0)
+        void* GetElement(uint32_t index = 0)
         {
             CHECK(mData) << "In order to get the address of an element inside the buffer, it must be mappable";
-            return &mData[index];
+            return (unsigned char*)mData + mElementSize * index;
+        }
+
+        uint64_t GetElementSize() const
+        {
+            return mElementSize;
         }
 
         ~Buffer()
@@ -80,8 +85,9 @@ namespace Vulkan
         VmaAllocation mAllocation;
         VmaAllocationInfo mAllocationInfo;
 
+        uint64_t mElementSize;
         uint64_t mCount;
-        T* mData = nullptr;
+        void* mData = nullptr;
     };
 
 }

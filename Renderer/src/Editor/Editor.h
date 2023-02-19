@@ -7,6 +7,7 @@
 #include "Vulkan/CommandList.h"
 #include "Scene/SceneParser.h"
 #include "ImguiWindow.h"
+#include "Constants.h"
 
 #include "SceneViewer.h"
 
@@ -15,7 +16,6 @@ namespace Editor
     class Editor : public Jnrlib::ISingletone<Editor>
     {
         MAKE_SINGLETONE_CAPABLE(Editor);
-        constexpr const static uint32_t MAX_FRAMES_IN_FLIGHT = 2;
     public:
         void Run();
 
@@ -29,7 +29,8 @@ namespace Editor
     private:
         void InitWindow();
         void InitCommandLists();
-        void InitImguiWindows(Common::SceneParser::ParsedScene const* scene);
+        void InitScene(Common::SceneParser::ParsedScene const* scene = nullptr);
+        void InitImguiWindows();
 
         CreateInfo::VulkanRenderer CreateRendererInfo(bool enableValidationLayers);
 
@@ -49,10 +50,12 @@ namespace Editor
             std::unique_ptr<Vulkan::CPUSynchronizationObject> commandListIsDone = nullptr;
             std::unique_ptr<Vulkan::CommandList> commandList = nullptr;
         };
-        std::array<PerFrameResources, MAX_FRAMES_IN_FLIGHT> mPerFrameResources;
+        std::array<PerFrameResources, Common::Constants::FRAMES_IN_FLIGHT> mPerFrameResources;
         uint32_t mCurrentFrame = 0;
 
         std::unique_ptr<Vulkan::CommandList> mInitializationCmdList;
+
+        std::unique_ptr<Common::Scene> mActiveScene;
 
         std::vector<std::unique_ptr<ImguiWindow>> mImguiWindows;
 

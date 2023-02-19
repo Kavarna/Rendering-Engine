@@ -172,11 +172,13 @@ int main(int argc, char const* argv[])
         {
             if (auto parsedScene = SceneParser::Get()->LoadSceneFromFile(it); parsedScene.has_value())
             {
+                Common::MaterialManager::Get()->AddMaterials(parsedScene->materialsInfo);
+                parsedScene->sceneInfo.alsoBuildForRealTimeRendering = true;
                 parsedScenes.emplace_back(std::move(*parsedScene));
             }
         }
 
-        Editor::Editor::Get(options->enableValidationLayer)->Run();
+        Editor::Editor::Get(options->enableValidationLayer, parsedScenes)->Run();
         Editor::Editor::Destroy();
     }
 }
