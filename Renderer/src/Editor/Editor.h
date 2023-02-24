@@ -25,6 +25,7 @@ namespace Editor
 
     public:
         void OnResize(uint32_t width, uint32_t height);
+        bool IsKeyPressed(int keyCode);
 
     private:
         void InitWindow();

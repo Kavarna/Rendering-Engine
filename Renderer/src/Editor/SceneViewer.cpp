@@ -5,6 +5,8 @@
 #include "Vulkan/CommandList.h"
 #include "Vulkan/Buffer.h"
 
+#include "Editor.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace Vulkan;
@@ -15,8 +17,7 @@ Editor::SceneViewer::SceneViewer(Common::Scene const* scene, Vulkan::CommandList
     for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
     {
         mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
-        /* TODO: Create another camera for the scene viewer */
-        mPerFrameResources[i].renderSystem->SetCamera(&scene->GetCamera());
+        mPerFrameResources[i].renderSystem->SetCamera(&mScene->GetCamera());
     }
 }
 
@@ -49,6 +50,11 @@ void Editor::SceneViewer::OnRender()
    
     if (mActiveRenderingContext.cmdList)
     {
+        if (ImGui::IsWindowFocused())
+        {
+            Update();
+        }
+
         RenderScene();
 
         auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
@@ -84,6 +90,33 @@ void Editor::SceneViewer::RenderScene()
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get(), cmdBufIndex);
 }
 
+void Editor::SceneViewer::UpdateCamera(float dt)
+{
+    if (Editor::Get()->IsKeyPressed(GLFW_KEY_W) || Editor::Get()->IsKeyPressed(GLFW_KEY_UP))
+    {
+        mCamera->MoveForward(dt * 3.0f);
+    }
+    if (Editor::Get()->IsKeyPressed(GLFW_KEY_S) || Editor::Get()->IsKeyPressed(GLFW_KEY_DOWN))
+    {
+        mCamera->MoveBackward(dt * 3.0f);
+    }
+    if (Editor::Get()->IsKeyPressed(GLFW_KEY_A) || Editor::Get()->IsKeyPressed(GLFW_KEY_LEFT))
+    {
+        mCamera->StrafeLeft(dt * 3.0f);
+    }
+    if (Editor::Get()->IsKeyPressed(GLFW_KEY_D) || Editor::Get()->IsKeyPressed(GLFW_KEY_RIGHT))
+    {
+        mCamera->StrafeRight(dt * 3.0f);
+    }
+
+}
+
+void Editor::SceneViewer::Update()
+{
+    auto dt = ImGui::GetIO().DeltaTime;
+    UpdateCamera(dt);
+}
+
 void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
 {   
     Renderer::Get()->WaitIdle();
@@ -94,6 +127,7 @@ void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
 
     InitRenderTargets();
     InitDefaultPipeline();
+    InitCamera();
 }
 
 void Editor::SceneViewer::InitDefaultPipeline()
@@ -187,6 +221,45 @@ void Editor::SceneViewer::InitRenderTargets()
         depthInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
     mDepthImage.reset(new Image(depthInfo));
+}
+
+void Editor::SceneViewer::InitCamera()
+{
+    if (mCamera)
+    {
+        auto currentCamera = *mCamera;
+        CreateInfo::Camera cameraInfo;
+        {
+            cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
+            cameraInfo.focalLength = currentCamera.GetFocalDistance();
+            cameraInfo.forwardDirection = currentCamera.GetForwardDirection();
+            cameraInfo.rightDirection = currentCamera.GetRightDirection();
+            cameraInfo.upDirection = currentCamera.GetUpDirection();
+            cameraInfo.position = currentCamera.GetPosition();
+            cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
+        }
+        mCamera.reset(new Common::Camera(cameraInfo));
+    }
+    else
+    {
+        auto sceneCamera = mScene->GetCamera();
+        CreateInfo::Camera cameraInfo;
+        {
+            cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
+            cameraInfo.focalLength = sceneCamera.GetFocalDistance();
+            cameraInfo.forwardDirection = sceneCamera.GetForwardDirection();
+            cameraInfo.rightDirection = sceneCamera.GetRightDirection();
+            cameraInfo.upDirection = sceneCamera.GetUpDirection();
+            cameraInfo.position = sceneCamera.GetPosition();
+            cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
+        }
+        mCamera.reset(new Common::Camera(cameraInfo));
+    }
+
+    for (auto& perFrameResource : mPerFrameResources)
+    {
+        perFrameResource.renderSystem->SetCamera(mCamera.get());
+    }
 }
 
 

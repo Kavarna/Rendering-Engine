@@ -38,11 +38,17 @@ namespace Editor
 
     private:
         void OnResize(float newWidth, float newHeight);
+        
+        void Update();
         void RenderScene();
+
+    private:
+        void UpdateCamera(float dt);
 
     private:
         void InitDefaultPipeline();
         void InitRenderTargets();
+        void InitCamera();
 
     private:
         float mWidth = 0.0f;
@@ -60,7 +66,8 @@ namespace Editor
         std::array<PerFrameResources, Common::Constants::FRAMES_IN_FLIGHT> mPerFrameResources;
 
         std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
-
         std::unique_ptr<Vulkan::Image> mDepthImage;
+
+        std::unique_ptr<Common::Camera> mCamera;
     };
 }

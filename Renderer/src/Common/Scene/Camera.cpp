@@ -1,6 +1,7 @@
 #include "Camera.h"
 
-#include "glm/gtc/matrix_transform.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 using namespace Common;
 
@@ -52,6 +53,28 @@ Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
     return mLowerLeftCorner;
 }
 
+void Common::Camera::MoveForward(float amount)
+{
+    mInfo.position = mInfo.position + mInfo.forwardDirection * amount;
+    CalculateViewMatrix();
+}
+
+void Common::Camera::MoveBackward(float amount)
+{
+    MoveForward(-amount);
+}
+
+void Common::Camera::StrafeRight(float amount)
+{
+    mInfo.position = mInfo.position + mInfo.rightDirection * amount;
+    CalculateViewMatrix();
+}
+
+void Common::Camera::StrafeLeft(float amount)
+{
+    StrafeRight(-amount);
+}
+
 glm::mat4x4 const& Camera::GetView() const
 {
     return mView;
@@ -69,9 +92,19 @@ void Camera::CalculateLowerLeftCorner()
         mInfo.upDirection * mInfo.viewportHeight * Jnrlib::Half;
 }
 
-void Camera::CalculateMatrices()
+void Common::Camera::CalculateViewMatrix()
 {
     mView = glm::lookAt(mInfo.position, mInfo.position + mInfo.forwardDirection, mInfo.upDirection);
+}
+
+void Common::Camera::CalculateProjectionMatrix()
+{
     mProjection = glm::perspectiveLH(mInfo.fieldOfView, mInfo.aspectRatio, 0.1f, 100.0f);
     mProjection[1][1] *= -1;
+}
+
+void Camera::CalculateMatrices()
+{
+    CalculateViewMatrix();
+    CalculateProjectionMatrix();
 }

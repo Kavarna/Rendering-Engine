@@ -79,6 +79,11 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
     Renderer::Get()->OnResize();
 }
 
+bool Editor::Editor::IsKeyPressed(int keyCode)
+{
+    return glfwGetKey(mWindow, keyCode) == GLFW_PRESS;
+}
+
 void Editor::Editor::InitWindow()
 {
     CHECK(glfwInit() == GLFW_TRUE) << "Unable to initialize GLFW";
