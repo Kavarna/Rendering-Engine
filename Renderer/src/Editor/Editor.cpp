@@ -84,6 +84,37 @@ bool Editor::Editor::IsKeyPressed(int keyCode)
     return glfwGetKey(mWindow, keyCode) == GLFW_PRESS;
 }
 
+bool Editor::Editor::IsMousePressed(int keyCode)
+{
+    return glfwGetMouseButton(mWindow, keyCode) == GLFW_PRESS;
+}
+
+void Editor::Editor::SetMouseInputMode(bool enable)
+{
+    if (enable)
+    {
+        glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    else
+    {
+        glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (glfwRawMouseMotionSupported())
+            glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
+}
+
+glm::vec2 Editor::Editor::GetMousePosition()
+{
+    double xpos = 0.0, ypos = 0.0;
+    glfwGetCursorPos(mWindow, &xpos, &ypos);
+    return {xpos, ypos};
+}
+
+glm::vec2 Editor::Editor::GetWindowDimensions()
+{
+    return glm::vec2{mWidth, mHeight};
+}
+
 void Editor::Editor::InitWindow()
 {
     CHECK(glfwInit() == GLFW_TRUE) << "Unable to initialize GLFW";

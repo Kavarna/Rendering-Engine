@@ -98,6 +98,7 @@ namespace Jnrlib
     using Float = float;
 
 #elif USE_FLOAT64
+#pragma message("USE_FLOAT64 is not fully tested and might yield some bad results")
     using Color = glm::dvec4;
     using Position = glm::dvec3;
     using Direction = glm::dvec3;

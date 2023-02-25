@@ -26,6 +26,12 @@ namespace Editor
     public:
         void OnResize(uint32_t width, uint32_t height);
         bool IsKeyPressed(int keyCode);
+        bool IsMousePressed(int keyCode);
+
+        void SetMouseInputMode(bool enable);
+
+        glm::vec2 GetMousePosition();
+        glm::vec2 GetWindowDimensions();
 
     private:
         void InitWindow();

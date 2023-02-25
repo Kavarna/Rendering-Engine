@@ -6,46 +6,72 @@
 using namespace Common;
 
 Camera::Camera(CreateInfo::Camera const& info) :
-    mInfo(info)
+    mPosition(info.position),
+    mFocalDistance(info.focalLength), mFieldOfView(info.fieldOfView),
+    mAspectRatio(info.aspectRatio),
+    mViewportWidth(info.viewportWidth),
+    mViewportHeight(info.viewportHeight),
+    mRoll(info.roll), mYaw(info.yaw), mPitch(info.pitch)
 {
     LOG(INFO) << "Creating camera with info: " << info;
+    CalculateVectors();
     CalculateLowerLeftCorner();
     CalculateMatrices();
 }
 
 Jnrlib::Position const& Camera::GetPosition() const
 {
-    return mInfo.position;
+    return mPosition;
 }
 
 Jnrlib::Direction const& Camera::GetForwardDirection() const
 {
-    return mInfo.forwardDirection;
+    return mForwardDirection;
 }
 
 Jnrlib::Direction const& Camera::GetRightDirection() const
 {
-    return mInfo.rightDirection;
+    return mRightDirection;
 }
 
 Jnrlib::Direction const& Camera::GetUpDirection() const
 {
-    return mInfo.upDirection;
+    return mUpDirection;
 }
 
-Jnrlib::Float const& Camera::GetFocalDistance() const
+Jnrlib::Float Camera::GetFocalDistance() const
 {
-    return mInfo.focalLength;
+    return mFocalDistance;
 }
 
-Jnrlib::Float const& Camera::GetViewportWidth() const
+Jnrlib::Float Camera::GetViewportWidth() const
 {
-    return mInfo.viewportHeight;
+    return mViewportWidth;
 }
 
-Jnrlib::Float const& Camera::GetViewportHeight() const
+Jnrlib::Float Camera::GetViewportHeight() const
 {
-    return mInfo.viewportHeight;
+    return mViewportHeight;
+}
+
+Jnrlib::Float Common::Camera::GetRoll() const
+{
+    return mRoll;
+}
+
+Jnrlib::Float Common::Camera::GetYaw() const
+{
+    return mYaw;
+}
+
+Jnrlib::Float Common::Camera::GetPitch() const
+{
+    return mPitch;
+}
+
+Jnrlib::Float Common::Camera::GetFieldOfView() const
+{
+    return mFieldOfView;
 }
 
 Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
@@ -55,7 +81,7 @@ Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
 
 void Common::Camera::MoveForward(float amount)
 {
-    mInfo.position = mInfo.position + mInfo.forwardDirection * amount;
+    mPosition = mPosition + mForwardDirection * amount;
     MarkDirty();
 }
 
@@ -66,13 +92,31 @@ void Common::Camera::MoveBackward(float amount)
 
 void Common::Camera::StrafeRight(float amount)
 {
-    mInfo.position = mInfo.position + mInfo.rightDirection * amount;
+    mPosition = mPosition + mRightDirection * amount;
     MarkDirty();
 }
 
 void Common::Camera::StrafeLeft(float amount)
 {
     StrafeRight(-amount);
+}
+
+void Common::Camera::Roll(float amount)
+{
+    mRoll += amount;
+    CalculateVectors();
+}
+
+void Common::Camera::Yaw(float amount)
+{
+    mYaw -= amount;
+    CalculateVectors();
+}
+
+void Common::Camera::Pitch(float amount)
+{
+    mPitch -= amount;
+    CalculateVectors();
 }
 
 glm::mat4x4 const& Camera::GetView() const
@@ -90,6 +134,21 @@ uint32_t Camera::GetDirtyFrames() const
     return mDirtyFrames;
 }
 
+void Common::Camera::CalculateVectors()
+{
+    auto rotateMatrix = glm::eulerAngleXYZ(mPitch, mYaw, mRoll);
+
+    static glm::vec4 defaultForwardDirection = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+    static glm::vec4 defaultRightDirection = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    static glm::vec4 defaultUpDirection = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+
+    mForwardDirection = defaultForwardDirection * rotateMatrix;
+    mRightDirection = defaultRightDirection * rotateMatrix;
+    mUpDirection = glm::cross(mForwardDirection, mRightDirection);
+
+    MarkDirty();
+}
+
 void Camera::MarkDirty()
 {
     mDirtyFrames = Constants::FRAMES_IN_FLIGHT;
@@ -97,19 +156,19 @@ void Camera::MarkDirty()
 
 void Camera::CalculateLowerLeftCorner()
 {
-    mLowerLeftCorner = mInfo.position +
-        mInfo.forwardDirection * mInfo.focalLength - mInfo.rightDirection * mInfo.viewportWidth * Jnrlib::Half +
-        mInfo.upDirection * mInfo.viewportHeight * Jnrlib::Half;
+    mLowerLeftCorner = mPosition +
+        mForwardDirection * mFocalDistance - mRightDirection * mViewportWidth * Jnrlib::Half +
+        mUpDirection * mViewportHeight * Jnrlib::Half;
 }
 
 void Camera::CalculateViewMatrix()
 {
-    mView = glm::lookAt(mInfo.position, mInfo.position + mInfo.forwardDirection, mInfo.upDirection);
+    mView = glm::lookAt(GetPosition(), GetPosition() + GetForwardDirection(), GetUpDirection());
 }
 
 void Camera::CalculateProjectionMatrix()
 {
-    mProjection = glm::perspectiveLH(mInfo.fieldOfView, mInfo.aspectRatio, 0.1f, 100.0f);
+    mProjection = glm::perspectiveLH(mFieldOfView, mAspectRatio, 0.1f, 100.0f);
     mProjection[1][1] *= -1;
 }
 

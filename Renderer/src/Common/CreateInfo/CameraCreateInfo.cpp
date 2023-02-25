@@ -43,9 +43,9 @@ namespace CreateInfo
     void to_json(nlohmann::json& j, const Camera& cameraInfo)
     {
         j["position"] = Jnrlib::to_string(cameraInfo.position);
-        j["forward-direction"] = Jnrlib::to_string(cameraInfo.forwardDirection);
-        j["right-direction"] = Jnrlib::to_string(cameraInfo.rightDirection);
-        j["up-direction"] = Jnrlib::to_string(cameraInfo.upDirection);
+        j["roll"] = cameraInfo.roll;
+        j["pitch"] = cameraInfo.pitch;
+        j["yaw"] = cameraInfo.yaw;
 
         j["viewport-width"] = cameraInfo.viewportWidth;
         j["viewport-height"] = cameraInfo.viewportHeight;
@@ -57,27 +57,42 @@ namespace CreateInfo
 
     void from_json(const nlohmann::json& j, Camera& cameraInfo)
     {
-        std::string positionStr, forwardDirection, rightDirection, upDirection;
+        std::string positionStr;
         j.at("position").get_to(positionStr);
-        j.at("forward-direction").get_to(forwardDirection);
-        j.at("right-direction").get_to(rightDirection);
-        j.at("up-direction").get_to(upDirection);
-
-        cameraInfo.position = Jnrlib::to_type<Jnrlib::Position>(positionStr);
-        cameraInfo.forwardDirection = Jnrlib::to_type<Jnrlib::Position>(forwardDirection);
-        cameraInfo.forwardDirection = glm::normalize(cameraInfo.forwardDirection);
-
-        cameraInfo.rightDirection = Jnrlib::to_type<Jnrlib::Position>(rightDirection);
-        cameraInfo.rightDirection = glm::normalize(cameraInfo.rightDirection);
-
-        cameraInfo.upDirection = Jnrlib::to_type<Jnrlib::Position>(upDirection);
-        cameraInfo.upDirection = glm::normalize(cameraInfo.upDirection);
-
-        j.at("viewport-width").get_to(cameraInfo.viewportWidth);
-        j.at("viewport-height").get_to(cameraInfo.viewportHeight);
-        j.at("focal-length").get_to(cameraInfo.focalLength);
-        j.at("aspect-ratio").get_to(cameraInfo.aspectRatio);
-
         j.at("field-of-view").get_to(cameraInfo.fieldOfView);
+        
+        cameraInfo.position = Jnrlib::to_type<Jnrlib::Position>(positionStr);
+
+        /* Optional fields */
+        if (j.contains("roll"))
+        {
+            j.at("roll").get_to(cameraInfo.roll);
+        }
+        if (j.contains("pitch"))
+        {
+            j.at("pitch").get_to(cameraInfo.pitch);
+        }
+        if (j.contains("yaw"))
+        {
+            j.at("yaw").get_to(cameraInfo.yaw);
+        }
+
+        if (j.contains("viewport-width"))
+        {
+            j.at("viewport-width").get_to(cameraInfo.viewportWidth);
+        }
+        if (j.contains("viewport-height"))
+        {
+            j.at("viewport-height").get_to(cameraInfo.viewportHeight);
+        }
+        if (j.contains("focal-length"))
+        {
+            j.at("focal-length").get_to(cameraInfo.focalLength);
+        }
+        if (j.contains("aspect-ratio"))
+        {
+            j.at("aspect-ratio").get_to(cameraInfo.aspectRatio);
+        }
+
     }
 }

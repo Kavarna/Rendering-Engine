@@ -95,6 +95,23 @@ void Editor::SceneViewer::RenderScene()
 
 void Editor::SceneViewer::UpdateCamera(float dt)
 {
+    static bool rightMouseButtonPressed = false;
+    if (Editor::Get()->IsMousePressed(GLFW_MOUSE_BUTTON_RIGHT))
+    {
+        if (!rightMouseButtonPressed)
+        {
+            mIsMouseEnabled = !mIsMouseEnabled;
+            Editor::Get()->SetMouseInputMode(mIsMouseEnabled);
+            mLastMousePosition = Editor::Get()->GetMousePosition();
+
+            rightMouseButtonPressed = true;
+        }
+    }
+    else
+    {
+        rightMouseButtonPressed = false;
+    }
+
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_W) || Editor::Get()->IsKeyPressed(GLFW_KEY_UP))
     {
         mCamera->MoveForward(dt * 3.0f);
@@ -110,6 +127,25 @@ void Editor::SceneViewer::UpdateCamera(float dt)
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_D) || Editor::Get()->IsKeyPressed(GLFW_KEY_RIGHT))
     {
         mCamera->StrafeRight(dt * 3.0f);
+    }
+    if (!mIsMouseEnabled)
+    {
+        auto mousePosition = Editor::Get()->GetMousePosition();
+        auto mouseMovement = mousePosition - mLastMousePosition;
+        if (mouseMovement != glm::vec2{0.0f, 0.0f})
+        {
+            mouseMovement /= Editor::Get()->GetWindowDimensions();
+            mCamera->Pitch(mouseMovement.y);
+            if (!Editor::Get()->IsKeyPressed(GLFW_KEY_LEFT_ALT))
+            {
+                mCamera->Yaw(mouseMovement.x);
+            }
+            else
+            {
+                mCamera->Roll(mouseMovement.x);
+            }
+            mLastMousePosition = mousePosition;
+        }
     }
     mCamera->CalculateViewMatrix();
 }
@@ -235,9 +271,9 @@ void Editor::SceneViewer::InitCamera()
         {
             cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
             cameraInfo.focalLength = currentCamera.GetFocalDistance();
-            cameraInfo.forwardDirection = currentCamera.GetForwardDirection();
-            cameraInfo.rightDirection = currentCamera.GetRightDirection();
-            cameraInfo.upDirection = currentCamera.GetUpDirection();
+            cameraInfo.roll = currentCamera.GetRoll();
+            cameraInfo.yaw = currentCamera.GetYaw();
+            cameraInfo.pitch = currentCamera.GetPitch();
             cameraInfo.position = currentCamera.GetPosition();
             cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
         }
@@ -250,9 +286,9 @@ void Editor::SceneViewer::InitCamera()
         {
             cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
             cameraInfo.focalLength = sceneCamera.GetFocalDistance();
-            cameraInfo.forwardDirection = sceneCamera.GetForwardDirection();
-            cameraInfo.rightDirection = sceneCamera.GetRightDirection();
-            cameraInfo.upDirection = sceneCamera.GetUpDirection();
+            cameraInfo.roll = sceneCamera.GetRoll();
+            cameraInfo.yaw = sceneCamera.GetYaw();
+            cameraInfo.pitch = sceneCamera.GetPitch();
             cameraInfo.position = sceneCamera.GetPosition();
             cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
         }

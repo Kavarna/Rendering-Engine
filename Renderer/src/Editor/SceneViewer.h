@@ -69,5 +69,8 @@ namespace Editor
         std::unique_ptr<Vulkan::Image> mDepthImage;
 
         std::unique_ptr<Common::Camera> mCamera;
+
+        bool mIsMouseEnabled = true;
+        glm::vec2 mLastMousePosition{};
     };
 }

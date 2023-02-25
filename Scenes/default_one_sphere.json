@@ -9,25 +9,18 @@
     },
     "camera": {
         "position": "(0, 3.0, 0)",
-        "forward-direction": "(0.0, -0.5, 1.0)",
-        "right-direction": "(1.0, 0.0, 0.0)",
-        "up-direction": "(0.0, 1.0, 0.0)",
-        "aspect-ratio": -1,
-        "viewport-height": -1,
-        "viewport-width": -1,
-        "focal-length": 1.0,
         "field-of-view": 0.9
     },
     "materials": [
         {
             "name": "red",
             "type": "Lambertian",
-            "attenuation": "(1.0, 0.0, 0.0, 1.0)"
+            "attenuation": "(0.8, 0.0, 0.0, 1.0)"
         },
         {
             "name": "green",
             "type": "Lambertian",
-            "attenuation": "(0.0, 1.0, 0.0, 1.0)"
+            "attenuation": "(0.0, 0.8, 0.0, 1.0)"
         },
         {
             "name": "yellow",

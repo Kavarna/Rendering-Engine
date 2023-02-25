@@ -9,15 +9,13 @@ namespace CreateInfo
 {
     struct Camera
     {
-        Jnrlib::Position position = Jnrlib::Position(0.0f);
-        Jnrlib::Direction forwardDirection = Jnrlib::Direction(0.0f, 0.0f, 1.0f);
-        Jnrlib::Direction rightDirection = Jnrlib::Direction(1.0f, 0.0f, 0.0f);
-        Jnrlib::Direction upDirection = Jnrlib::Direction(0.0f, 1.0f, 0.0f);
+        Jnrlib::Position position = Jnrlib::Position(Jnrlib::Zero);
+        Jnrlib::Float roll = Jnrlib::Zero, pitch = Jnrlib::Zero, yaw = Jnrlib::Zero;
 
-        Jnrlib::Float aspectRatio = -1.f;
-        Jnrlib::Float viewportHeight = -1.f;
-        Jnrlib::Float viewportWidth = -1.f;
-        Jnrlib::Float focalLength = 1.0f;
+        Jnrlib::Float aspectRatio = -Jnrlib::One;
+        Jnrlib::Float viewportHeight = -Jnrlib::One;
+        Jnrlib::Float viewportWidth = -Jnrlib::One;
+        Jnrlib::Float focalLength = Jnrlib::One;
         Jnrlib::Float fieldOfView = Jnrlib::PI * Jnrlib::Half;
 
         void RecalculateViewport(uint32_t width, uint32_t height);
