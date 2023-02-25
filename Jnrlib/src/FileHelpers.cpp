@@ -17,4 +17,11 @@ namespace Jnrlib
 
         return buffer;
     }
+    void DumpWholeFile(std::string const& path, std::vector<unsigned char> const& data)
+    {
+        std::ofstream file(path.c_str(), std::ios::binary);
+        CHECK(file.is_open()) << "Unable to open file " << path << " for writing";
+
+        file.write((const char*)data.data(), data.size());
+    }
 }

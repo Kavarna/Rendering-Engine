@@ -8,6 +8,7 @@
 #include "Scene/SceneParser.h"
 #include "ImguiWindow.h"
 #include "Constants.h"
+#include "JnrSerializer.h"
 
 #include "SceneViewer.h"
 
@@ -42,6 +43,9 @@ namespace Editor
         CreateInfo::VulkanRenderer CreateRendererInfo(bool enableValidationLayers);
 
     private:
+        void SerializeWindows();
+
+    private:
         void ShowDockingSpace();
 
     private:
@@ -67,7 +71,7 @@ namespace Editor
         std::vector<std::unique_ptr<ImguiWindow>> mImguiWindows;
 
         SceneViewer* mSceneViewer;
-
+ 
         bool mShouldClose = false;
         bool mMinimized = false;
     };

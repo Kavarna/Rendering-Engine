@@ -45,6 +45,8 @@ Editor::Editor::~Editor()
 {
     Renderer::Get()->WaitIdle();
 
+    SerializeWindows();
+
     mActiveScene.reset();
     
     mImguiWindows.clear();
@@ -163,6 +165,21 @@ CreateInfo::VulkanRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     return info;
 }
 
+void Editor::Editor::SerializeWindows()
+{
+    Jnrlib::JnrSerializer serializer("windows.jnr");
+    {
+        Jnrlib::InfoWindowsV1 windowsInfo;
+        windowsInfo.windows.resize(mImguiWindows.size());
+        for (uint32_t i = 0; i < mImguiWindows.size(); ++i)
+        {
+            windowsInfo.windows[i].isOpen = mImguiWindows[i]->mIsOpen;
+        }
+        serializer.AddStructure(windowsInfo);
+    }
+    serializer.Flush();
+}
+
 void Editor::Editor::ShowDockingSpace()
 {
     // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
@@ -216,6 +233,7 @@ void Editor::Editor::ShowDockingSpace()
             ImGui::EndMenu();
         }
 
+#if DEBUG
         if (ImGui::BeginMenu("Debug"))
         {
             ImGui::MenuItem("Show debug window", 0, &showDebugWindow);
@@ -223,10 +241,12 @@ void Editor::Editor::ShowDockingSpace()
             
             ImGui::EndMenu();
         }
+#endif
 
         ImGui::EndMenuBar();
     }
 
+#if DEBUG
     if (showDebugWindow)
     {
         auto& io = ImGui::GetIO();
@@ -238,6 +258,7 @@ void Editor::Editor::ShowDockingSpace()
     {
         ImGui::ShowDemoWindow();
     }
+#endif
 
     for (auto& imguiWindow : mImguiWindows)
     {
@@ -281,6 +302,16 @@ void Editor::Editor::InitImguiWindows()
     auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get(), mInitializationCmdList.get());
     mSceneViewer = sceneViewer.get();
     mImguiWindows.emplace_back(std::move(sceneViewer));
+
+    Jnrlib::JnrDeserializer deserializer("windows.jnr");
+    {
+        deserializer.Read();
+    }
+    auto windowsInfo = deserializer.GetStructure(0);
+    for (uint32_t i = 0; i < windowsInfo.windows.size(); ++i)
+    {
+        mImguiWindows[i]->mIsOpen = windowsInfo.windows[i].isOpen;
+    }
 }
 
 void Editor::Editor::Run()
