@@ -11,7 +11,7 @@
 
 using namespace Vulkan;
 
-Editor::SceneViewer::SceneViewer(Common::Scene const* scene, Vulkan::CommandList* cmdList)
+Editor::SceneViewer::SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList)
     : mScene(scene)
 {
     for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
@@ -88,6 +88,9 @@ void Editor::SceneViewer::RenderScene()
     }
     cmdList->EndRendering(cmdBufIndex);
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get(), cmdBufIndex);
+
+    mScene->PerformUpdate();
+    mCamera->PerformUpdate();
 }
 
 void Editor::SceneViewer::UpdateCamera(float dt)
@@ -108,7 +111,7 @@ void Editor::SceneViewer::UpdateCamera(float dt)
     {
         mCamera->StrafeRight(dt * 3.0f);
     }
-
+    mCamera->CalculateViewMatrix();
 }
 
 void Editor::SceneViewer::Update()

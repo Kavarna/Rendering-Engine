@@ -39,19 +39,24 @@ void RealtimeRender::RenderScene(Vulkan::CommandList* cmdList, uint32_t cmdBufIn
         /* Build rendering buffers */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
-            PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
+            if (update.dirtyFrames > 0)
+            {
+                PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
 
-
-            objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
-            objectInfo->world = glm::scale(objectInfo->world, base.scaling);
-            objectInfo->materialIndex = sphere.material->GetMaterialIndex();
+                objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
+                objectInfo->world = glm::scale(objectInfo->world, base.scaling);
+                objectInfo->materialIndex = sphere.material->GetMaterialIndex();
+            }
         }
 
         {
             UniformBuffer* uniformBuffer = (UniformBuffer*)mUniformBuffer->GetElement();
             if (mCamera)
             {
-                uniformBuffer->viewProj = mCamera->GetProjection() * mCamera->GetView();
+                if (mCamera->GetDirtyFrames() > 0)
+                {
+                    uniformBuffer->viewProj = mCamera->GetProjection() * mCamera->GetView();
+                }
             }
             else
             {

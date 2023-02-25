@@ -49,10 +49,6 @@ namespace Common
         uint32_t GetNumberOfObjects() const;
         void PerformUpdate();
 
-#if DEBUG
-        entt::registry& GetEntities() const;
-#endif
-
     private:
         void CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool alsoBuildRealtime);
         void CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex);

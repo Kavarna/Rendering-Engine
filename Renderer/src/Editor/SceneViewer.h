@@ -29,7 +29,7 @@ namespace Editor
             uint32_t cmdBufIndex = 0;
         };
     public:
-        SceneViewer(Common::Scene const* scene, Vulkan::CommandList* cmdList);
+        SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList);
         ~SceneViewer();
 
         void SetRenderingContext(RenderingContext const& ctx);
@@ -54,7 +54,7 @@ namespace Editor
         float mWidth = 0.0f;
         float mHeight = 0.0f;
        
-        Common::Scene const* mScene;
+        Common::Scene* mScene;
 
         RenderingContext mActiveRenderingContext{};
 

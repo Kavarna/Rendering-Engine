@@ -3,6 +3,7 @@
 
 #include "Jnrlib.h"
 #include "CreateInfo/CameraCreateInfo.h"
+#include "Constants.h"
 
 namespace Common
 {
@@ -30,14 +31,23 @@ namespace Common
         glm::mat4x4 const& GetView() const;
         glm::mat4x4 const& GetProjection() const;
 
-    private:
-        void CalculateLowerLeftCorner();
+        uint32_t GetDirtyFrames() const;
+
         void CalculateViewMatrix();
         void CalculateProjectionMatrix();
         void CalculateMatrices();
 
+        void PerformUpdate();
+
+    private:
+        void MarkDirty();
+
+        void CalculateLowerLeftCorner();
+
     private:
         CreateInfo::Camera mInfo;
+
+        uint32_t mDirtyFrames = Constants::FRAMES_IN_FLIGHT;
 
         glm::mat4x4 mView;
         glm::mat4x4 mProjection;

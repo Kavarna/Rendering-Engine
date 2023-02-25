@@ -85,11 +85,6 @@ void Common::Scene::PerformUpdate()
     }
 }
 
-entt::registry& Common::Scene::GetEntities() const
-{
-    return mEntities;
-}
-
 void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool buildRealtime)
 {
     bool hasSphere = false;

@@ -56,7 +56,7 @@ Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
 void Common::Camera::MoveForward(float amount)
 {
     mInfo.position = mInfo.position + mInfo.forwardDirection * amount;
-    CalculateViewMatrix();
+    MarkDirty();
 }
 
 void Common::Camera::MoveBackward(float amount)
@@ -67,7 +67,7 @@ void Common::Camera::MoveBackward(float amount)
 void Common::Camera::StrafeRight(float amount)
 {
     mInfo.position = mInfo.position + mInfo.rightDirection * amount;
-    CalculateViewMatrix();
+    MarkDirty();
 }
 
 void Common::Camera::StrafeLeft(float amount)
@@ -85,6 +85,16 @@ glm::mat4x4 const& Camera::GetProjection() const
     return mProjection;
 }
 
+uint32_t Camera::GetDirtyFrames() const
+{
+    return mDirtyFrames;
+}
+
+void Camera::MarkDirty()
+{
+    mDirtyFrames = Constants::FRAMES_IN_FLIGHT;
+}
+
 void Camera::CalculateLowerLeftCorner()
 {
     mLowerLeftCorner = mInfo.position +
@@ -92,12 +102,12 @@ void Camera::CalculateLowerLeftCorner()
         mInfo.upDirection * mInfo.viewportHeight * Jnrlib::Half;
 }
 
-void Common::Camera::CalculateViewMatrix()
+void Camera::CalculateViewMatrix()
 {
     mView = glm::lookAt(mInfo.position, mInfo.position + mInfo.forwardDirection, mInfo.upDirection);
 }
 
-void Common::Camera::CalculateProjectionMatrix()
+void Camera::CalculateProjectionMatrix()
 {
     mProjection = glm::perspectiveLH(mInfo.fieldOfView, mInfo.aspectRatio, 0.1f, 100.0f);
     mProjection[1][1] *= -1;
@@ -107,4 +117,10 @@ void Camera::CalculateMatrices()
 {
     CalculateViewMatrix();
     CalculateProjectionMatrix();
+}
+
+void Camera::PerformUpdate()
+{
+    if (mDirtyFrames)
+        mDirtyFrames--;
 }
