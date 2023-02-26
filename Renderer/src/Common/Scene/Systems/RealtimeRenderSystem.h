@@ -10,6 +10,8 @@
 #include "Scene/Scene.h"
 #include "Scene/Camera.h"
 
+#include "LightHelpers.h"
+
 namespace Common::Systems
 {
     class RealtimeRender : public Jnrlib::ISingletone<RealtimeRender>
@@ -23,6 +25,7 @@ namespace Common::Systems
         Vulkan::RootSignature* GetRootSiganture() const;
 
         void SetCamera(Camera const* camera);
+        void SetLight(DirectionalLight const& light);
 
     private:
         void InitDefaultRootSignature();
@@ -48,6 +51,8 @@ namespace Common::Systems
 
         std::unique_ptr<Vulkan::Buffer> mUniformBuffer;
         std::unique_ptr<Vulkan::Buffer> mMaterialsBuffer;
+
+        std::unique_ptr<Vulkan::Buffer> mLightBuffer;
 
         // TODO: Make these a bit more dynamic (?) - take them as parameters
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;

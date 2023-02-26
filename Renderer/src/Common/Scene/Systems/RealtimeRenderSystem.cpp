@@ -14,7 +14,7 @@ using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList) :
+RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
     mScene(scene)
 {
     InitDefaultRootSignature();
@@ -27,13 +27,13 @@ RealtimeRender::~RealtimeRender()
 {
 }
 
-void RealtimeRender::RenderScene(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex)
+void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
 {
     auto vertexBuffer = mScene->GetVertexBuffer();
     auto indexBuffer = mScene->GetIndexBuffer();
     cmdList->BindVertexBuffer(vertexBuffer, 0, cmdBufIndex);
     cmdList->BindIndexBuffer(indexBuffer, cmdBufIndex);
-    
+
     auto const& spheres = mScene->mEntities.group<const Base, const Update, const Mesh>(entt::get<const Sphere>);
     {
         /* Build rendering buffers */
@@ -78,14 +78,20 @@ void RealtimeRender::RenderScene(Vulkan::CommandList* cmdList, uint32_t cmdBufIn
     }
 }
 
-Vulkan::RootSignature* Common::Systems::RealtimeRender::GetRootSiganture() const
+RootSignature* RealtimeRender::GetRootSiganture() const
 {
     return mDefaultRootSignature.get();
 }
 
-void Common::Systems::RealtimeRender::SetCamera(Camera const* camera)
+void RealtimeRender::SetCamera(Camera const* camera)
 {
     mCamera = camera;
+}
+
+void RealtimeRender::SetLight(DirectionalLight const& light)
+{
+    auto memory = mLightBuffer->GetElement();
+    memcpy(memory, &light, sizeof(DirectionalLight));
 }
 
 void RealtimeRender::InitDefaultRootSignature()
@@ -96,6 +102,7 @@ void RealtimeRender::InitDefaultRootSignature()
         mDefaultDescriptorSets->AddInputBuffer(1, 1, VK_SHADER_STAGE_VERTEX_BIT);
 
         mDefaultDescriptorSets->AddStorageBuffer(2, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
+        mDefaultDescriptorSets->AddInputBuffer(3, 1, VK_SHADER_STAGE_FRAGMENT_BIT);
     }
     mDefaultDescriptorSets->Bake();
     mDefaultRootSignature = std::make_unique<RootSignature>();
@@ -127,14 +134,14 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
     auto materials = materialManager->GetShaderMaterials();
 
     {
-        auto localMaterialsBuffer = std::make_unique<Vulkan::Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)),
+        auto localMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)),
                                                                      materials.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         localMaterialsBuffer->Copy(materials.data());
 
 
 
-        mMaterialsBuffer = std::make_unique<Vulkan::Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
+        mMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
         cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
@@ -142,6 +149,14 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
     }
 
     mDefaultDescriptorSets->BindStorageBuffer(mMaterialsBuffer.get(), 2, 0, 0);
+
+    {
+        mLightBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(DirectionalLight), sizeof(glm::vec4)), 1,
+                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.0f, 1.0f, 0.0f)});
+    }
+    mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
 }
 
 
