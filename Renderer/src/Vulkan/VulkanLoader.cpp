@@ -84,6 +84,9 @@ JNR_FN(CmdPushConstants);
 JNR_FN(CreateSampler);
 JNR_FN(DestroySampler);
 JNR_FN(CmdBindIndexBuffer);
+JNR_FN(CreatePipelineCache);
+JNR_FN(DestroyPipelineCache);
+JNR_FN(GetPipelineCacheData);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -195,4 +198,7 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CreateSampler, device);
     GET_DEV_FN(DestroySampler, device);
     GET_DEV_FN(CmdBindIndexBuffer, device);
+    GET_DEV_FN(CreatePipelineCache, device);
+    GET_DEV_FN(DestroyPipelineCache, device);
+    GET_DEV_FN(GetPipelineCacheData, device);
 }

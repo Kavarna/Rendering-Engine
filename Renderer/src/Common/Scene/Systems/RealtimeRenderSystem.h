@@ -27,19 +27,33 @@ namespace Common::Systems
         void SetCamera(Camera const* camera);
         void SetLight(DirectionalLight const& light);
 
+        void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
+        void ClearSelection();
+
+        void OnResize(Vulkan::Image* renderTarget, Vulkan::Image* depthImage, uint32_t width, uint32_t height);
+
+    public:
+        Vulkan::Pipeline* GetDefaultPipeline();
+
     private:
-        void InitDefaultRootSignature();
+        void InitRootSignatures();
         void InitPerObjectBuffer();
         void InitUniformBuffer();
         void InitMaterialsBuffer(Vulkan::CommandList* cmdList);
+        void InitPipelines(uint32_t width, uint32_t height);
 
     private:
-
         Camera const* mCamera = nullptr;
 
         struct UniformBuffer
         {
             glm::mat4x4 viewProj;
+        };
+
+        struct OutlineVertPushConstants
+        {
+            uint32_t objectIndex;
+            float lineWidth = 0.5f;
         };
 
         struct PerObjectInfo
@@ -54,11 +68,20 @@ namespace Common::Systems
 
         std::unique_ptr<Vulkan::Buffer> mLightBuffer;
 
+        std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
+        std::unique_ptr<Vulkan::Pipeline> mSelectedObjectsPipeline;
+        std::unique_ptr<Vulkan::Pipeline> mOutlinePipeline;
+
+        Vulkan::Image* mRenderTarget;
+        Vulkan::Image* mDepthImage;
+
         // TODO: Make these a bit more dynamic (?) - take them as parameters
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;
         std::unique_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;
         std::unique_ptr<Vulkan::RootSignature> mDefaultRootSignature;
+        std::unique_ptr<Vulkan::RootSignature> mOutlineRootSignature;
 
         mutable Common::Scene const* mScene;
+        mutable std::unordered_set<uint32_t> mSelectedIndices;
     };
 }

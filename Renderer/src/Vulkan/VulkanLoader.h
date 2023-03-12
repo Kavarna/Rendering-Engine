@@ -57,6 +57,9 @@ extern JNR_FN(CmdPushConstants);
 extern JNR_FN(CreateSampler);
 extern JNR_FN(DestroySampler);
 extern JNR_FN(CmdBindIndexBuffer);
+extern JNR_FN(CreatePipelineCache);
+extern JNR_FN(DestroyPipelineCache);
+extern JNR_FN(GetPipelineCacheData);
 
 // Instance
 extern JNR_FN(DestroyInstance);

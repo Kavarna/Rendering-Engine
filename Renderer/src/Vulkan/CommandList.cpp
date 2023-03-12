@@ -217,11 +217,15 @@ void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transition
 {
     /* TODO: Do not transition if the old layout is already new layout */
     VkImageAspectFlags aspectMask = 0;
-    if (transitionInfo.newLayout & VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+    if (transitionInfo.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
     {
         aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
     }
-    /* TODO: Maybe add stencil? */
+    else if (transitionInfo.newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+        aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
     else
     {
         aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
@@ -317,7 +321,7 @@ void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColo
     jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
 }
 
-void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, uint32_t cmdBufIndex)
+void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, bool useStencil, uint32_t cmdBufIndex)
 {
     auto renderer = Renderer::Get();
     /* TODO: Maybe batch these transitions? */
@@ -332,12 +336,13 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         }
         TransitionImageTo(img, ti, cmdBufIndex);
     }
-    /* Transition image to depth */
+    if (depth)
     {
+    /* Transition image to depth */
         TransitionInfo ti{};
         {
             ti.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-            ti.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            ti.newLayout = useStencil ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
             ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             ti.dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         }
@@ -358,13 +363,17 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.clearValue = clearValue;
     }
+    VkImageAspectFlags depthAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+    depthAspectFlags |= useStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
     VkRenderingAttachmentInfo depthAttachment{};
     {
         VkClearValue clearValue{};
         clearValue.depthStencil.depth = 1.0f;
+        clearValue.depthStencil.stencil = 0;
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        depthAttachment.imageView = depth->GetImageView(VK_IMAGE_ASPECT_DEPTH_BIT);
+        depthAttachment.imageLayout = useStencil ?
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthAttachment.imageView = depth->GetImageView(depthAspectFlags);
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.clearValue = clearValue;
@@ -374,8 +383,8 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
-        renderingInfo.pDepthAttachment = &depthAttachment;
-        renderingInfo.pStencilAttachment = nullptr;
+        renderingInfo.pDepthAttachment = depth != nullptr ? &depthAttachment : nullptr;
+        renderingInfo.pStencilAttachment = useStencil ? &depthAttachment : nullptr;
         renderingInfo.renderArea = {
             .offset = VkOffset2D{.x = 0, .y = 0},
             .extent = img->GetExtent2D()

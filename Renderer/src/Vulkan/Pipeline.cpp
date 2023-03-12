@@ -52,6 +52,31 @@ void Pipeline::SetDepthImage(Image const* img)
     mDepthFormat = img->GetFormat();
 }
 
+void Vulkan::Pipeline::SetDepthStencilImage(Image const* img)
+{
+    mDepthFormat = img->GetFormat();
+    mStencilFormat = img->GetFormat();
+}
+
+void Vulkan::Pipeline::InitFrom(Pipeline& p)
+{
+    mRootSignature = p.mRootSignature;
+    mColorOutputs = p.mColorOutputs;
+    mDepthFormat = p.mDepthFormat;
+    mStencilFormat = p.mStencilFormat;
+
+    mBlendState = p.mBlendState;
+    mDepthStencilState = p.mDepthStencilState;
+    mDynamicState = p.mDynamicState;
+    mInputAssemblyState = p.mInputAssemblyState;
+    mMultisampleState = p.mMultisampleState;
+    mRasterizationState = p.mRasterizationState;
+    mTesselationState = p.mTesselationState;
+    mVertexInputState = p.mVertexInputState;
+    mViewportState = p.mViewportState;
+
+}
+
 void Pipeline::InitDefaultPipelineState()
 {
     {
@@ -134,6 +159,11 @@ void Pipeline::InitDefaultPipelineState()
     mPipelineInfo.pViewportState = &mViewportState;
 }
 
+void Vulkan::Pipeline::ClearShaders()
+{
+    mShaderModules.clear();
+}
+
 void Pipeline::AddShader(std::string const& path)
 {
     VkShaderStageFlagBits shaderStage = (VkShaderStageFlagBits)0;
@@ -209,8 +239,10 @@ void Pipeline::Bake()
     mPipelineInfo.pStages = mShaderModules.data();
     mPipelineInfo.stageCount = (uint32_t)mShaderModules.size();
 
+    auto cache = Renderer::Get()->GetPipelineCache();
+
     ThrowIfFailed(
-        jnrCreateGraphicsPipelines(device, VK_NULL_HANDLE,
+        jnrCreateGraphicsPipelines(device, cache,
                 1, &mPipelineInfo, nullptr, &mPipeline);
     );
 

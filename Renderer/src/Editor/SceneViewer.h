@@ -32,6 +32,9 @@ namespace Editor
 
         virtual void OnRender() override;
 
+        void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
+        void ClearSelection();
+
     private:
         void OnResize(float newWidth, float newHeight);
         
@@ -42,7 +45,6 @@ namespace Editor
         void UpdateCamera(float dt);
 
     private:
-        void InitDefaultPipeline();
         void InitRenderTargets();
         void InitCamera();
 

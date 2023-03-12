@@ -338,7 +338,7 @@ void Editor::Editor::InitImguiWindows()
     }
     {
         /* Scene hierarchy */
-        auto sceneHierarchy = std::make_unique<SceneHierarchy>(mActiveScene.get());
+        auto sceneHierarchy = std::make_unique<SceneHierarchy>(mActiveScene.get(), mSceneViewer);
         mSceneHierarchy = sceneHierarchy.get();
         mImguiWindows.emplace_back(std::move(sceneHierarchy));
     }

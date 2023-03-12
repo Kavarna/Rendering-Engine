@@ -2,12 +2,15 @@
 #include "VulkanLoader.h"
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
+#include <FileHelpers.h>
 #include "CommandList.h"
 #include "ImGuiImplementation.h"
 
 using namespace Vulkan;
 
 static constexpr const uint32_t API_VERSION = VK_API_VERSION_1_3;
+
+#define PIPELINES_CACHE_FILE "pipelines.cache"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -68,6 +71,21 @@ Renderer::~Renderer()
     if (mPointSampler != VK_NULL_HANDLE)
     {
         jnrDestroySampler(mDevice, mPointSampler, nullptr);
+    }
+    if (mPipelineCache != VK_NULL_HANDLE)
+    {
+        size_t size;
+        
+        if (jnrGetPipelineCacheData(mDevice, mPipelineCache, &size, nullptr) == VK_SUCCESS)
+        {
+            std::vector<unsigned char> bytes(size);
+            if (jnrGetPipelineCacheData(mDevice, mPipelineCache, &size, bytes.data()) == VK_SUCCESS)
+            {
+                Jnrlib::DumpWholeFile(PIPELINES_CACHE_FILE, bytes);
+            }
+        }
+
+        jnrDestroyPipelineCache(mDevice, mPipelineCache, nullptr);
     }
     for (auto const& view : mSwapchainImageViews)
     {
@@ -783,6 +801,35 @@ VkSampler Renderer::GetPointSampler()
     );
 
     return mPointSampler;
+}
+
+VkPipelineCache Vulkan::Renderer::GetPipelineCache()
+{
+    if (mPipelineCache != VK_NULL_HANDLE)
+        return mPipelineCache;
+
+
+    /* Read the pipeline cache */
+    auto bytes = Jnrlib::ReadWholeFile(PIPELINES_CACHE_FILE, false);
+
+    VkPipelineCacheCreateInfo cacheInfo{};
+    {
+        cacheInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+        cacheInfo.flags = 0;
+        cacheInfo.initialDataSize = 0;
+        cacheInfo.pInitialData = nullptr;
+    }
+    if (bytes.size() > 0)
+    {
+        cacheInfo.initialDataSize = bytes.size();
+        cacheInfo.pInitialData = bytes.data();
+    }
+
+    ThrowIfFailed(
+        jnrCreatePipelineCache(mDevice, &cacheInfo, nullptr, &mPipelineCache)
+    );
+
+    return mPipelineCache;
 }
 
 VmaAllocator Renderer::GetAllocator()

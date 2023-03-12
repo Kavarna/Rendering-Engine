@@ -1,4 +1,5 @@
 #include "SceneHierarchy.h"
+#include "SceneViewer.h"
 
 #include "Scene/Components/BaseComponent.h"
 
@@ -6,8 +7,8 @@
 
 using namespace Editor;
 
-SceneHierarchy::SceneHierarchy(Common::Scene* scene) : 
-    mScene(scene)
+SceneHierarchy::SceneHierarchy(Common::Scene* scene, SceneViewer* sceneViewer) : 
+    mScene(scene), mSceneViewer(sceneViewer)
 {
 }
 
@@ -86,13 +87,19 @@ void SceneHierarchy::OnRender()
             mSelectedNodes.clear();
             mSelectedNodes.insert(clickedEntity);
         }
+        if (mSceneViewer != nullptr)
+            mSceneViewer->SelectIndices(mSelectedNodes);
     }
     else
     {
         auto& io = ImGui::GetIO();
         bool mouseClicked = io.MouseClicked[0];
         if (mouseClicked && ImGui::IsWindowFocused() && ImGui::IsWindowHovered())
+        {
             mSelectedNodes.clear();
+            if (mSceneViewer != nullptr)
+                mSceneViewer->ClearSelection();
+        }
     }
 
     ImGui::End();

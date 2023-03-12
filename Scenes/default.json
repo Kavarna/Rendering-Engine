@@ -52,31 +52,34 @@
     "objects": [
         {
             "type": "Sphere",
+            "name": "Earth",
+            "radius": 1000.0,
+            "position": "(0.0, -1000.0, 0.0)",
+            "material": "green"
+        },
+        {
+            "type": "Sphere",
             "name": "Red-Sphere",
             "radius": 1.0,
             "position": "(0.0, 1.0, 5.0)",
-            "material": "red"
+            "material": "red",
+            "parent": "Earth"
         },
         {
             "type": "Sphere",
             "name": "Metal-Sphere1",
             "radius": 1.0,
             "position": "(2.0, 1.0, 5.0)",
-            "material": "soft_metal"
+            "material": "soft_metal",
+            "parent": "Earth"
         },
         {
             "type": "Sphere",
             "name": "Glass-Sphere",
             "radius": 1.0,
             "position": "(-2.0, 1.0, 5.0)",
-            "material": "glass"
-        },
-        {
-            "type": "Sphere",
-            "name": "Earth",
-            "radius": 1000.0,
-            "position": "(0.0, -1000.0, 0.0)",
-            "material": "green"
+            "material": "glass",
+            "parent": "Earth"
         }
     ]
 }

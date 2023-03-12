@@ -35,6 +35,7 @@ namespace Vulkan
         VkPipelineLayout GetEmptyPipelineLayout();
         VkSampler GetPointSampler();
 
+        VkPipelineCache GetPipelineCache();
 
     public:
         void WaitIdle();
@@ -143,6 +144,7 @@ namespace Vulkan
          */
         VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
         VkSampler mPointSampler = VK_NULL_HANDLE;
+        VkPipelineCache mPipelineCache = VK_NULL_HANDLE;
     };
 }
 

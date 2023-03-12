@@ -15,7 +15,11 @@ namespace Vulkan
         Pipeline(std::string const& name);
         ~Pipeline();
 
+        Pipeline(Pipeline const&) = delete;
+        Pipeline& operator=(Pipeline const&) = delete;
+
     public:
+        void ClearShaders();
         void AddShader(std::string const& path);
 
         void SetRootSignature(RootSignature const* rootSignature);
@@ -24,6 +28,9 @@ namespace Vulkan
         void AddImageColorOutput(class Image const* img);
         void SetBackbufferDepthStencilOutput();
         void SetDepthImage(class Image const* img);
+        void SetDepthStencilImage(class Image const* img);
+
+        void InitFrom(Pipeline& p);
 
         void Bake();
 
@@ -68,6 +75,8 @@ namespace Vulkan
 
     private:
         void InitDefaultPipelineState();
+
+        void MapStates();
 
     private:
         std::string mName;

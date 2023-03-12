@@ -17,7 +17,7 @@ using namespace Components;
 RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
     mScene(scene)
 {
-    InitDefaultRootSignature();
+    InitRootSignatures();
     InitPerObjectBuffer();
     InitUniformBuffer();
     InitMaterialsBuffer(cmdList);
@@ -64,18 +64,56 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
             }
         }
     }
+
+    cmdList->BeginRenderingOnImage(mRenderTarget, Jnrlib::Black, mDepthImage, true, cmdBufIndex);
+    cmdList->BindPipeline(mDefaultPipeline.get(), cmdBufIndex);
     cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get(), cmdBufIndex);
 
     {
         /* Render */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
+             if (mSelectedIndices.find((uint32_t)entity) != mSelectedIndices.end())
+                continue;
+
             /* TODO: pass this as instance */
             uint32_t index = update.bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
             cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
         }
     }
+
+    if (mSelectedIndices.size())
+    {
+        cmdList->BindPipeline(mSelectedObjectsPipeline.get(), cmdBufIndex);
+        
+        /* Render selected objects */
+        for (const auto& entity : mSelectedIndices)
+        {
+            auto& update = mScene->mRegistry.get<Update>((entt::entity)entity);
+            auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
+            uint32_t index = update.bufferIndex;
+            cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
+            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
+        }
+
+        cmdList->BindPipeline(mOutlinePipeline.get(), cmdBufIndex);
+        cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mOutlineRootSignature.get(), cmdBufIndex);
+        /* Render the outlines */
+        for (const auto& entity : mSelectedIndices)
+        {
+            auto& update = mScene->mRegistry.get<Update>((entt::entity)entity);
+            auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
+            uint32_t index = update.bufferIndex;
+
+            OutlineVertPushConstants outlineVertPushConstants{.objectIndex = index, .lineWidth = 0.025f};
+            cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1, &outlineVertPushConstants,
+                                                             VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
+            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
+        }
+    }
+
+    cmdList->EndRendering(cmdBufIndex);
 }
 
 RootSignature* RealtimeRender::GetRootSiganture() const
@@ -95,8 +133,31 @@ void RealtimeRender::SetLight(DirectionalLight const& light)
     ((DirectionalLight*)memory)->direction = glm::normalize(((DirectionalLight*)memory)->direction);
 }
 
-void RealtimeRender::InitDefaultRootSignature()
+void RealtimeRender::SelectIndices(std::unordered_set<uint32_t> const& selectedIndices)
 {
+    mSelectedIndices = selectedIndices;
+}
+
+void RealtimeRender::ClearSelection()
+{
+    mSelectedIndices.clear();
+}
+
+void RealtimeRender::OnResize(Image* renderTarget, Image* depthImage, uint32_t width, uint32_t height)
+{
+    mRenderTarget = renderTarget;
+    mDepthImage = depthImage;
+    InitPipelines(width, height);
+}
+
+Pipeline* RealtimeRender::GetDefaultPipeline()
+{
+    return mDefaultPipeline.get();
+}
+
+void RealtimeRender::InitRootSignatures()
+{
+    /* Default root signature */
     mDefaultDescriptorSets = std::make_unique<DescriptorSet>();
     {
         mDefaultDescriptorSets->AddStorageBuffer(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
@@ -112,6 +173,14 @@ void RealtimeRender::InitDefaultRootSignature()
         mDefaultRootSignature->AddDescriptorSet(mDefaultDescriptorSets.get());
     }
     mDefaultRootSignature->Bake();
+
+    /* Outline root signature */
+    mOutlineRootSignature = std::make_unique<RootSignature>();
+    {
+        mOutlineRootSignature->AddPushRange<OutlineVertPushConstants>(0, 1, VK_SHADER_STAGE_VERTEX_BIT);
+        mOutlineRootSignature->AddDescriptorSet(mDefaultDescriptorSets.get());
+    }
+    mOutlineRootSignature->Bake();
 }
 
 void RealtimeRender::InitPerObjectBuffer()
@@ -158,6 +227,114 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
         SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(1.0f, 1.0f, 0.0f)});
     }
     mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
+}
+
+void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
+{
+    mDefaultPipeline = std::make_unique<Pipeline>("RealtimeRender_DefaultPipeline");
+    {
+        mDefaultPipeline->AddShader("Shaders/basic.vert.spv");
+        mDefaultPipeline->AddShader("Shaders/basic.frag.spv");
+    }
+    VkViewport vp{};
+    VkRect2D sc{};
+    auto& viewport = mDefaultPipeline->GetViewportStateCreateInfo();
+    {
+        vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
+        vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
+        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
+        viewport.viewportCount = 1;
+        viewport.pViewports = &vp;
+        viewport.scissorCount = 1;
+        viewport.pScissors = &sc;
+    }
+
+    auto vertexAttributeDescription = Common::Vertex::GetInputAttributeDescription();
+    auto vertexBindingDescription = Common::Vertex::GetInputBindingDescription();
+
+    auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
+    {
+        vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexAttributeDescription.size();
+        vertexInput.pVertexAttributeDescriptions = vertexAttributeDescription.data();
+        vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexBindingDescription.size();
+        vertexInput.pVertexBindingDescriptions = vertexBindingDescription.data();
+    }
+
+    VkPipelineColorBlendAttachmentState attachmentInfo{};
+    auto& blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
+    {
+        attachmentInfo.blendEnable = VK_FALSE;
+        attachmentInfo.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+        blendState.attachmentCount = 1;
+        blendState.pAttachments = &attachmentInfo;
+    }
+
+    auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
+    {
+        // rasterizerState.cullMode = VK_CULL_MODE_NONE;
+        // rasterizerState.polygonMode = VK_POLYGON_MODE_LINE;
+    }
+
+    auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
+    {
+        depthState.depthTestEnable = VK_TRUE;
+        depthState.depthWriteEnable = VK_TRUE;
+        depthState.depthBoundsTestEnable = VK_TRUE;
+        depthState.depthCompareOp = VK_COMPARE_OP_LESS;
+        depthState.depthBoundsTestEnable = VK_TRUE;
+        depthState.minDepthBounds = 0.0f;
+        depthState.maxDepthBounds = 1.0f;
+    }
+
+    mDefaultPipeline->SetDepthStencilImage(mDepthImage);
+    mDefaultPipeline->SetRootSignature(mDefaultRootSignature.get());
+    mDefaultPipeline->AddImageColorOutput(mRenderTarget);
+    mDefaultPipeline->Bake();
+
+    mSelectedObjectsPipeline = std::make_unique<Pipeline>("RealtimeRender_SelectedObjectPipeline");
+    mSelectedObjectsPipeline->InitFrom(*mDefaultPipeline);
+    {
+        mSelectedObjectsPipeline->AddShader("Shaders/basic.vert.spv");
+        mSelectedObjectsPipeline->AddShader("Shaders/basic.frag.spv");
+    }
+    {
+        auto& depthStencil = mSelectedObjectsPipeline->GetDepthStencilStateCreateInfo();
+        depthStencil.stencilTestEnable = VK_TRUE;
+        depthStencil.front.reference = 1;
+        depthStencil.front.writeMask = 0xFF;
+        depthStencil.front.compareMask = 0xFF;
+        depthStencil.front.compareOp = VK_COMPARE_OP_ALWAYS;
+        depthStencil.front.depthFailOp = VK_STENCIL_OP_REPLACE;
+        depthStencil.front.failOp = VK_STENCIL_OP_REPLACE;
+        depthStencil.front.passOp = VK_STENCIL_OP_REPLACE;
+        depthStencil.back = depthStencil.front;
+    }
+    mSelectedObjectsPipeline->Bake();
+
+    mOutlinePipeline = std::make_unique<Pipeline>("RealtimeRender_OutlinePipeline");
+    mOutlinePipeline->InitFrom(*mSelectedObjectsPipeline);
+    {
+        mOutlinePipeline->AddShader("Shaders/outline.vert.spv");
+        mOutlinePipeline->AddShader("Shaders/white.frag.spv");
+    }
+    {
+        auto& depthStencil = mOutlinePipeline->GetDepthStencilStateCreateInfo();
+        depthStencil.depthTestEnable = VK_FALSE;
+        depthStencil.stencilTestEnable = VK_TRUE;
+        depthStencil.front.reference = 1;
+        depthStencil.front.writeMask = 0xFF;
+        depthStencil.front.compareMask = 0xFF;
+        depthStencil.front.compareOp = VK_COMPARE_OP_NOT_EQUAL;
+        depthStencil.front.depthFailOp = VK_STENCIL_OP_KEEP;
+        depthStencil.front.failOp = VK_STENCIL_OP_KEEP;
+        depthStencil.front.passOp = VK_STENCIL_OP_ZERO;
+        depthStencil.back = depthStencil.front;
+    }
+    mOutlinePipeline->SetRootSignature(mOutlineRootSignature.get());
+    mOutlinePipeline->Bake();
 }
 
 

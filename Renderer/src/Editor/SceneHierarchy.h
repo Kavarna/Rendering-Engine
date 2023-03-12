@@ -6,10 +6,12 @@
 
 namespace Editor
 {
+    class SceneViewer;
+
     class SceneHierarchy : public ImguiWindow
     {
     public:
-        SceneHierarchy(Common::Scene* scene);
+        SceneHierarchy(Common::Scene* scene, SceneViewer* sceneViewer);
         ~SceneHierarchy() = default;
 
         virtual void OnRender() override;
@@ -19,6 +21,7 @@ namespace Editor
 
     private:
         Common::Scene* mScene;
+        SceneViewer* mSceneViewer;
 
         std::unordered_set<uint32_t> mSelectedNodes;
     };

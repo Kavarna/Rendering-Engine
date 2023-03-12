@@ -72,6 +72,22 @@ void Editor::SceneViewer::OnRender()
     ImGui::End();
 }
 
+void Editor::SceneViewer::SelectIndices(std::unordered_set<uint32_t> const& selectedIndices)
+{
+    for (auto& perFrameResources : mPerFrameResources)
+    {
+        perFrameResources.renderSystem->SelectIndices(selectedIndices);
+    }
+}
+
+void Editor::SceneViewer::ClearSelection()
+{
+    for (auto& perFrameResources : mPerFrameResources)
+    {
+        perFrameResources.renderSystem->ClearSelection();
+    }
+}
+
 void Editor::SceneViewer::RenderScene()
 {
     if (mActiveRenderingContext.cmdList == nullptr)
@@ -81,12 +97,8 @@ void Editor::SceneViewer::RenderScene()
     auto& cmdList = mActiveRenderingContext.cmdList;
     auto cmdBufIndex = mActiveRenderingContext.cmdBufIndex;
 
-    cmdList->BeginRenderingOnImage(currentFrameResources.renderTarget.get(), Jnrlib::Black, mDepthImage.get(), cmdBufIndex);
-    {
-        cmdList->BindPipeline(mDefaultPipeline.get(), cmdBufIndex);
-        currentFrameResources.renderSystem->RenderScene(cmdList, cmdBufIndex);
-    }
-    cmdList->EndRendering(cmdBufIndex);
+    
+    currentFrameResources.renderSystem->RenderScene(cmdList, cmdBufIndex);
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get(), cmdBufIndex);
 
     mScene->PerformUpdate();
@@ -165,74 +177,12 @@ void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
     VLOG(2) << "Scene viewer resized to (" << newWidth << "x" << newHeight << ")";
 
     InitRenderTargets();
-    InitDefaultPipeline();
     InitCamera();
-}
-
-void Editor::SceneViewer::InitDefaultPipeline()
-{
-    mDefaultPipeline = std::make_unique<Pipeline>("SceneViewer_DefaultPipeline");
+    for (auto& perFrameResource : mPerFrameResources)
     {
-        mDefaultPipeline->AddShader("Shaders/basic.vert.spv");
-        mDefaultPipeline->AddShader("Shaders/basic.frag.spv");
+        perFrameResource.renderSystem->OnResize(
+            perFrameResource.renderTarget.get(), mDepthImage.get(), (uint32_t)mWidth, (uint32_t)mHeight);
     }
-    VkViewport vp{};
-    VkRect2D sc{};
-    auto& viewport = mDefaultPipeline->GetViewportStateCreateInfo();
-    {
-        vp.width = (FLOAT)mWidth; vp.minDepth = 0.0f; vp.x = 0;
-        vp.height = (FLOAT)mHeight; vp.maxDepth = 1.0f; vp.y = 0;
-        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)mWidth, .height = (uint32_t)mHeight};
-        viewport.viewportCount = 1;
-        viewport.pViewports = &vp;
-        viewport.scissorCount = 1;
-        viewport.pScissors = &sc;
-    }
-
-    auto vertexAttributeDescription = Common::Vertex::GetInputAttributeDescription();
-    auto vertexBindingDescription = Common::Vertex::GetInputBindingDescription();
-
-    auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
-    {
-        vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexAttributeDescription.size();
-        vertexInput.pVertexAttributeDescriptions = vertexAttributeDescription.data();
-        vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexBindingDescription.size();
-        vertexInput.pVertexBindingDescriptions = vertexBindingDescription.data();
-    }
-
-    VkPipelineColorBlendAttachmentState attachmentInfo{};
-    auto& blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
-    {
-        attachmentInfo.blendEnable = VK_FALSE;
-        attachmentInfo.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-
-        blendState.attachmentCount = 1;
-        blendState.pAttachments = &attachmentInfo;
-    }
-
-    auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
-    {
-        // rasterizerState.cullMode = VK_CULL_MODE_NONE;
-        // rasterizerState.polygonMode = VK_POLYGON_MODE_LINE;
-    }
-
-    auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
-    {
-        depthState.depthTestEnable = VK_TRUE;
-        depthState.depthWriteEnable = VK_TRUE;
-        depthState.depthBoundsTestEnable = VK_TRUE;
-        depthState.depthCompareOp = VK_COMPARE_OP_LESS;
-        depthState.depthBoundsTestEnable = VK_TRUE;
-        depthState.minDepthBounds = 0.0f;
-        depthState.maxDepthBounds = 1.0f;
-    }
-
-    mDefaultPipeline->SetDepthImage(mDepthImage.get());
-    mDefaultPipeline->SetRootSignature(mPerFrameResources[0].renderSystem->GetRootSiganture());
-    mDefaultPipeline->AddImageColorOutput(mPerFrameResources[0].renderTarget.get());
-    mDefaultPipeline->Bake();
 }
 
 void Editor::SceneViewer::InitRenderTargets()
@@ -255,7 +205,7 @@ void Editor::SceneViewer::InitRenderTargets()
     {
         depthInfo.width = (uint32_t)mWidth;
         depthInfo.height = (uint32_t)mHeight;
-        depthInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthInfo.format = VK_FORMAT_D24_UNORM_S8_UINT;
         depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
