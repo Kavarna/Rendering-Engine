@@ -36,6 +36,8 @@ namespace CreateInfo
         std::string name, materialName;
         Jnrlib::Position position;
 
+        std::string parentName;
+
         /* Sphere info */
         float radius;
 

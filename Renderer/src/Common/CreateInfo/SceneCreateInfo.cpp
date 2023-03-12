@@ -66,6 +66,11 @@ namespace CreateInfo
         j["position"] = Jnrlib::to_string(p.position);
         j["material"] = p.materialName;
         
+        if (p.parentName.size() > 0)
+        {
+            j["parent"] = p.parentName;
+        }
+        
         if (p.primitiveType == PrimitiveType::Sphere)
         {
             j["radius"] = p.radius;
@@ -82,6 +87,10 @@ namespace CreateInfo
         j.at("name").get_to(p.name);
         j.at("position").get_to(positionString); p.position = Jnrlib::to_type<Jnrlib::Position>(positionString);
         j.at("material").get_to(p.materialName);
+        if (j.contains("parent"))
+        {
+            j.at("parent").get_to(p.parentName);
+        }
 
         if (p.primitiveType == PrimitiveType::Sphere)
         {

@@ -38,28 +38,37 @@ void JnrSerializer::Flush()
     contentU32++;
 
     std::vector<uint32_t> offsets;
+    std::vector<uint32_t> structureTypes;
     std::vector<uint32_t> sizes;
     offsets.reserve(mStructures.size());
+    structureTypes.reserve(mStructures.size());
     sizes.reserve(mStructures.size());
 
     uint64_t firstOffset = (unsigned char*)contentU32 + (sizeof(uint32_t) * (uint32_t)mStructures.size() * JNR_PER_STRUCTURE_INFO_ELEMENTS) - content.data();
-    firstOffset = Jnrlib::AlignUp(firstOffset, JNR_FILE_ALIGNMENT);
+    firstOffset = AlignUp(firstOffset, JNR_FILE_ALIGNMENT);
 
     uint32_t lastOffset = (uint32_t)firstOffset;
     for (uint32_t i = 0; i < mStructures.size(); ++i)
     {
         auto offset = lastOffset;
-        auto size = mStructures[i].EstimateSize();
+        uint32_t size = 0;
+        std::visit([&](auto structure)
+        {
+            size = structure.EstimateSize();
+        }, mStructures[i]);
         offsets.push_back(offset);
+        structureTypes.push_back((uint32_t)mStructures[i].index());
         sizes.push_back((uint32_t)size);
 
         lastOffset = offset + size;
-        lastOffset = Jnrlib::AlignUp(lastOffset, JNR_FILE_ALIGNMENT);
+        lastOffset = AlignUp(lastOffset, JNR_FILE_ALIGNMENT);
     }
 
     for (uint32_t i = 0; i < mStructures.size(); ++i)
     {
         *contentU32 = offsets[i];
+        contentU32++;
+        *contentU32 = structureTypes[i];
         contentU32++;
         *contentU32 = sizes[i];
         contentU32++;
@@ -68,23 +77,29 @@ void JnrSerializer::Flush()
     for (uint32_t i = 0; i < mStructures.size(); ++i)
     {
         auto contentPtr = content.data() + offsets[i];
-        mStructures[i].Dump(contentPtr);
+        std::visit([contentPtr](auto structure)
+        {
+            structure.Dump(contentPtr);
+        }, mStructures[i]);
     }
 
     DumpWholeFile(mDumpPath, content);
 }
 
-uint32_t Jnrlib::JnrSerializer::EstimateFileSize()
+uint32_t JnrSerializer::EstimateFileSize()
 {
     uint32_t sum = sizeof(JNR_FILE_MAGIC) +
         sizeof(JNR_FILE_VERSION) +
         sizeof(uint32_t) /* section count */ + 
         sizeof(uint32_t) * (uint32_t)mStructures.size() * JNR_PER_STRUCTURE_INFO_ELEMENTS /* Per size info */;
-    sum = Jnrlib::AlignUp(sum, JNR_FILE_ALIGNMENT);
+    sum = AlignUp(sum, JNR_FILE_ALIGNMENT);
     for (uint32_t i = 0; i < mStructures.size(); ++i)
     {
-        sum += mStructures[i].EstimateSize();
-        sum = Jnrlib::AlignUp(sum, JNR_FILE_ALIGNMENT);
+        std::visit([&sum](auto structure)
+        {
+            sum += structure.EstimateSize();
+        }, mStructures[i]);
+        sum = AlignUp(sum, JNR_FILE_ALIGNMENT);
     }
 
     return sum;
@@ -96,7 +111,11 @@ JnrDeserializer::JnrDeserializer(std::string const& path) :
 
 void JnrDeserializer::Read()
 {
-    auto content = ReadWholeFile(mReadPath);
+    auto content = ReadWholeFile(mReadPath, false);
+    if (content.size() == 0)
+    {
+        return;
+    }
 
     uint32_t* contentU32 = (uint32_t*)content.data();
     CHECK(*contentU32 == JNR_FILE_MAGIC) << "Reading JNR file with invalid magic";
@@ -109,23 +128,47 @@ void JnrDeserializer::Read()
     contentU32++;
 
     std::vector<uint32_t> offsets;
+    std::vector<uint32_t> structureTypes;
     std::vector<uint32_t> sizes;
     
     offsets.resize(numberOfStructures);
+    structureTypes.resize(numberOfStructures);
     sizes.resize(numberOfStructures);
     
     for (uint32_t i = 0; i < numberOfStructures; ++i)
     {
         offsets[i] = *contentU32;
+        contentU32++;
+        structureTypes[i] = *contentU32;
+        contentU32++;
         sizes[i] = *contentU32;
+        contentU32++;
     }
 
     mStructures.resize(numberOfStructures);
     for (uint32_t i = 0; i < numberOfStructures; ++i)
     {
         auto contentPtr = (unsigned char*)content.data() + offsets[i];
-        mStructures[i].Load(contentPtr);
+        switch (structureTypes[i])
+        {
+            case 0:
+                mStructures[i] = InfoWindowsV1{};
+                break;
+            case 1:
+                mStructures[i] = InfoMainWindowV1{};
+            default:
+                break;
+        }
+        std::visit([contentPtr](auto& structure)
+        {
+            structure.Load(contentPtr);
+        }, mStructures[i]);
     }
+}
+
+uint32_t Jnrlib::JnrDeserializer::GetNumStructures() const
+{
+    return (uint32_t)mStructures.size();
 }
 
 JnrDeserializer::StructureType JnrDeserializer::GetStructure(uint32_t index)

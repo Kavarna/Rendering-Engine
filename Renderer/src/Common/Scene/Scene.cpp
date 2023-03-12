@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include "GeometryHelpers.h"
+#include "Vulkan/CommandList.h"
 #include "Scene/Systems/IntersectionSystem.h"
 #include "Scene/Components/BaseComponent.h"
 #include "Scene/Components/SphereComponent.h"
@@ -61,9 +62,19 @@ Vulkan::Buffer const* Common::Scene::GetIndexBuffer() const
     return mIndexBuffer.get();
 }
 
+std::vector<Entity*>& Common::Scene::GetRootEntities()
+{
+    return mRootEntities;
+}
+
+std::vector<std::unique_ptr<Entity>>& Common::Scene::GetEntities()
+{
+    return mEntities;
+}
+
 std::optional<HitPoint> Scene::GetClosestHit(Ray const& r) const
 {
-    return Systems::Intersection::Get()->IntersectRay(r, mEntities);
+    return Systems::Intersection::Get()->IntersectRay(r, mRegistry);
 }
 
 uint32_t Common::Scene::GetNumberOfObjects() const
@@ -73,11 +84,11 @@ uint32_t Common::Scene::GetNumberOfObjects() const
 
 void Common::Scene::PerformUpdate()
 {
-    for (auto const& [entity, update] : mEntities.view<Components::Update>().each())
+    for (auto const& [entity, update] : mRegistry.view<Components::Update>().each())
     {
         if (update.dirtyFrames)
         {
-            mEntities.patch<Components::Update>(entity, [](Components::Update& up)
+            mRegistry.patch<Components::Update>(entity, [](Components::Update& up)
             {
                 up.dirtyFrames--;
             });
@@ -89,24 +100,43 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
 {
     bool hasSphere = false;
     uint32_t currentBufferIndex = 0;
+    mEntities.reserve(primitives.size());
+    mRootEntities.reserve(primitives.size());
     for (uint32_t i = 0; i < primitives.size(); ++i)
     {
         auto& p = primitives[i];
+        std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
 
-        auto currentEntity = mEntities.create();
-        auto& baseComponent = mEntities.emplace<Components::Base>(currentEntity);
-        baseComponent.name = p.name;
-        baseComponent.position = p.position;
+        if (p.parentName.size() > 0)
+        {
+            for (uint32_t j = 0; j < entity->mEntities.size(); ++j)
+            {
+                auto* parent = mEntities[j].get();
+                auto& base = parent->GetComponent<Components::Base>();
+                if (base.name == p.parentName)
+                {
+                    parent->AddChild(entity.get());
+                    break;
+                }
+            }
+        }
+        else
+        {
+            mRootEntities.push_back(entity.get());
+        }
 
         switch (p.primitiveType)
         {
             case CreateInfo::PrimitiveType::Sphere:
             {
-                baseComponent.scaling = glm::vec3(p.radius, p.radius, p.radius);
+                entity->AddComponent(
+                    Components::Base{.position = p.position, .scaling = glm::vec3(p.radius, p.radius, p.radius), .name = p.name}
+                );
 
-                auto& sphereComponent = mEntities.emplace<Components::Sphere>(currentEntity);
-                sphereComponent.material = MaterialManager::Get()->GetMaterial(p.materialName);
-                CHECK(sphereComponent.material) << "Material " << p.materialName << " is not specified";
+                auto material = MaterialManager::Get()->GetMaterial(p.materialName);
+                CHECK(material) << "A sphere must have a material";
+                entity->AddComponent(Components::Sphere{.material = material});
+                
 
                 if (buildRealtime)
                 {
@@ -123,21 +153,17 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                         hasSphere = true;
                     }
 
-                    {
-                        auto& mesh = mEntities.emplace<Components::Mesh>(currentEntity);
-                        mesh = mMeshes["Sphere"];
-                    }
-
-                    {
-                        auto& update = mEntities.emplace<Components::Update>(currentEntity);
-                        update.bufferIndex = currentBufferIndex++;
-                        update.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT;
-                    }
+                    entity->AddComponent(Components::Mesh(mMeshes["Sphere"]));
+                    entity->AddComponent(
+                        Components::Update{.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT, .bufferIndex = currentBufferIndex++}
+                    );
                 }
 
                 break;
             }
         }
+
+        mEntities.push_back(std::move(entity));
     }
 }
 

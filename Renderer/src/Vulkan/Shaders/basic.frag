@@ -23,8 +23,9 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
+    vec3 normal = normalize(inNormal);
     vec4 color = materialBuffer.materials[materialIndex].color;
-    float factor = max(dot(inNormal, uniformObject.direction), 0.0f);
+    float factor = max(dot(normal, uniformObject.direction), 0.0f);
 
     outColor = color * factor;
 }

@@ -34,7 +34,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
     cmdList->BindVertexBuffer(vertexBuffer, 0, cmdBufIndex);
     cmdList->BindIndexBuffer(indexBuffer, cmdBufIndex);
 
-    auto const& spheres = mScene->mEntities.group<const Base, const Update, const Mesh>(entt::get<const Sphere>);
+    auto const& spheres = mScene->mRegistry.group<const Base, const Update, const Mesh>(entt::get<const Sphere>);
     {
         /* Build rendering buffers */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
@@ -92,6 +92,7 @@ void RealtimeRender::SetLight(DirectionalLight const& light)
 {
     auto memory = mLightBuffer->GetElement();
     memcpy(memory, &light, sizeof(DirectionalLight));
+    ((DirectionalLight*)memory)->direction = glm::normalize(((DirectionalLight*)memory)->direction);
 }
 
 void RealtimeRender::InitDefaultRootSignature()
@@ -154,7 +155,7 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
         mLightBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(DirectionalLight), sizeof(glm::vec4)), 1,
                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.0f, 1.0f, 0.0f)});
+        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(1.0f, 1.0f, 0.0f)});
     }
     mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
 }

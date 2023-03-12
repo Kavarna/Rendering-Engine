@@ -5,22 +5,43 @@
 
 namespace Jnrlib
 {
-    std::vector<char> ReadWholeFile(std::string const& path)
+    std::vector<char> ReadWholeFile(std::string const& path, bool assertIfFail)
     {
         std::ifstream file(path.c_str(), std::ios::binary | std::ios::ate);
-        CHECK(file.is_open()) << "Unable to open file " << path << " for reading";
+        if (assertIfFail)
+        {
+            CHECK(file.is_open()) << "Unable to open file " << path << " for reading";
+        }
+        else
+        {
+            if (!file.is_open())
+            {
+                return{};
+            }
+        }
         std::streamsize size = file.tellg();
         file.seekg(0, std::ios::beg);
 
         std::vector<char> buffer(size);
-        CHECK(file.read(buffer.data(), size).good()) << "Unable to read file " << path << " after opening it";
+        if (assertIfFail)
+        {
+            CHECK(file.read(buffer.data(), size).good()) << "Unable to read file " << path << " after opening it";
+        }
+        else
+        {
+            if (!file.read(buffer.data(), size).good())
+                return{};
+        }
 
         return buffer;
     }
-    void DumpWholeFile(std::string const& path, std::vector<unsigned char> const& data)
+    void DumpWholeFile(std::string const& path, std::vector<unsigned char> const& data, bool assertIfFail)
     {
         std::ofstream file(path.c_str(), std::ios::binary);
-        CHECK(file.is_open()) << "Unable to open file " << path << " for writing";
+        if (assertIfFail)
+        {
+            CHECK(file.is_open()) << "Unable to open file " << path << " for writing";
+        }
 
         file.write((const char*)data.data(), data.size());
     }

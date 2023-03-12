@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <variant>
 
 namespace Jnrlib
 {
@@ -45,16 +46,43 @@ namespace Jnrlib
         };
     };
 
+    struct InfoMainWindowV1
+    {
+        uint32_t width = 0;
+        uint32_t height = 0;
+
+        void Dump(unsigned char* content)
+        {
+            uint32_t* contentU32 = (uint32_t*)content;
+            *contentU32 = width;
+            contentU32++;
+            *contentU32 = height;
+        }
+
+        void Load(unsigned char* content)
+        {
+            uint32_t* contentU32 = (uint32_t*)content;
+            width = *contentU32;
+            contentU32++;
+            height = *contentU32;
+        }
+
+        uint32_t EstimateSize()
+        {
+            return sizeof(width) + sizeof(height);
+        }
+    };
+
     /**
     * JNR file structure:
-    * <MAGIC><FILE_VERSION><NUMBER_OF_STRUCTURES><<offsests><sizes> * NUMBER_OF_STRUCTURES>
+    * <MAGIC><FILE_VERSION><NUMBER_OF_STRUCTURES><<offsests><structure_types><sizes> * NUMBER_OF_STRUCTURES>
     * At offset there's one of the above structures
     */
 
     class JnrSerializer
     {
     public:
-        using StructureType = InfoWindowsV1;
+        using StructureType = std::variant<InfoWindowsV1, InfoMainWindowV1>;;
 
         JnrSerializer(std::string const& path);
         ~JnrSerializer() = default;
@@ -75,7 +103,7 @@ namespace Jnrlib
     class JnrDeserializer
     {
     public:
-        using StructureType = InfoWindowsV1;
+        using StructureType = std::variant<InfoWindowsV1, InfoMainWindowV1>;
 
         JnrDeserializer(std::string const& path);
         ~JnrDeserializer() = default;
@@ -83,7 +111,8 @@ namespace Jnrlib
     public:
         void Read();
         
-        StructureType GetStructure(uint32_t index);
+        uint32_t GetNumStructures() const;
+        StructureType GetStructure(uint32_t index = 0);
 
     private:
         std::string mReadPath;
@@ -92,4 +121,5 @@ namespace Jnrlib
 
     };
 }
+
 

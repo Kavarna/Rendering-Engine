@@ -11,6 +11,7 @@
 #include "JnrSerializer.h"
 
 #include "SceneViewer.h"
+#include "SceneHierarchy.h"
 
 namespace Editor
 {
@@ -35,6 +36,7 @@ namespace Editor
         glm::vec2 GetWindowDimensions();
 
     private:
+        void DeserializeStructures();
         void InitWindow();
         void InitCommandLists();
         void InitScene(Common::SceneParser::ParsedScene const* scene = nullptr);
@@ -70,7 +72,10 @@ namespace Editor
 
         std::vector<std::unique_ptr<ImguiWindow>> mImguiWindows;
 
+        std::unique_ptr<Jnrlib::JnrDeserializer> mWindowsDeserializer;
+
         SceneViewer* mSceneViewer;
+        SceneHierarchy* mSceneHierarchy;
  
         bool mShouldClose = false;
         bool mMinimized = false;

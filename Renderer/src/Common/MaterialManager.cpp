@@ -52,7 +52,7 @@ std::shared_ptr<IMaterial> MaterialManager::CreateMaterial(CreateInfo::Material 
 		case CreateInfo::MaterialType::Dieletric:
 		{
 			auto materialPtr = std::make_shared<Dielectric>(matInfo, (uint32_t)mMaterials.size());
-			mShaderMaterials.emplace_back(ShaderMaterial{.color = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)});
+			mShaderMaterials.emplace_back(ShaderMaterial{.color = glm::vec4(0.8f, 0.0f, 0.8f, 1.0f)});
 			return materialPtr;
 		}
 		case CreateInfo::MaterialType::None:

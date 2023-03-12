@@ -18,17 +18,19 @@ void OnResizeCallback(GLFWwindow* window, int width, int height)
     Editor::Editor::Get()->OnResize(width, height);
 }
 
-Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes)
+Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes) : 
+    mWidth(DEFAULT_WINDOW_WIDTH), mHeight(DEFAULT_WINDOW_HEIGHT)
 {
     CHECK(scenes.size() <= 1) << "Unable to edit multiple scenes at once";
     try
     {
+        DeserializeStructures();
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitCommandLists();
         InitScene(&scenes[0]);
         InitImguiWindows();
-        OnResize(DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT);
+        OnResize(mWidth, mHeight);
 
         mInitializationCmdList->InitImGui();
         mInitializationCmdList->End();
@@ -117,6 +119,23 @@ glm::vec2 Editor::Editor::GetWindowDimensions()
     return glm::vec2{mWidth, mHeight};
 }
 
+void Editor::Editor::DeserializeStructures()
+{
+    mWindowsDeserializer = std::make_unique<Jnrlib::JnrDeserializer>("windows.jnr");
+    mWindowsDeserializer->Read();
+
+    for (uint32_t i = 0; i < mWindowsDeserializer->GetNumStructures(); ++i)
+    {
+        auto currentStructure = mWindowsDeserializer->GetStructure(i);
+        if (currentStructure.index() == 1)
+        {
+            auto& windowInfo = std::get<Jnrlib::InfoMainWindowV1>(currentStructure);
+            mWidth = windowInfo.width;
+            mHeight = windowInfo.height;
+        }
+    }
+}
+
 void Editor::Editor::InitWindow()
 {
     CHECK(glfwInit() == GLFW_TRUE) << "Unable to initialize GLFW";
@@ -125,7 +144,7 @@ void Editor::Editor::InitWindow()
 
 
     mWindow = glfwCreateWindow(
-        DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT,
+        mWidth, mHeight,
         "JNReditor", nullptr, nullptr
     );
     CHECK(mWindow != nullptr) << "Unable to create window";
@@ -176,6 +195,12 @@ void Editor::Editor::SerializeWindows()
             windowsInfo.windows[i].isOpen = mImguiWindows[i]->mIsOpen;
         }
         serializer.AddStructure(windowsInfo);
+    }
+    {
+        Jnrlib::InfoMainWindowV1 windowInfo;
+        windowInfo.width = mWidth;
+        windowInfo.height = mHeight;
+        serializer.AddStructure(windowInfo);
     }
     serializer.Flush();
 }
@@ -230,6 +255,12 @@ void Editor::Editor::ShowDockingSpace()
             {
                 LOG(INFO) << "Scene viewer is shown";
             }
+
+            if (mSceneHierarchy && ImGui::MenuItem("Scene hierarchy", nullptr, &mSceneHierarchy->mIsOpen))
+            {
+                LOG(INFO) << "Scene hierarchy is shown";
+            }
+
             ImGui::EndMenu();
         }
 
@@ -299,18 +330,32 @@ void Editor::Editor::InitScene(Common::SceneParser::ParsedScene const* parsedSce
 
 void Editor::Editor::InitImguiWindows()
 {
-    auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get(), mInitializationCmdList.get());
-    mSceneViewer = sceneViewer.get();
-    mImguiWindows.emplace_back(std::move(sceneViewer));
-
-    Jnrlib::JnrDeserializer deserializer("windows.jnr");
     {
-        deserializer.Read();
+        /* Scene viewer */
+        auto sceneViewer = std::make_unique<SceneViewer>(mActiveScene.get(), mInitializationCmdList.get());
+        mSceneViewer = sceneViewer.get();
+        mImguiWindows.emplace_back(std::move(sceneViewer));
     }
-    auto windowsInfo = deserializer.GetStructure(0);
-    for (uint32_t i = 0; i < windowsInfo.windows.size(); ++i)
     {
-        mImguiWindows[i]->mIsOpen = windowsInfo.windows[i].isOpen;
+        /* Scene hierarchy */
+        auto sceneHierarchy = std::make_unique<SceneHierarchy>(mActiveScene.get());
+        mSceneHierarchy = sceneHierarchy.get();
+        mImguiWindows.emplace_back(std::move(sceneHierarchy));
+    }
+    
+    {
+        for (uint32_t j = 0; j < mWindowsDeserializer->GetNumStructures(); ++j)
+        {
+            auto currentStructure = mWindowsDeserializer->GetStructure(j);
+            if (currentStructure.index() == 0)
+            {
+                auto& windowsInfo = std::get<Jnrlib::InfoWindowsV1>(currentStructure);
+                for (uint32_t i = 0; i < windowsInfo.windows.size(); ++i)
+                {
+                    mImguiWindows[i]->mIsOpen = windowsInfo.windows[i].isOpen;
+                }
+            }
+        }
     }
 }
 

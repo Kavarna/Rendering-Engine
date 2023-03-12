@@ -10,8 +10,13 @@
 #include "Vertex.h"
 #include "Camera.h"
 #include "Vulkan/Buffer.h"
-#include "Vulkan/CommandList.h"
 #include "Scene/Components/MeshComponent.h"
+#include "Entity.h"
+
+namespace Vulkan
+{
+    class CommandList;
+}
 
 namespace Common::Systems
 {
@@ -44,6 +49,9 @@ namespace Common
         Vulkan::Buffer const* GetVertexBuffer() const;
         Vulkan::Buffer const* GetIndexBuffer() const;
 
+        std::vector<Entity*>& GetRootEntities();
+        std::vector<std::unique_ptr<Entity>>& GetEntities();
+
     public:
         std::optional<HitPoint> GetClosestHit(Ray const&) const;
         uint32_t GetNumberOfObjects() const;
@@ -58,7 +66,9 @@ namespace Common
         CreateInfo::ImageInfo mImageInfo;
 
         std::unique_ptr<Camera> mCamera;
-        mutable entt::registry mEntities;
+        mutable entt::registry mRegistry;
+        std::vector<std::unique_ptr<Entity>> mEntities;
+        std::vector<Entity*> mRootEntities;
 
         std::unordered_map<std::string, Components::Mesh> mMeshes;
 
