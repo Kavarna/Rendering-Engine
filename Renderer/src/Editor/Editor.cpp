@@ -261,6 +261,11 @@ void Editor::Editor::ShowDockingSpace()
                 LOG(INFO) << "Scene hierarchy is shown";
             }
 
+            if (mObjectInspector && ImGui::MenuItem("Object inspector", nullptr, &mObjectInspector->mIsOpen))
+            {
+                LOG(INFO) << "Object inspector is shown";
+            }
+
             ImGui::EndMenu();
         }
 
@@ -337,8 +342,14 @@ void Editor::Editor::InitImguiWindows()
         mImguiWindows.emplace_back(std::move(sceneViewer));
     }
     {
+        /* Object inspector */
+        auto objectInspector = std::make_unique<ObjectInspector>();
+        mObjectInspector = objectInspector.get();
+        mImguiWindows.emplace_back(std::move(objectInspector));
+    }
+    {
         /* Scene hierarchy */
-        auto sceneHierarchy = std::make_unique<SceneHierarchy>(mActiveScene.get(), mSceneViewer);
+        auto sceneHierarchy = std::make_unique<SceneHierarchy>(mActiveScene.get(), mSceneViewer, mObjectInspector);
         mSceneHierarchy = sceneHierarchy.get();
         mImguiWindows.emplace_back(std::move(sceneHierarchy));
     }

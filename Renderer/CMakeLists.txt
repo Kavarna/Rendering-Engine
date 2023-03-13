@@ -11,7 +11,9 @@ include_directories("src/Common")
 include_directories("src")
 FILE(GLOB_RECURSE SOURCES "src/*" "tests/*")
 FILE(GLOB IMGUI_SOURCES "../external/imgui/*.h" "../external/imgui/*.cpp")
+FILE(GLOB IMGUI_MISC_SOURCES "../external/imgui/misc/cpp/*.h" "../external/imgui/misc/cpp/*.cpp")
 list (APPEND SOURCES ${IMGUI_SOURCES})
+list (APPEND SOURCES ${IMGUI_MISC_SOURCES})
 add_executable("Renderer" ${SOURCES})
 
 set(VULKAN_SDK "$ENV{VULKAN_SDK}")
@@ -37,6 +39,7 @@ set_property(TARGET "Renderer" PROPERTY CXX_STANDARD 20)
 # Add external dependencies
 include_directories("../external/glfw/include")
 include_directories("../external/imgui/")
+include_directories("../external/imgui/misc/cpp")
 
 # Handle shaders
 file(GLOB_RECURSE EDITOR_SHADERS "src/Vulkan/Shaders/*.vert" "src/Vulkan/Shaders/*.frag")

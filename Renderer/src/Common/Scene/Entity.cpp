@@ -1,5 +1,7 @@
 #include "Entity.h"
 
+using namespace Common;
+
 void Entity::SetParent(Entity* parentEntity)
 {
     if (parentEntity == mParentEntity)

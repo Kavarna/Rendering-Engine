@@ -1,5 +1,6 @@
 #include "SceneHierarchy.h"
 #include "SceneViewer.h"
+#include "ObjectInspector.h"
 
 #include "Scene/Components/BaseComponent.h"
 
@@ -7,14 +8,14 @@
 
 using namespace Editor;
 
-SceneHierarchy::SceneHierarchy(Common::Scene* scene, SceneViewer* sceneViewer) : 
-    mScene(scene), mSceneViewer(sceneViewer)
+SceneHierarchy::SceneHierarchy(Common::Scene* scene, SceneViewer* sceneViewer, ObjectInspector* objInspector) :
+    mScene(scene), mSceneViewer(sceneViewer), mObjectInspector(objInspector)
 {
 }
 
-uint32_t SceneHierarchy::RenderNode(Entity* entity)
+Common::Entity* SceneHierarchy::RenderNode(Common::Entity* entity)
 {
-    uint32_t clickedEntity = -1;
+    Common::Entity* selectedEntity = nullptr;
 
     auto const& base = entity->GetComponent<Common::Components::Base>();
     auto entityId = entity->GetEntityId();
@@ -33,7 +34,7 @@ uint32_t SceneHierarchy::RenderNode(Entity* entity)
     bool isNodeOpen = ImGui::TreeNodeEx(base.name.c_str(), nodeFlags);
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
     {
-        clickedEntity = entityId;
+        selectedEntity = entity;
     }
 
 
@@ -44,16 +45,16 @@ uint32_t SceneHierarchy::RenderNode(Entity* entity)
             auto& children = entity->GetChildren();
             for (uint32_t i = 0; i < children.size(); ++i)
             {
-                uint32_t entity = RenderNode(children[i]);
-                if (entity != -1)
-                    clickedEntity = entity;
+                auto entity = RenderNode(children[i]);
+                if (entity != nullptr)
+                    selectedEntity = entity;
 
             }
         }
         ImGui::TreePop();
     }
 
-    return clickedEntity;
+    return selectedEntity;
 }
 
 void SceneHierarchy::OnRender()
@@ -61,31 +62,32 @@ void SceneHierarchy::OnRender()
     auto& entities = mScene->GetRootEntities();
     ImGui::Begin("Scene hierarchy");
     
-    uint32_t clickedEntity = -1;
+    Common::Entity* selectedEntity = nullptr;
     for (uint32_t i = 0; i < entities.size(); ++i)
     {
-        uint32_t entity = RenderNode(entities[i]);
-        if (entity != -1)
-            clickedEntity = entity;
+        Common::Entity* entity = RenderNode(entities[i]);
+        if (entity != nullptr)
+            selectedEntity = entity;
     }
-    if (clickedEntity != -1)
+    if (selectedEntity != nullptr)
     {
         if (ImGui::GetIO().KeyCtrl)
         {
             // CTRL+click to toggle
-            if (auto it = mSelectedNodes.find(clickedEntity); it != mSelectedNodes.end())
+            if (auto it = mSelectedNodes.find(selectedEntity->GetEntityId()); it != mSelectedNodes.end())
             {
                 mSelectedNodes.erase(it);
             }
             else
             {
-                mSelectedNodes.insert(clickedEntity);
+                mSelectedNodes.insert(selectedEntity->GetEntityId());
             }
         }
         else
         {
             mSelectedNodes.clear();
-            mSelectedNodes.insert(clickedEntity);
+            mSelectedNodes.insert(selectedEntity->GetEntityId());
+            mObjectInspector->SetEntity(selectedEntity);
         }
         if (mSceneViewer != nullptr)
             mSceneViewer->SelectIndices(mSelectedNodes);

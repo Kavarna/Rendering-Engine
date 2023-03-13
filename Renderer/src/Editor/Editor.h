@@ -12,6 +12,7 @@
 
 #include "SceneViewer.h"
 #include "SceneHierarchy.h"
+#include "ObjectInspector.h"
 
 namespace Editor
 {
@@ -76,6 +77,7 @@ namespace Editor
 
         SceneViewer* mSceneViewer;
         SceneHierarchy* mSceneHierarchy;
+        ObjectInspector* mObjectInspector;
  
         bool mShouldClose = false;
         bool mMinimized = false;
