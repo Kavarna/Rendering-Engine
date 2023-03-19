@@ -1,11 +1,11 @@
 #include "SceneViewer.h"
+#include "SceneHierarchy.h"
+#include "Editor.h"
 
 #include "imgui.h"
 
 #include "Vulkan/CommandList.h"
 #include "Vulkan/Buffer.h"
-
-#include "Editor.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -50,10 +50,12 @@ void Editor::SceneViewer::OnRender()
    
     if (mActiveRenderingContext.cmdList)
     {
+        UpdatePassive();
         if (ImGui::IsWindowFocused())
         {
-            Update();
+            UpdateActive();
         }
+
 
         RenderScene();
 
@@ -88,6 +90,11 @@ void Editor::SceneViewer::ClearSelection()
     }
 }
 
+void Editor::SceneViewer::SetSceneHierarchy(SceneHierarchy* hierarchy)
+{
+    mSceneHierarchy = hierarchy;
+}
+
 void Editor::SceneViewer::RenderScene()
 {
     if (mActiveRenderingContext.cmdList == nullptr)
@@ -103,6 +110,52 @@ void Editor::SceneViewer::RenderScene()
 
     mScene->PerformUpdate();
     mCamera->PerformUpdate();
+}
+
+void Editor::SceneViewer::AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time)
+{
+    for (auto& perFrameResources : mPerFrameResources)
+    {
+        perFrameResources.renderSystem->AddVertex(pos, color, time);
+    }
+}
+
+void Editor::SceneViewer::SelectObject()
+{
+    static bool leftMouseButtonPressed = false;
+    if (Editor::Get()->IsMousePressed(GLFW_MOUSE_BUTTON_LEFT) && mIsMouseEnabled)
+    {
+        if (!leftMouseButtonPressed)
+        {
+            leftMouseButtonPressed = true;
+            auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
+            auto mousePosition = ImGui::GetMousePos();
+            auto cursorPosition = ImGui::GetCursorScreenPos();
+            ImVec2 pos = {mousePosition.x - cursorPosition.x, mousePosition.y - cursorPosition.y};
+            if (pos.x > currentFrameResources.renderTarget->GetExtent2D().width ||
+                pos.y > currentFrameResources.renderTarget->GetExtent2D().height ||
+                pos.x <= 0 || pos.y <= 0)
+            {
+                return;
+            }
+
+
+            auto ray = mCamera->GetRayForPixel((uint32_t)pos.x, (uint32_t)pos.y);
+            auto hp = mScene->GetClosestHit(ray);
+            if (hp.has_value())
+            {
+                mSceneHierarchy->SelectEntity(*hp->GetEntity());
+            }
+            else
+            {
+                mSceneHierarchy->ClearSelection();
+            }
+        }
+    }
+    else
+    {
+        leftMouseButtonPressed = false;
+    }
 }
 
 void Editor::SceneViewer::UpdateCamera(float dt)
@@ -160,12 +213,30 @@ void Editor::SceneViewer::UpdateCamera(float dt)
         }
     }
     mCamera->CalculateViewMatrix();
+    mCamera->CalculateUpperLeftCorner();
 }
 
-void Editor::SceneViewer::Update()
+void Editor::SceneViewer::UpdatePassive()
+{
+    auto dt = ImGui::GetIO().DeltaTime;
+    for (auto& perFrameResource : mPerFrameResources)
+    {
+        perFrameResource.renderSystem->Update(dt);
+    }
+
+    /* Fix for when right click doesn't work because the mouse clicked on other window */
+    if (!ImGui::IsWindowFocused() && Editor::Get()->IsMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && !mIsMouseEnabled)
+    {
+        mIsMouseEnabled = !mIsMouseEnabled;
+        Editor::Get()->SetMouseInputMode(mIsMouseEnabled);
+    }
+}
+
+void Editor::SceneViewer::UpdateActive()
 {
     auto dt = ImGui::GetIO().DeltaTime;
     UpdateCamera(dt);
+    SelectObject();
 }
 
 void Editor::SceneViewer::OnResize(float newWidth, float newHeight)

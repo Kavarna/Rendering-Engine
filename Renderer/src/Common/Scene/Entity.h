@@ -24,6 +24,8 @@ namespace Common
         Entity& operator=(Entity const&) = delete;
         Entity& operator=(Entity&&) = delete;
 
+        void UpdateBase();
+
         template <typename ComponentType>
         void AddComponent(ComponentType&& component);
 
@@ -32,6 +34,9 @@ namespace Common
 
         template <typename T>
         T& GetComponent();
+
+        template <typename T, typename Callable>
+        void PatchComponent(Callable&&);
 
         void SetParent(Entity* parentEntity);
         void AddChild(Entity* childEntity);
@@ -76,5 +81,10 @@ namespace Common
     inline T& Entity::GetComponent()
     {
         return mEntities.get<T>(mEntity);
+    }
+    template<typename T, typename Callable>
+    inline void Entity::PatchComponent(Callable&& callable)
+    {
+        mEntities.patch<T>(mEntity, callable);
     }
 }

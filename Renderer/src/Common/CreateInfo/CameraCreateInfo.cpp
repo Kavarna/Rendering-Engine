@@ -9,6 +9,8 @@ namespace CreateInfo
 {
     void Camera::RecalculateViewport(uint32_t width, uint32_t height)
     {
+        projectionWidth = width;
+        projectionHeight = height;
         if (aspectRatio == -1)
         {
             aspectRatio = (float)width / (float)height;
@@ -53,6 +55,9 @@ namespace CreateInfo
         j["aspect-ratio"] = cameraInfo.aspectRatio;
 
         j["field-of-view"] = cameraInfo.fieldOfView;
+        
+        j["projection-width"] = cameraInfo.projectionWidth;
+        j["projection-height"] = cameraInfo.projectionHeight;
     }
 
     void from_json(const nlohmann::json& j, Camera& cameraInfo)
@@ -92,6 +97,15 @@ namespace CreateInfo
         if (j.contains("aspect-ratio"))
         {
             j.at("aspect-ratio").get_to(cameraInfo.aspectRatio);
+        }
+
+        if (j.contains("projection-width"))
+        {
+            j.at("projection-width").get_to(cameraInfo.projectionWidth);
+        }
+        if (j.contains("projection-height"))
+        {
+            j.at("projection-height").get_to(cameraInfo.projectionHeight);
         }
 
     }

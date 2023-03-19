@@ -3,13 +3,20 @@
 
 #include <Jnrlib.h>
 
-namespace Common::Components
+namespace Common
 {
-    struct Base
-    {
-        Jnrlib::Position position;
-        glm::vec3 scaling;
+    class Entity;
 
-        std::string name;
-    };
+    namespace Components
+    {
+        struct Base
+        {
+            Jnrlib::Position position;
+            glm::vec3 scaling;
+
+            std::string name;
+
+            Entity* entityPtr;
+        };
+    }
 }

@@ -1,6 +1,14 @@
 #include "Entity.h"
+#include "Components/UpdateComponent.h"
+#include "Constants.h"
 
 using namespace Common;
+
+void Entity::UpdateBase()
+{
+    auto& u = GetComponent<Components::Update>();
+    u.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT;
+}
 
 void Entity::SetParent(Entity* parentEntity)
 {

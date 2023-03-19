@@ -9,6 +9,7 @@
 #include "Common/Scene/Components/UpdateComponent.h"
 
 using namespace Editor;
+using namespace Common;
 using namespace Common::Components;
 
 void ObjectInspector::OnRender()
@@ -25,9 +26,12 @@ void ObjectInspector::OnRender()
     if (ImGui::CollapsingHeader("Base"))
     {
         Base& b = mActiveEntity->GetComponent<Base>();
-        Update& u = mActiveEntity->GetComponent<Update>();
 
-        ImGui::InputText("Name", &b.name, ImGuiInputTextFlags_CharsNoBlank,
+        std::string name = b.name;
+        glm::vec3 position = b.position, scaling = b.scaling;
+
+        bool nameChanged = ImGui::InputText(
+            "Name", &name, ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue,
             [](ImGuiInputTextCallbackData* data)
         {
             if (data->EventFlag == ImGuiInputTextFlags_CallbackResize)
@@ -35,23 +39,36 @@ void ObjectInspector::OnRender()
                 std::string* name = (std::string*)data->UserData;
                 name->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
             }
-        return 0;
+            return 0;
         }, &b.name);
-        
-        if (ImGui::DragFloat3("Position", (float*)&b.position))
+        if (nameChanged)
         {
-            u.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT;
+            if (name.size() < Constants::MAX_NAME_SIZE)
+            {
+                b.name = name;
+            }
         }
-        if (ImGui::DragFloat3("Scaling", (float*)&b.scaling))
+        
+        if (ImGui::DragFloat3("Position", (float*)&position))
         {
-            u.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT;
+            mActiveEntity->PatchComponent<Base>([&](Base& b)
+            {
+                b.position = position;
+            });
+        }
+        if (ImGui::DragFloat3("Scaling", (float*)&scaling))
+        {
+            mActiveEntity->PatchComponent<Base>([&](Base& b)
+            {
+                b.scaling = scaling;
+            });
         }
     }
 
     ImGui::End();
 }
 
-void ObjectInspector::SetEntity(Common::Entity* entity)
+void ObjectInspector::SetEntity(Entity* entity)
 {
     mActiveEntity = entity;
 }

@@ -117,4 +117,7 @@ namespace Jnrlib
     constexpr Color Black = Color(Zero);
     constexpr Color Yellow = Color(One, One, Zero, One);
     constexpr Color Red = Color(One, Zero, Zero, One);
+    constexpr Color Blue = Color(Zero, Zero, One, One);
+    constexpr Color Green = Color(Zero, One, Zero, One);
+    constexpr Color Cyan = Color(Zero, One, One, One);
 }

@@ -15,6 +15,8 @@
 
 namespace Editor
 {
+    class SceneHierarchy;
+
     class SceneViewer : public ImguiWindow
     {
     public:
@@ -35,11 +37,18 @@ namespace Editor
         void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
         void ClearSelection();
 
+        void SetSceneHierarchy(SceneHierarchy* hierarchy);
+
     private:
         void OnResize(float newWidth, float newHeight);
         
-        void Update();
+        void UpdatePassive();
+        void UpdateActive();
         void RenderScene();
+
+        void AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time);
+
+        void SelectObject();
 
     private:
         void UpdateCamera(float dt);
@@ -53,6 +62,7 @@ namespace Editor
         float mHeight = 0.0f;
        
         Common::Scene* mScene;
+        SceneHierarchy* mSceneHierarchy;
 
         RenderingContext mActiveRenderingContext{};
 

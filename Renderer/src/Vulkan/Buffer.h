@@ -62,9 +62,25 @@ namespace Vulkan
             return (unsigned char*)mData + mElementSize * index;
         }
 
+        void* GetData()
+        {
+            CHECK(mData) << "In order to get the address of an element inside the buffer, it must be mappable";
+            return mData;
+        }
+
         uint64_t GetElementSize() const
         {
             return mElementSize;
+        }
+
+        uint64_t GetSize() const
+        {
+            return mElementSize * mCount;
+        }
+
+        uint64_t GetCount() const
+        {
+            return mCount;
         }
 
         ~Buffer()

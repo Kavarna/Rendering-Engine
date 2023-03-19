@@ -18,6 +18,9 @@ namespace CreateInfo
         Jnrlib::Float focalLength = Jnrlib::One;
         Jnrlib::Float fieldOfView = Jnrlib::PI * Jnrlib::Half;
 
+        Jnrlib::Float projectionWidth = Jnrlib::Zero;
+        Jnrlib::Float projectionHeight = Jnrlib::Zero;
+
         void RecalculateViewport(uint32_t width, uint32_t height);
 
         friend std::ostream& operator << (std::ostream& stream, Camera const& cameraInfo);

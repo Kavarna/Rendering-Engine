@@ -11,11 +11,12 @@ Camera::Camera(CreateInfo::Camera const& info) :
     mAspectRatio(info.aspectRatio),
     mViewportWidth(info.viewportWidth),
     mViewportHeight(info.viewportHeight),
-    mRoll(info.roll), mYaw(info.yaw), mPitch(info.pitch)
+    mRoll(info.roll), mYaw(info.yaw), mPitch(info.pitch),
+    mProjectionWidth(info.projectionWidth), mProjectionHeight(info.projectionHeight)
 {
     LOG(INFO) << "Creating camera with info: " << info;
     CalculateVectors();
-    CalculateLowerLeftCorner();
+    CalculateUpperLeftCorner();
     CalculateMatrices();
 }
 
@@ -74,9 +75,17 @@ Jnrlib::Float Common::Camera::GetFieldOfView() const
     return mFieldOfView;
 }
 
+Ray Common::Camera::GetRayForPixel(uint32_t x, uint32_t y) const
+{
+    Jnrlib::Float u = ((Jnrlib::Float)x) / (mProjectionWidth - 1);
+    Jnrlib::Float v = ((Jnrlib::Float)y) / (mProjectionHeight - 1);
+
+    return Ray(mPosition, mUpperLeftCorner + u * mRightDirection * mViewportWidth - v * mUpDirection * mViewportHeight - mPosition);
+}
+
 Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
 {
-    return mLowerLeftCorner;
+    return mUpperLeftCorner;
 }
 
 void Common::Camera::MoveForward(float amount)
@@ -154,9 +163,9 @@ void Camera::MarkDirty()
     mDirtyFrames = Constants::FRAMES_IN_FLIGHT;
 }
 
-void Camera::CalculateLowerLeftCorner()
+void Camera::CalculateUpperLeftCorner()
 {
-    mLowerLeftCorner = mPosition +
+    mUpperLeftCorner = mPosition +
         mForwardDirection * mFocalDistance - mRightDirection * mViewportWidth * Jnrlib::Half +
         mUpDirection * mViewportHeight * Jnrlib::Half;
 }

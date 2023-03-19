@@ -130,7 +130,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
             case CreateInfo::PrimitiveType::Sphere:
             {
                 entity->AddComponent(
-                    Components::Base{.position = p.position, .scaling = glm::vec3(p.radius, p.radius, p.radius), .name = p.name}
+                    Components::Base{.position = p.position, .scaling = glm::vec3(p.radius, p.radius, p.radius), .name = p.name, .entityPtr = entity.get()}
                 );
 
                 auto material = MaterialManager::Get()->GetMaterial(p.materialName);
@@ -157,6 +157,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                     entity->AddComponent(
                         Components::Update{.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT, .bufferIndex = currentBufferIndex++}
                     );
+                    mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
                 }
 
                 break;
@@ -172,11 +173,11 @@ void Scene::CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBuf
     {
         /* Vertex buffer */
         std::unique_ptr<Vulkan::Buffer> localVertexBuffer =
-            std::make_unique<Vulkan::Buffer>(sizeof(Common::Vertex), mVertices.size(),
+            std::make_unique<Vulkan::Buffer>(sizeof(Common::VertexPositionNormal), mVertices.size(),
                                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         localVertexBuffer->Copy(mVertices.data());
 
-        mVertexBuffer = std::make_unique<Vulkan::Buffer>(sizeof(Common::Vertex), mVertices.size(),
+        mVertexBuffer = std::make_unique<Vulkan::Buffer>(sizeof(Common::VertexPositionNormal), mVertices.size(),
                                                          VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
         cmdList->CopyBuffer(mVertexBuffer.get(), localVertexBuffer.get());

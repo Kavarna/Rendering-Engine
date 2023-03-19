@@ -75,7 +75,7 @@ namespace Common
         bool mGraphicsInitialized = false;
 
         std::unique_ptr<Vulkan::Buffer> mVertexBuffer;
-        std::vector<Common::Vertex> mVertices;
+        std::vector<Common::VertexPositionNormal> mVertices;
         std::unique_ptr<Vulkan::Buffer> mIndexBuffer;
         std::vector<uint32_t> mIndices;
     };

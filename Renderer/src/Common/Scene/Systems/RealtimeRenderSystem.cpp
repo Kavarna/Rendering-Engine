@@ -34,7 +34,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
     cmdList->BindVertexBuffer(vertexBuffer, 0, cmdBufIndex);
     cmdList->BindIndexBuffer(indexBuffer, cmdBufIndex);
 
-    auto const& spheres = mScene->mRegistry.group<const Base, const Update, const Mesh>(entt::get<const Sphere>);
+    auto const& spheres = mScene->mRegistry.group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
     {
         /* Build rendering buffers */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
@@ -90,7 +90,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
         /* Render selected objects */
         for (const auto& entity : mSelectedIndices)
         {
-            auto& update = mScene->mRegistry.get<Update>((entt::entity)entity);
+            auto& update = mScene->mRegistry.get<Components::Update>((entt::entity)entity);
             auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
             uint32_t index = update.bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
@@ -102,7 +102,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
         /* Render the outlines */
         for (const auto& entity : mSelectedIndices)
         {
-            auto& update = mScene->mRegistry.get<Update>((entt::entity)entity);
+            auto& update = mScene->mRegistry.get<Components::Update>((entt::entity)entity);
             auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
             uint32_t index = update.bufferIndex;
 
@@ -112,7 +112,9 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
             cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
         }
     }
-
+    cmdList->BindPipeline(mDebugPipeline.get(), cmdBufIndex);
+    mBatchRenderer.Begin();
+    mBatchRenderer.End(cmdList, cmdBufIndex);
     cmdList->EndRendering(cmdBufIndex);
 }
 
@@ -143,11 +145,21 @@ void RealtimeRender::ClearSelection()
     mSelectedIndices.clear();
 }
 
+void RealtimeRender::Update(float dt)
+{
+    mBatchRenderer.Update(dt);
+}
+
 void RealtimeRender::OnResize(Image* renderTarget, Image* depthImage, uint32_t width, uint32_t height)
 {
     mRenderTarget = renderTarget;
     mDepthImage = depthImage;
     InitPipelines(width, height);
+}
+
+void RealtimeRender::AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds)
+{
+    mBatchRenderer.PersistentVertex(position, color, timeInSeconds);
 }
 
 Pipeline* RealtimeRender::GetDefaultPipeline()
@@ -249,20 +261,22 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         viewport.pScissors = &sc;
     }
 
-    auto vertexAttributeDescription = Common::Vertex::GetInputAttributeDescription();
-    auto vertexBindingDescription = Common::Vertex::GetInputBindingDescription();
 
-    auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
+    auto vertexPositionNormalAttributeDescription = Common::VertexPositionNormal::GetInputAttributeDescription();
+    auto vertexPositionNormalBindingDescription = Common::VertexPositionNormal::GetInputBindingDescription();
+    auto vertexPositionColorAttributeDescription = VertexPositionColor::GetInputAttributeDescription();
+    auto vertexPositionColorBindingDescription = VertexPositionColor::GetInputBindingDescription();
     {
-        vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexAttributeDescription.size();
-        vertexInput.pVertexAttributeDescriptions = vertexAttributeDescription.data();
-        vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexBindingDescription.size();
-        vertexInput.pVertexBindingDescriptions = vertexBindingDescription.data();
+        auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
+        vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexPositionNormalAttributeDescription.size();
+        vertexInput.pVertexAttributeDescriptions = vertexPositionNormalAttributeDescription.data();
+        vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexPositionNormalBindingDescription.size();
+        vertexInput.pVertexBindingDescriptions = vertexPositionNormalBindingDescription.data();
     }
 
     VkPipelineColorBlendAttachmentState attachmentInfo{};
-    auto& blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
     {
+        auto& blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
         attachmentInfo.blendEnable = VK_FALSE;
         attachmentInfo.colorWriteMask =
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -272,14 +286,14 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         blendState.pAttachments = &attachmentInfo;
     }
 
-    auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
     {
+        auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
         // rasterizerState.cullMode = VK_CULL_MODE_NONE;
         // rasterizerState.polygonMode = VK_POLYGON_MODE_LINE;
     }
 
-    auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
     {
+        auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
         depthState.depthTestEnable = VK_TRUE;
         depthState.depthWriteEnable = VK_TRUE;
         depthState.depthBoundsTestEnable = VK_TRUE;
@@ -335,6 +349,31 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
     }
     mOutlinePipeline->SetRootSignature(mOutlineRootSignature.get());
     mOutlinePipeline->Bake();
+
+    mDebugPipeline = std::make_unique<Pipeline>("RealtimeRender_DebugPipeline");
+    mDebugPipeline->InitFrom(*mDefaultPipeline);
+    {
+        mDebugPipeline->AddShader("Shaders/color.vert.spv");
+        mDebugPipeline->AddShader("Shaders/color.frag.spv");
+    }
+    {
+        auto& vertexStateCreateInfo = mDebugPipeline->GetVertexInputStateCreateInfo();
+
+        vertexStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)vertexPositionColorAttributeDescription.size();
+        vertexStateCreateInfo.pVertexAttributeDescriptions = vertexPositionColorAttributeDescription.data();
+        vertexStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)vertexPositionColorBindingDescription.size();
+        vertexStateCreateInfo.pVertexBindingDescriptions = vertexPositionColorBindingDescription.data();
+    }
+    {
+        auto& inputAssembly = mDebugPipeline->GetInputAssemblyStateCreateInfo();
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    }
+    {
+        auto& rasterizerInfo = mDebugPipeline->GetRasterizationStateCreateInfo();
+        rasterizerInfo.lineWidth = 2.0f;
+    }
+    mOutlinePipeline->SetRootSignature(mDefaultRootSignature.get());
+    mDebugPipeline->Bake();
 }
 
 

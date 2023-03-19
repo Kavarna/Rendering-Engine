@@ -23,6 +23,11 @@ bool HitPoint::GetFrontFace() const
     return mFrontFace;
 }
 
+Entity* Common::HitPoint::GetEntity() const
+{
+    return mEntity;
+}
+
 void HitPoint::SetIntersectionPoint(Jnrlib::Float t)
 {
     mIntersectionPoint = t;
@@ -42,5 +47,10 @@ void HitPoint::SetMaterial(std::shared_ptr<IMaterial> material)
 void HitPoint::SetFrontFace(bool frontFace)
 {
     mFrontFace = frontFace;
+}
+
+void HitPoint::SetEntity(Entity* entity)
+{
+    mEntity = entity;
 }
 

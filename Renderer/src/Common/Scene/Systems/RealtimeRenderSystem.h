@@ -7,6 +7,8 @@
 #include "Vulkan/Pipeline.h"
 #include "Vulkan/CommandList.h"
 
+#include "Helpers/BatchRenderer.h"
+
 #include "Scene/Scene.h"
 #include "Scene/Camera.h"
 
@@ -30,7 +32,11 @@ namespace Common::Systems
         void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
         void ClearSelection();
 
+        void Update(float dt);
+
         void OnResize(Vulkan::Image* renderTarget, Vulkan::Image* depthImage, uint32_t width, uint32_t height);
+
+        void AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds);
 
     public:
         Vulkan::Pipeline* GetDefaultPipeline();
@@ -71,13 +77,17 @@ namespace Common::Systems
         std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
         std::unique_ptr<Vulkan::Pipeline> mSelectedObjectsPipeline;
         std::unique_ptr<Vulkan::Pipeline> mOutlinePipeline;
+        std::unique_ptr<Vulkan::Pipeline> mDebugPipeline;
 
         Vulkan::Image* mRenderTarget;
         Vulkan::Image* mDepthImage;
 
+        Common::BatchRenderer mBatchRenderer;
+
         // TODO: Make these a bit more dynamic (?) - take them as parameters
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;
         std::unique_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;
+
         std::unique_ptr<Vulkan::RootSignature> mDefaultRootSignature;
         std::unique_ptr<Vulkan::RootSignature> mOutlineRootSignature;
 

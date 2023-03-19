@@ -3,7 +3,7 @@
 using namespace Common;
 
 void Sphere::GetVertices(float radius, uint32_t sliceCount, uint32_t stackCount,
-                         std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+                         std::vector<VertexPositionNormal>& vertices, std::vector<uint32_t>& indices)
 {
 	//
 	// Compute the vertices stating at the top pole and moving down the stacks.
@@ -12,8 +12,8 @@ void Sphere::GetVertices(float radius, uint32_t sliceCount, uint32_t stackCount,
 	// Poles: note that there will be texture coordinate distortion as there is
 	// not a unique point on the texture map to assign to the pole when mapping
 	// a rectangular texture onto a sphere.
-	Vertex topVertex(0.0f, +radius, 0.0f, 0.0f, 1.0f, 0.0f);
-	Vertex bottomVertex(0.0f, -radius, 0.0f, 0.0f, -1.0f, 0.0f);
+	VertexPositionNormal topVertex(0.0f, +radius, 0.0f, 0.0f, 1.0f, 0.0f);
+	VertexPositionNormal bottomVertex(0.0f, -radius, 0.0f, 0.0f, -1.0f, 0.0f);
 
 	vertices.push_back(topVertex);
 
@@ -30,7 +30,7 @@ void Sphere::GetVertices(float radius, uint32_t sliceCount, uint32_t stackCount,
 		{
 			float theta = j * thetaStep;
 
-			Vertex v{};
+			VertexPositionNormal v{};
 
 			// spherical to cartesian
 			v.position.x = radius * sinf(phi) * cosf(theta);

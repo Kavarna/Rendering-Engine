@@ -29,5 +29,7 @@ void main()
 {
     PerObjectInfo ob = objectBuffer.objects[PushConstant.objectIndex];
     
-    gl_Position = uniformObject.viewProj * ob.world * vec4(position + inNormal * PushConstant.outlineWidth, 1.0);
+    vec3 pos = position;
+    pos += inNormal * PushConstant.outlineWidth;
+    gl_Position = uniformObject.viewProj * ob.world * vec4(pos, 1.0);
 }

@@ -19,7 +19,7 @@ namespace Editor
         void SetEntity(Common::Entity* entity);
 
     private:
-        mutable Common::Entity* mActiveEntity;
+        Common::Entity* mActiveEntity;
 
     };
 }

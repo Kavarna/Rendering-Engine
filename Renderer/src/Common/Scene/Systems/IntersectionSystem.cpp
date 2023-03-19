@@ -10,14 +10,14 @@ Intersection::Intersection()
 Intersection::~Intersection()
 { }
 
-std::optional<Common::HitPoint> Intersection::IntersectRay(Ray const& r, entt::registry const& objects)
+std::optional<Common::HitPoint> Intersection::IntersectRay(Ray const& r, entt::registry& objects)
 {
 
     std::optional<HitPoint> finalHitPoint;
     Jnrlib::Float closestHitSoFar = std::numeric_limits<Jnrlib::Float>::max();
     {
         /* Perform ray-sphere intersections */
-        auto view = objects.group_if_exists<const Base>(entt::get<const Sphere>);
+        auto view = objects.group<const Base>(entt::get<const Sphere>);
         for (auto const& [entity, base, sphere] : view.each())
         {
             std::optional<HitPoint> hp = RaySphereIntersection(r, base, sphere);
@@ -28,12 +28,15 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray const& r, entt::r
             Jnrlib::Float intersectionPoint = hp->GetIntersectionPoint();
             if (intersectionPoint < closestHitSoFar)
             {
+                CHECK(base.entityPtr != nullptr) << "Base doesn't include an entity pointer";
+                hp->SetEntity(base.entityPtr);
+
                 closestHitSoFar = intersectionPoint;
                 finalHitPoint = hp.value();
             }
         }
     }
-    return std::nullopt;
+    return finalHitPoint;
 }
 
 std::optional<HitPoint> Intersection::RaySphereIntersection(Ray const& r, Base const& b, Sphere const& s)

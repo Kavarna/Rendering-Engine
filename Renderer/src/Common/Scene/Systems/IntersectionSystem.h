@@ -16,7 +16,7 @@ namespace Common::Systems
         ~Intersection();
 
     public:
-        std::optional<HitPoint> IntersectRay(Ray const&, entt::registry const&);
+        std::optional<HitPoint> IntersectRay(Ray const&, entt::registry &);
 
     private:
         std::optional<HitPoint> RaySphereIntersection(

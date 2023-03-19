@@ -62,7 +62,7 @@ void SceneHierarchy::OnRender()
     auto& entities = mScene->GetRootEntities();
     ImGui::Begin("Scene hierarchy");
     
-    Common::Entity* selectedEntity = nullptr;
+    Common::Entity* selectedEntity = nullptr; 
     for (uint32_t i = 0; i < entities.size(); ++i)
     {
         Common::Entity* entity = RenderNode(entities[i]);
@@ -71,40 +71,50 @@ void SceneHierarchy::OnRender()
     }
     if (selectedEntity != nullptr)
     {
-        if (ImGui::GetIO().KeyCtrl)
-        {
-            // CTRL+click to toggle
-            if (auto it = mSelectedNodes.find(selectedEntity->GetEntityId()); it != mSelectedNodes.end())
-            {
-                mSelectedNodes.erase(it);
-            }
-            else
-            {
-                mSelectedNodes.insert(selectedEntity->GetEntityId());
-            }
-        }
-        else
-        {
-            mSelectedNodes.clear();
-            mSelectedNodes.insert(selectedEntity->GetEntityId());
-            mObjectInspector->SetEntity(selectedEntity);
-        }
-        if (mSceneViewer != nullptr)
-            mSceneViewer->SelectIndices(mSelectedNodes);
+        SelectEntity(*selectedEntity);
     }
     else
     {
-        auto& io = ImGui::GetIO();
-        bool mouseClicked = io.MouseClicked[0];
-        if (mouseClicked && ImGui::IsWindowFocused() && ImGui::IsWindowHovered())
-        {
-            mSelectedNodes.clear();
-            if (mSceneViewer != nullptr)
-                mSceneViewer->ClearSelection();
-        }
+        ClearSelection();
     }
 
     ImGui::End();
+}
+
+void SceneHierarchy::SelectEntity(Common::Entity& entity)
+{
+    if (ImGui::GetIO().KeyCtrl)
+    {
+        // CTRL+click to toggle
+        if (auto it = mSelectedNodes.find(entity.GetEntityId()); it != mSelectedNodes.end())
+        {
+            mSelectedNodes.erase(it);
+        }
+        else
+        {
+            mSelectedNodes.insert(entity.GetEntityId());
+        }
+    }
+    else
+    {
+        mSelectedNodes.clear();
+        mSelectedNodes.insert(entity.GetEntityId());
+        mObjectInspector->SetEntity(&entity);
+    }
+    if (mSceneViewer != nullptr)
+        mSceneViewer->SelectIndices(mSelectedNodes);
+}
+
+void SceneHierarchy::ClearSelection()
+{
+    auto& io = ImGui::GetIO();
+    bool mouseClicked = io.MouseClicked[0];
+    if (mouseClicked && ImGui::IsWindowFocused() && ImGui::IsWindowHovered())
+    {
+        mSelectedNodes.clear();
+        if (mSceneViewer != nullptr)
+            mSceneViewer->ClearSelection();
+    }
 }
 
 

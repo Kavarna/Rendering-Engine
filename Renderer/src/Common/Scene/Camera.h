@@ -4,6 +4,7 @@
 #include "Jnrlib.h"
 #include "CreateInfo/CameraCreateInfo.h"
 #include "Constants.h"
+#include "Ray.h"
 
 namespace Common
 {
@@ -27,6 +28,9 @@ namespace Common
 
         Jnrlib::Float GetFieldOfView() const;
 
+        Ray GetRayForPixel(uint32_t x, uint32_t y) const;
+
+        [[deprecated]]
         Jnrlib::Direction const& GetLowerLeftCorner() const;
 
         void MoveForward(float amount);
@@ -46,6 +50,7 @@ namespace Common
         void CalculateViewMatrix();
         void CalculateProjectionMatrix();
         void CalculateMatrices();
+        void CalculateUpperLeftCorner();
 
         void PerformUpdate();
 
@@ -54,7 +59,6 @@ namespace Common
 
         void MarkDirty();
 
-        void CalculateLowerLeftCorner();
 
     private:
         glm::vec3 mPosition;
@@ -73,7 +77,9 @@ namespace Common
         glm::mat4x4 mView;
         glm::mat4x4 mProjection;
 
-        Jnrlib::Direction mLowerLeftCorner;
+        Jnrlib::Float mProjectionWidth, mProjectionHeight;
+
+        Jnrlib::Direction mUpperLeftCorner;
     };
 
 }
