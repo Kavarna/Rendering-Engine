@@ -6,7 +6,7 @@
 #include "Constants.h"
 
 #include "Common/Scene/Components/BaseComponent.h"
-#include "Common/Scene/Components/UpdateComponent.h"
+#include "Common/Scene/Components/SphereComponent.h"
 
 using namespace Editor;
 using namespace Common;
@@ -63,6 +63,12 @@ void ObjectInspector::OnRender()
                 b.scaling = scaling;
             });
         }
+    }
+
+    if (auto* s = mActiveEntity->TryGetComponent<Sphere>(); s != nullptr && ImGui::CollapsingHeader("Sphere"))
+    {
+        /* TODO: Create a material inspector, and set the material there */
+        ImGui::Text("Material name: %s", s->material->GetName().c_str());
     }
 
     ImGui::End();

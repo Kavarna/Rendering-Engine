@@ -33,6 +33,9 @@ namespace Common
         T const& GetComponent() const;
 
         template <typename T>
+        T* TryGetComponent() const;
+
+        template <typename T>
         T& GetComponent();
 
         template <typename T, typename Callable>
@@ -75,6 +78,12 @@ namespace Common
     inline T const& Entity::GetComponent() const
     {
         return mEntities.get<T>(mEntity);
+    }
+
+    template<typename T>
+    inline T* Entity::TryGetComponent() const
+    {
+        return mEntities.try_get<T>(mEntity);
     }
 
     template<typename T>
