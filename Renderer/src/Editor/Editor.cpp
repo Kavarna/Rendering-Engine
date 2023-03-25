@@ -2,6 +2,11 @@
 #include "Vulkan/Renderer.h"
 #include "FileHelpers.h"
 
+#include "SceneViewer.h"
+#include "SceneHierarchy.h"
+#include "ObjectInspector.h"
+#include "RenderPreview.h"
+
 #include "imgui.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,6 +21,11 @@ constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 600;
 void OnResizeCallback(GLFWwindow* window, int width, int height)
 {
     Editor::Editor::Get()->OnResize(width, height);
+}
+
+void OnMaximizeCallback(GLFWwindow* window, int maximized)
+{
+    Editor::Editor::Get()->OnMaximize(maximized);
 }
 
 Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes) : 
@@ -83,6 +93,11 @@ void Editor::Editor::OnResize(uint32_t width, uint32_t height)
     Renderer::Get()->OnResize();
 }
 
+void Editor::Editor::OnMaximize(int maximized)
+{
+    mMaximized = maximized != 0;
+}
+
 bool Editor::Editor::IsKeyPressed(int keyCode)
 {
     return glfwGetKey(mWindow, keyCode) == GLFW_PRESS;
@@ -132,6 +147,8 @@ void Editor::Editor::DeserializeStructures()
             auto& windowInfo = std::get<Jnrlib::InfoMainWindowV1>(currentStructure);
             mWidth = windowInfo.width;
             mHeight = windowInfo.height;
+            int maximized = windowInfo.maximized;
+            mMaximized = maximized != 0;
         }
     }
 }
@@ -149,8 +166,14 @@ void Editor::Editor::InitWindow()
     );
     CHECK(mWindow != nullptr) << "Unable to create window";
 
+    if (mMaximized)
+    {
+        glfwMaximizeWindow(mWindow);
+    }
+
     glfwMakeContextCurrent(mWindow);
     glfwSetWindowSizeCallback(mWindow, OnResizeCallback);
+    glfwSetWindowMaximizeCallback(mWindow, OnMaximizeCallback);
 
     LOG(INFO) << "Successfully created window";
 }
@@ -200,6 +223,7 @@ void Editor::Editor::SerializeWindows()
         Jnrlib::InfoMainWindowV1 windowInfo;
         windowInfo.width = mWidth;
         windowInfo.height = mHeight;
+        windowInfo.maximized = mMaximized;
         serializer.AddStructure(windowInfo);
     }
     serializer.Flush();
@@ -251,20 +275,15 @@ void Editor::Editor::ShowDockingSpace()
 
         if (ImGui::BeginMenu("Edit"))
         {
-            if (mSceneViewer && ImGui::MenuItem("Scene viewer", nullptr, &mSceneViewer->mIsOpen))
-            {
-                LOG(INFO) << "Scene viewer is shown";
-            }
+            mSceneViewer && ImGui::MenuItem("Scene viewer", nullptr, &mSceneViewer->mIsOpen);
+            mSceneHierarchy && ImGui::MenuItem("Scene hierarchy", nullptr, &mSceneHierarchy->mIsOpen);
+            mObjectInspector && ImGui::MenuItem("Object inspector", nullptr, &mObjectInspector->mIsOpen);
 
-            if (mSceneHierarchy && ImGui::MenuItem("Scene hierarchy", nullptr, &mSceneHierarchy->mIsOpen))
-            {
-                LOG(INFO) << "Scene hierarchy is shown";
-            }
-
-            if (mObjectInspector && ImGui::MenuItem("Object inspector", nullptr, &mObjectInspector->mIsOpen))
-            {
-                LOG(INFO) << "Object inspector is shown";
-            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Render"))
+        {
+            mRenderPreview&& ImGui::MenuItem("Render preview", nullptr, &mRenderPreview->mIsOpen);
 
             ImGui::EndMenu();
         }
@@ -354,6 +373,12 @@ void Editor::Editor::InitImguiWindows()
         mImguiWindows.emplace_back(std::move(sceneHierarchy));
         mSceneViewer->SetSceneHierarchy(mSceneHierarchy);
     }
+    {
+        /* Render preview */
+        auto renderPreview = std::make_unique<RenderPreview>(mActiveScene.get(), mInitializationCmdList.get());
+        mRenderPreview = renderPreview.get();
+        mImguiWindows.emplace_back(std::move(renderPreview));
+    }
     
     {
         for (uint32_t j = 0; j < mWindowsDeserializer->GetNumStructures(); ++j)
@@ -408,6 +433,14 @@ void Editor::Editor::Frame()
             ctx.cmdBufIndex = 0;
             ctx.cmdList = cmdList.get();
             mSceneViewer->SetRenderingContext(ctx);
+        }
+
+        /* Prepare the render preview */
+        {
+            RenderPreview::RenderingContext ctx;
+            ctx.cmdList = cmdList.get();
+            ctx.cmdBufIndex = 0;
+            mRenderPreview->SetRenderingContext(ctx);
         }
     }
 

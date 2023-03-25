@@ -3,6 +3,11 @@
 #include "ImguiWindow.h"
 #include "Common/Scene/Entity.h"
 
+namespace Common::Components
+{
+    struct Base;
+    struct Sphere;
+}
 
 namespace Editor
 {
@@ -17,6 +22,10 @@ namespace Editor
 
     public:
         void SetEntity(Common::Entity* entity);
+
+    private:
+        void RenderBase(Common::Components::Base& b);
+        void RenderSphere(Common::Components::Sphere& s);
 
     private:
         Common::Entity* mActiveEntity;

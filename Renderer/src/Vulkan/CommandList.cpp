@@ -73,6 +73,9 @@ void CommandList::Begin(uint32_t cmdBufIndex)
         mImageIndex = -1;
     }
 
+    /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
+    mLayoutTracker.Flush();
+    mMemoryTracker.Flush();
 }
 
 void CommandList::End(uint32_t cmdBufIndex)
@@ -432,6 +435,11 @@ void Vulkan::CommandList::AddLocalBuffer(std::unique_ptr<Buffer>&& buffer)
     mMemoryTracker.AddBuffer(std::move(buffer));
 }
 
+void Vulkan::CommandList::AddLocalImage(std::unique_ptr<Image>&& image)
+{
+    mMemoryTracker.AddImage(std::move(image));
+}
+
 void CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
 {
     auto renderer = Renderer::Get();
@@ -453,10 +461,6 @@ void CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
             jnrQueueSubmit(renderer->mGraphicsQueue, 1, &submitInfo, signalWhenFinished == nullptr ? VK_NULL_HANDLE : signalWhenFinished->GetFence())
         );
     }
-
-    /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
-    mLayoutTracker.Flush();
-    mMemoryTracker.Flush();
 }
 
 void CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
@@ -511,9 +515,6 @@ void CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
 
         ThrowIfFailed(jnrQueuePresentKHR(renderer->mPresentQueue, &presentInfo));
     }
-
-    mLayoutTracker.Flush();
-    mMemoryTracker.Flush();
 }
 
 void CommandList::SubmitAndWait()

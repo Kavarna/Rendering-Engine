@@ -71,6 +71,7 @@ namespace Vulkan
         void FlushUI(uint32_t cmdBufIndex = 0);
 
         void AddLocalBuffer(std::unique_ptr<Buffer>&& buffer);
+        void AddLocalImage(std::unique_ptr<Image>&& buffer);
 
         void Submit(CPUSynchronizationObject* signalWhenFinished);
         void SubmitToScreen(CPUSynchronizationObject* signalWhenFinished = nullptr);

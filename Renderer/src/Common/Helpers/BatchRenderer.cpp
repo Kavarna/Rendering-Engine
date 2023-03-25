@@ -69,10 +69,10 @@ void BatchRenderer::Begin()
 
     if (mOverflowVertices.size() > 0)
     {
-        Resize(mCurrentSize + mOverflowVertices.size());
+        Resize(mCurrentSize + (uint32_t)mOverflowVertices.size());
         memcpy_s((VertexPositionColor*)mVertexBuffer->GetData() + mCurrentVertex, mVertexBuffer->GetSize(),
                  mOverflowVertices.data(), mOverflowVertices.size() * sizeof(decltype(mOverflowVertices)::value_type));
-        mCurrentSize = mVertexBuffer->GetCount();
+        mCurrentSize = (uint32_t)mVertexBuffer->GetCount();
     }
 
     // Copy over the persistent vertices

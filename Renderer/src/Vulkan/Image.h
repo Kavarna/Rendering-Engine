@@ -20,9 +20,11 @@ namespace Vulkan
             VkImageLayout initialLayout;
 
             VmaAllocationCreateFlags allocationFlags = 0;
+            VmaMemoryUsage memoryUsage = VMA_MEMORY_USAGE_AUTO;
             std::vector<uint32_t> queueFamilies{};
             VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
         };
+
     public:
         Image(Info2D const& info);
         ~Image();
@@ -33,6 +35,9 @@ namespace Vulkan
         ImTextureID GetTextureID();
 
         VkFormat GetFormat() const;
+
+    public:
+        void SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& color);
 
     private:
         VkImageCreateInfo mCreateInfo{};
@@ -53,6 +58,7 @@ namespace Vulkan
         VmaAllocationInfo mAllocationInfo;
 
         bool mMappable;
+        void* mData = nullptr;
     };
 
 }

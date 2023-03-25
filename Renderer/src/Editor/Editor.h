@@ -10,12 +10,12 @@
 #include "Constants.h"
 #include "JnrSerializer.h"
 
-#include "SceneViewer.h"
-#include "SceneHierarchy.h"
-#include "ObjectInspector.h"
-
 namespace Editor
 {
+    class SceneViewer;
+    class SceneHierarchy;
+    class ObjectInspector;
+    class RenderPreview;
     class Editor : public Jnrlib::ISingletone<Editor>
     {
         MAKE_SINGLETONE_CAPABLE(Editor);
@@ -28,6 +28,7 @@ namespace Editor
 
     public:
         void OnResize(uint32_t width, uint32_t height);
+        void OnMaximize(int maximized);
         bool IsKeyPressed(int keyCode);
         bool IsMousePressed(int keyCode);
 
@@ -78,9 +79,11 @@ namespace Editor
         SceneViewer* mSceneViewer;
         SceneHierarchy* mSceneHierarchy;
         ObjectInspector* mObjectInspector;
+        RenderPreview* mRenderPreview;
  
         bool mShouldClose = false;
         bool mMinimized = false;
+        bool mMaximized = false;
     };
 
 }

@@ -42,7 +42,7 @@ Image::Image(Info2D const& info):
 
     VmaAllocationCreateInfo allocationInfo{};
     {
-        allocationInfo.usage = VMA_MEMORY_USAGE_AUTO;
+        allocationInfo.usage = info.memoryUsage;
         allocationInfo.flags = info.allocationFlags;
     }
 
@@ -51,6 +51,13 @@ Image::Image(Info2D const& info):
     );
 
     mLayout = info.initialLayout;
+
+    if (mMappable)
+    {
+        auto allocator = Renderer::Get()->GetAllocator();
+
+        vmaMapMemory(allocator, mAllocation, (void**)&mData);
+    }
 }
 
 Image::~Image()
@@ -63,6 +70,12 @@ Image::~Image()
         jnrDestroyImageView(device, it.second, nullptr);
     }
     mImageViews.clear();
+
+    if (mMappable)
+    {
+        auto allocator = Renderer::Get()->GetAllocator();
+        vmaUnmapMemory(allocator, mAllocation);
+    }
 
     if (mImguiTextureID)
     {
@@ -113,6 +126,24 @@ VkImageView Image::GetImageView(VkImageAspectFlags aspectMask)
 VkFormat Image::GetFormat() const
 {
     return mFormat;
+}
+
+void Image::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& color)
+{
+    CHECK(mData) << "Cannot set pixel color for an unmappable image";
+
+    CHECK(x < mCreateInfo.extent.width) << "X coordinate must be less than width";
+    CHECK(y < mCreateInfo.extent.height) << "Y coordinate must be less than height";
+
+    if (mCreateInfo.format == VK_FORMAT_R32G32B32A32_SFLOAT)
+    {
+        glm::vec4* image = (glm::vec4*)mData;
+        image[y * mCreateInfo.extent.width + x] = color;
+    }
+    else
+    {
+        CHECK(false) << "Invalid format used to set pixel color";
+    }
 }
 
 VkExtent2D Image::GetExtent2D() const

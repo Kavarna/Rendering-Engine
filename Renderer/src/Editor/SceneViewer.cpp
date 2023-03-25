@@ -36,11 +36,11 @@ void Editor::SceneViewer::SetRenderingContext(RenderingContext const& ctx)
 
 void Editor::SceneViewer::OnRender()
 {    
-    ImGui::Begin("Scene viewer");
+    ImGui::Begin("Scene viewer", nullptr, ImGuiWindowFlags_NoScrollbar);
 
     auto frameHeight = ImGui::GetFrameHeight();
     float width, height;
-    width = ImGui::GetWindowWidth() - frameHeight; /* One pixel on the left, one pixel on the right */
+    width = ImGui::GetWindowWidth() - 2; /* One pixel on the left, one pixel on the right */
     height = ImGui::GetWindowHeight() - 2 * frameHeight;
 
     if (width != mWidth || height != mHeight && height != 0)
@@ -55,7 +55,6 @@ void Editor::SceneViewer::OnRender()
         {
             UpdateActive();
         }
-
 
         RenderScene();
 
@@ -268,8 +267,7 @@ void Editor::SceneViewer::InitRenderTargets()
     }
     for (auto& frameResources : mPerFrameResources)
     {
-        frameResources.renderTarget.reset();
-        frameResources.renderTarget = std::make_unique<Image>(info);
+        frameResources.renderTarget.reset(new Image(info));
     }
 
     Image::Info2D depthInfo;

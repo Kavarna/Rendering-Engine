@@ -14,13 +14,13 @@ using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
+RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList, uint32_t cmdBufIndex) :
     mScene(scene)
 {
     InitRootSignatures();
     InitPerObjectBuffer();
     InitUniformBuffer();
-    InitMaterialsBuffer(cmdList);
+    InitMaterialsBuffer(cmdList, cmdBufIndex);
 }
 
 RealtimeRender::~RealtimeRender()
@@ -37,6 +37,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
     auto const& spheres = mScene->mRegistry.group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
     {
         /* Build rendering buffers */
+        /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
             if (update.dirtyFrames > 0)
@@ -210,7 +211,7 @@ void RealtimeRender::InitUniformBuffer()
     mDefaultDescriptorSets->BindInputBuffer(mUniformBuffer.get(), 1, 0, 0);
 }
 
-void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
+void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList, uint32_t cmdBufIndex)
 {
     auto materialManager = MaterialManager::Get();
     auto materials = materialManager->GetShaderMaterials();
@@ -226,7 +227,7 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
         mMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
-        cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
+        cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get(), cmdBufIndex);
         cmdList->AddLocalBuffer(std::move(localMaterialsBuffer));
     }
 

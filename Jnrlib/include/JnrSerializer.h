@@ -50,6 +50,7 @@ namespace Jnrlib
     {
         uint32_t width = 0;
         uint32_t height = 0;
+        int maximized = 0;
 
         void Dump(unsigned char* content)
         {
@@ -57,6 +58,8 @@ namespace Jnrlib
             *contentU32 = width;
             contentU32++;
             *contentU32 = height;
+            contentU32++;
+            *contentU32 = maximized;
         }
 
         void Load(unsigned char* content)
@@ -65,6 +68,8 @@ namespace Jnrlib
             width = *contentU32;
             contentU32++;
             height = *contentU32;
+            contentU32++;
+            maximized = *contentU32;
         }
 
         uint32_t EstimateSize()

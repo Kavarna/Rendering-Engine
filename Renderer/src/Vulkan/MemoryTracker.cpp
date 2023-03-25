@@ -1,6 +1,7 @@
 #include "MemoryTracker.h"
 
 #include "Buffer.h"
+#include "Image.h"
 
 using namespace Vulkan;
 
@@ -20,6 +21,12 @@ void MemoryTracker::AddBuffer(std::unique_ptr<Buffer> && buffer)
     mBuffers.emplace_back(std::move(buffer));
 }
 
+void Vulkan::MemoryTracker::AddImage(std::unique_ptr<Image>&& image)
+{
+    CHECK(image != nullptr) << "Can not register an null-buffer in the memory tracker";
+    mImages.emplace_back(std::move(image));
+}
+
 void Vulkan::MemoryTracker::Flush()
 {
     for (auto& buffer : mBuffers)
@@ -27,4 +34,10 @@ void Vulkan::MemoryTracker::Flush()
         buffer.reset();
     }
     mBuffers.clear();
+
+    for (auto& image : mImages)
+    {
+        image.reset();
+    }
+    mImages.clear();
 }

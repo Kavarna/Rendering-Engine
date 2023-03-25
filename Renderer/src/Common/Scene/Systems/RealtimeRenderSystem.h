@@ -19,7 +19,7 @@ namespace Common::Systems
     class RealtimeRender : public Jnrlib::ISingletone<RealtimeRender>
     {
     public:
-        RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList);
+        RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList, uint32_t cmdBufIndex = 0);
         ~RealtimeRender();
 
     public:
@@ -45,7 +45,7 @@ namespace Common::Systems
         void InitRootSignatures();
         void InitPerObjectBuffer();
         void InitUniformBuffer();
-        void InitMaterialsBuffer(Vulkan::CommandList* cmdList);
+        void InitMaterialsBuffer(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex);
         void InitPipelines(uint32_t width, uint32_t height);
 
     private:
