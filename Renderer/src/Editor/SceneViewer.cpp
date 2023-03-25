@@ -101,11 +101,9 @@ void Editor::SceneViewer::RenderScene()
 
     auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
     auto& cmdList = mActiveRenderingContext.cmdList;
-    auto cmdBufIndex = mActiveRenderingContext.cmdBufIndex;
-
     
-    currentFrameResources.renderSystem->RenderScene(cmdList, cmdBufIndex);
-    cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get(), cmdBufIndex);
+    currentFrameResources.renderSystem->RenderScene(cmdList);
+    cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get());
 
     mScene->PerformUpdate();
     mCamera->PerformUpdate();

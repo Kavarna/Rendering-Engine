@@ -58,7 +58,7 @@ void CommandList::ResetAll()
     ThrowIfFailed(jnrResetCommandPool(device, mCommandPool, 0));
 }
 
-void CommandList::Begin(uint32_t cmdBufIndex)
+void CommandList::Begin()
 {
     auto renderer = Renderer::Get();
 
@@ -67,7 +67,7 @@ void CommandList::Begin(uint32_t cmdBufIndex)
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     }
-    ThrowIfFailed(jnrBeginCommandBuffer(mCommandBuffers[cmdBufIndex], &beginInfo));    
+    ThrowIfFailed(jnrBeginCommandBuffer(mCommandBuffers[mActiveCommandIndex], &beginInfo));    
     {
         /* Reset current recording info */
         mImageIndex = -1;
@@ -78,7 +78,7 @@ void CommandList::Begin(uint32_t cmdBufIndex)
     mMemoryTracker.Flush();
 }
 
-void CommandList::End(uint32_t cmdBufIndex)
+void CommandList::End()
 {
     auto renderer = Renderer::Get();
     if (mImageIndex != -1)
@@ -92,25 +92,25 @@ void CommandList::End(uint32_t cmdBufIndex)
                 ti.srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
                 ti.dstStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             }
-            TransitionBackbufferTo(ti, cmdBufIndex);
+            TransitionBackbufferTo(ti);
         }
 
     }
 
-    ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[cmdBufIndex]));
+    ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[mActiveCommandIndex]));
 }
 
-void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer* dst, Vulkan::Buffer* src, uint32_t cmdBufIndex)
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer* dst, Vulkan::Buffer* src)
 {
-    CopyBuffer(dst, 0, src, 0, cmdBufIndex);
+    CopyBuffer(dst, 0, src, 0);
 }
 
-void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src, uint32_t cmdBufIndex)
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src)
 {
-    CopyBuffer(dst, dstOffset, src, 0, cmdBufIndex);
+    CopyBuffer(dst, dstOffset, src, 0);
 }
 
-void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src, uint32_t srcOffset, uint32_t cmdBufIndex)
+void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, Vulkan::Buffer * src, uint32_t srcOffset)
 {
     CHECK(dst->mCount >= src->mCount) << "Cannot copy a larger buffer into a smaller one";
 
@@ -121,16 +121,16 @@ void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer * dst, uint32_t dstOffset, V
         copyInfo.dstOffset = dstOffset;
         copyInfo.size = src->GetElementSize() * src->mCount;
     }
-    jnrCmdCopyBuffer(mCommandBuffers[cmdBufIndex], src->mBuffer, dst->mBuffer, 1, &copyInfo);
+    jnrCmdCopyBuffer(mCommandBuffers[mActiveCommandIndex], src->mBuffer, dst->mBuffer, 1, &copyInfo);
 }
 
-void Vulkan::CommandList::BindVertexBuffer(Vulkan::Buffer const* buffer, uint32_t firstIndex, uint32_t cmdBufIndex)
+void Vulkan::CommandList::BindVertexBuffer(Vulkan::Buffer const* buffer, uint32_t firstIndex)
 {
     VkDeviceSize offsets[] = {0};
-    jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], firstIndex, 1, &buffer->mBuffer, offsets);
+    jnrCmdBindVertexBuffers(mCommandBuffers[mActiveCommandIndex], firstIndex, 1, &buffer->mBuffer, offsets);
 }
 
-void Vulkan::CommandList::BindVertexBuffers(Vulkan::Buffer const* buffers[], uint32_t firstIndex, uint32_t cmdBufIndex)
+void Vulkan::CommandList::BindVertexBuffers(Vulkan::Buffer const* buffers[], uint32_t firstIndex)
 {
     constexpr uint32_t count = sizeof(buffers) / sizeof(buffers[0]);
     VkBuffer _buffers[count] = {};
@@ -139,52 +139,52 @@ void Vulkan::CommandList::BindVertexBuffers(Vulkan::Buffer const* buffers[], uin
     {
         _buffers[i] = buffers[i]->mBuffer;
     }
-    jnrCmdBindVertexBuffers(mCommandBuffers[cmdBufIndex], firstIndex, count, _buffers, offsets);
+    jnrCmdBindVertexBuffers(mCommandBuffers[mActiveCommandIndex], firstIndex, count, _buffers, offsets);
 }
 
-void Vulkan::CommandList::BindIndexBuffer(Vulkan::Buffer const* buffer, uint32_t cmdBufIndex)
+void Vulkan::CommandList::BindIndexBuffer(Vulkan::Buffer const* buffer)
 {
     VkIndexType indexType = VK_INDEX_TYPE_NONE_KHR;
     if (buffer->GetElementSize() == sizeof(uint32_t))
         indexType = VK_INDEX_TYPE_UINT32;
     else if (buffer->GetElementSize() == sizeof(uint16_t))
         indexType = VK_INDEX_TYPE_UINT16;
-    jnrCmdBindIndexBuffer(mCommandBuffers[cmdBufIndex], buffer->mBuffer, 0, indexType);
+    jnrCmdBindIndexBuffer(mCommandBuffers[mActiveCommandIndex], buffer->mBuffer, 0, indexType);
 }
 
-void CommandList::Draw(uint32_t vertexCount, uint32_t firstVertex, uint32_t cmdBufIndex)
+void CommandList::Draw(uint32_t vertexCount, uint32_t firstVertex)
 {
-    jnrCmdDraw(mCommandBuffers[cmdBufIndex], vertexCount, 1, firstVertex, 0);
+    jnrCmdDraw(mCommandBuffers[mActiveCommandIndex], vertexCount, 1, firstVertex, 0);
 }
 
-void Vulkan::CommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t cmdBufIndex)
+void Vulkan::CommandList::DrawIndexedInstanced(uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset)
 {
-    jnrCmdDrawIndexed(mCommandBuffers[cmdBufIndex], indexCount, 1, firstIndex, vertexOffset, 0);
+    jnrCmdDrawIndexed(mCommandBuffers[mActiveCommandIndex], indexCount, 1, firstIndex, vertexOffset, 0);
 }
 
-void CommandList::BindPipeline(Pipeline* pipeline, uint32_t cmdBufIndex)
+void CommandList::BindPipeline(Pipeline* pipeline)
 {
-    jnrCmdBindPipeline(mCommandBuffers[cmdBufIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->mPipeline);
+    jnrCmdBindPipeline(mCommandBuffers[mActiveCommandIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->mPipeline);
 }
 
-void CommandList::BindDescriptorSet(DescriptorSet* set, uint32_t descriptorSetInstance, RootSignature* rootSignature, uint32_t cmdBufIndex)
+void CommandList::BindDescriptorSet(DescriptorSet* set, uint32_t descriptorSetInstance, RootSignature* rootSignature)
 {
-    jnrCmdBindDescriptorSets(mCommandBuffers[cmdBufIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+    jnrCmdBindDescriptorSets(mCommandBuffers[mActiveCommandIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                              rootSignature->mPipelineLayout, 0, 1,
                              &set->mDescriptorSets[descriptorSetInstance], 0, nullptr);
 }
 
-void CommandList::SetScissor(std::vector<VkRect2D> const& scissors, uint32_t cmdBufIndex)
+void CommandList::SetScissor(std::vector<VkRect2D> const& scissors)
 {
-    jnrCmdSetScissor(mCommandBuffers[cmdBufIndex], 0, (uint32_t)scissors.size(), scissors.data());
+    jnrCmdSetScissor(mCommandBuffers[mActiveCommandIndex], 0, (uint32_t)scissors.size(), scissors.data());
 }
 
-void CommandList::SetViewports(std::vector<VkViewport> const& viewports, uint32_t cmdBufIndex)
+void CommandList::SetViewports(std::vector<VkViewport> const& viewports)
 {
-    jnrCmdSetViewport(mCommandBuffers[cmdBufIndex], 0, (uint32_t)viewports.size(), viewports.data());
+    jnrCmdSetViewport(mCommandBuffers[mActiveCommandIndex], 0, (uint32_t)viewports.size(), viewports.data());
 }
 
-void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo, uint32_t cmdBufIndex)
+void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo)
 {
     auto renderer = Renderer::Get();
     VkImageMemoryBarrier imageMemoryBarrier{};
@@ -206,7 +206,7 @@ void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo, u
     }
 
     jnrCmdPipelineBarrier(
-        mCommandBuffers[cmdBufIndex],
+        mCommandBuffers[mActiveCommandIndex],
         transitionInfo.srcStage,
         transitionInfo.dstStage,
         0, 0, nullptr, 0, nullptr,
@@ -216,7 +216,7 @@ void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo, u
     mLayoutTracker.TransitionBackBufferImage(mImageIndex, transitionInfo.newLayout);
 }
 
-void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo, uint32_t cmdBufIndex)
+void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo)
 {
     /* TODO: Do not transition if the old layout is already new layout */
     VkImageAspectFlags aspectMask = 0;
@@ -252,7 +252,7 @@ void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transition
     }
 
     jnrCmdPipelineBarrier(
-        mCommandBuffers[cmdBufIndex],
+        mCommandBuffers[mActiveCommandIndex],
         transitionInfo.srcStage,
         transitionInfo.dstStage,
         0, 0, nullptr, 0, nullptr,
@@ -262,7 +262,7 @@ void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transition
     mLayoutTracker.TransitionImage(img, transitionInfo.newLayout);
 }
 
-void CommandList::TransitionImageToImguiLayout(Image* img, uint32_t cmdBufIndex)
+void CommandList::TransitionImageToImguiLayout(Image* img)
 {
     TransitionInfo ti = {};
     {
@@ -271,10 +271,10 @@ void CommandList::TransitionImageToImguiLayout(Image* img, uint32_t cmdBufIndex)
         ti.dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         ti.srcStage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
     }
-    TransitionImageTo(img, ti, cmdBufIndex);
+    TransitionImageTo(img, ti);
 }
 
-void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor, uint32_t cmdBufIndex)
+void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor)
 {
     if (mBackbufferAvailable == nullptr)
         mBackbufferAvailable = std::make_unique<GPUSynchronizationObject>();
@@ -289,7 +289,7 @@ void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColo
             ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             ti.dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         }
-        TransitionBackbufferTo(ti, cmdBufIndex);
+        TransitionBackbufferTo(ti);
     }
 
     VkClearValue clearValue{};
@@ -321,10 +321,10 @@ void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColo
         renderingInfo.layerCount = 1;
     }
 
-    jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
+    jnrCmdBeginRendering(mCommandBuffers[mActiveCommandIndex], &renderingInfo);
 }
 
-void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, bool useStencil, uint32_t cmdBufIndex)
+void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, bool useStencil)
 {
     auto renderer = Renderer::Get();
     /* TODO: Maybe batch these transitions? */
@@ -337,7 +337,7 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
             ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             ti.dstStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         }
-        TransitionImageTo(img, ti, cmdBufIndex);
+        TransitionImageTo(img, ti);
     }
     if (depth)
     {
@@ -349,7 +349,7 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
             ti.srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             ti.dstStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         }
-        TransitionImageTo(depth, ti, cmdBufIndex);
+        TransitionImageTo(depth, ti);
     }
     VkRenderingAttachmentInfo colorAttachment{};
     {
@@ -396,31 +396,31 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         renderingInfo.layerCount = 1;
     }
 
-    jnrCmdBeginRendering(mCommandBuffers[cmdBufIndex], &renderingInfo);
+    jnrCmdBeginRendering(mCommandBuffers[mActiveCommandIndex], &renderingInfo);
 }
 
-void CommandList::EndRendering(uint32_t cmdBufIndex)
+void CommandList::EndRendering()
 {
-    jnrCmdEndRendering(mCommandBuffers[cmdBufIndex]);
+    jnrCmdEndRendering(mCommandBuffers[mActiveCommandIndex]);
 }
 
-void CommandList::InitImGui(uint32_t cmdBufIndex)
+void CommandList::InitImGui()
 {
-    ImGui_ImplVulkan_CreateFontsTexture(mCommandBuffers[cmdBufIndex]);
+    ImGui_ImplVulkan_CreateFontsTexture(mCommandBuffers[mActiveCommandIndex]);
 }
 
-void CommandList::UINewFrame(uint32_t cmdBufIndex)
+void CommandList::UINewFrame()
 {
-    ImGui_ImplVulkan_NewFrame(mCommandBuffers[cmdBufIndex]);
+    ImGui_ImplVulkan_NewFrame(mCommandBuffers[mActiveCommandIndex]);
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void CommandList::FlushUI(uint32_t cmdBufIndex)
+void CommandList::FlushUI()
 {
     ImGui::Render();
 
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), mCommandBuffers[cmdBufIndex]);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), mCommandBuffers[mActiveCommandIndex]);
 
     auto& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)

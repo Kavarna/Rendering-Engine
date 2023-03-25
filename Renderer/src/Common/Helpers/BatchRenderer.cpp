@@ -80,14 +80,14 @@ void BatchRenderer::Begin()
     mCurrentVertex = (uint32_t)mPersistentVertices.size();
 }
 
-void BatchRenderer::End(CommandList* cmdList, uint32_t cmdBufIndex)
+void BatchRenderer::End(CommandList* cmdList)
 {
     CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size()) << "Persistent vertices and persistent vertices times should be the same";
 
     if (mCurrentVertex > 0)
     {
-        cmdList->BindVertexBuffer(mVertexBuffer.get(), 0, cmdBufIndex);
-        cmdList->Draw(mCurrentVertex, 0, cmdBufIndex);
+        cmdList->BindVertexBuffer(mVertexBuffer.get(), 0);
+        cmdList->Draw(mCurrentVertex, 0);
     }
 }
 

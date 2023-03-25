@@ -14,25 +14,25 @@ using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList, uint32_t cmdBufIndex) :
+RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
     mScene(scene)
 {
     InitRootSignatures();
     InitPerObjectBuffer();
     InitUniformBuffer();
-    InitMaterialsBuffer(cmdList, cmdBufIndex);
+    InitMaterialsBuffer(cmdList);
 }
 
 RealtimeRender::~RealtimeRender()
 {
 }
 
-void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
+void RealtimeRender::RenderScene(CommandList* cmdList)
 {
     auto vertexBuffer = mScene->GetVertexBuffer();
     auto indexBuffer = mScene->GetIndexBuffer();
-    cmdList->BindVertexBuffer(vertexBuffer, 0, cmdBufIndex);
-    cmdList->BindIndexBuffer(indexBuffer, cmdBufIndex);
+    cmdList->BindVertexBuffer(vertexBuffer, 0);
+    cmdList->BindIndexBuffer(indexBuffer);
 
     auto const& spheres = mScene->mRegistry.group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
     {
@@ -66,9 +66,9 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
         }
     }
 
-    cmdList->BeginRenderingOnImage(mRenderTarget, Jnrlib::Black, mDepthImage, true, cmdBufIndex);
-    cmdList->BindPipeline(mDefaultPipeline.get(), cmdBufIndex);
-    cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get(), cmdBufIndex);
+    cmdList->BeginRenderingOnImage(mRenderTarget, Jnrlib::Black, mDepthImage, true);
+    cmdList->BindPipeline(mDefaultPipeline.get());
+    cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
 
     {
         /* Render */
@@ -79,14 +79,14 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
 
             /* TODO: pass this as instance */
             uint32_t index = update.bufferIndex;
-            cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
+            cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
+            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
         }
     }
 
     if (mSelectedIndices.size())
     {
-        cmdList->BindPipeline(mSelectedObjectsPipeline.get(), cmdBufIndex);
+        cmdList->BindPipeline(mSelectedObjectsPipeline.get());
         
         /* Render selected objects */
         for (const auto& entity : mSelectedIndices)
@@ -94,12 +94,12 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
             auto& update = mScene->mRegistry.get<Components::Update>((entt::entity)entity);
             auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
             uint32_t index = update.bufferIndex;
-            cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
+            cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
+            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
         }
 
-        cmdList->BindPipeline(mOutlinePipeline.get(), cmdBufIndex);
-        cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mOutlineRootSignature.get(), cmdBufIndex);
+        cmdList->BindPipeline(mOutlinePipeline.get());
+        cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mOutlineRootSignature.get());
         /* Render the outlines */
         for (const auto& entity : mSelectedIndices)
         {
@@ -109,14 +109,14 @@ void RealtimeRender::RenderScene(CommandList* cmdList, uint32_t cmdBufIndex)
 
             OutlineVertPushConstants outlineVertPushConstants{.objectIndex = index, .lineWidth = 0.025f};
             cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1, &outlineVertPushConstants,
-                                                             VK_SHADER_STAGE_VERTEX_BIT, cmdBufIndex);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex, cmdBufIndex);
+                                                             VK_SHADER_STAGE_VERTEX_BIT);
+            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
         }
     }
-    cmdList->BindPipeline(mDebugPipeline.get(), cmdBufIndex);
+    cmdList->BindPipeline(mDebugPipeline.get());
     mBatchRenderer.Begin();
-    mBatchRenderer.End(cmdList, cmdBufIndex);
-    cmdList->EndRendering(cmdBufIndex);
+    mBatchRenderer.End(cmdList);
+    cmdList->EndRendering();
 }
 
 RootSignature* RealtimeRender::GetRootSiganture() const
@@ -211,7 +211,7 @@ void RealtimeRender::InitUniformBuffer()
     mDefaultDescriptorSets->BindInputBuffer(mUniformBuffer.get(), 1, 0, 0);
 }
 
-void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList, uint32_t cmdBufIndex)
+void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
 {
     auto materialManager = MaterialManager::Get();
     auto materials = materialManager->GetShaderMaterials();
@@ -227,7 +227,7 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList, uint32_t cmdBufIn
         mMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
-        cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get(), cmdBufIndex);
+        cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
         cmdList->AddLocalBuffer(std::move(localMaterialsBuffer));
     }
 

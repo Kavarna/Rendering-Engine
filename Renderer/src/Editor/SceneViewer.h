@@ -24,7 +24,6 @@ namespace Editor
         {
             uint32_t activeFrame = 0;
             Vulkan::CommandList* cmdList = nullptr;
-            uint32_t cmdBufIndex = 0;
         };
     public:
         SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList);

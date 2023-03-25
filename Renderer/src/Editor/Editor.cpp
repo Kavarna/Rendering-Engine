@@ -430,7 +430,6 @@ void Editor::Editor::Frame()
         {
             SceneViewer::RenderingContext ctx;
             ctx.activeFrame = mCurrentFrame;
-            ctx.cmdBufIndex = 0;
             ctx.cmdList = cmdList.get();
             mSceneViewer->SetRenderingContext(ctx);
         }
@@ -439,7 +438,6 @@ void Editor::Editor::Frame()
         {
             RenderPreview::RenderingContext ctx;
             ctx.cmdList = cmdList.get();
-            ctx.cmdBufIndex = 0;
             mRenderPreview->SetRenderingContext(ctx);
         }
     }

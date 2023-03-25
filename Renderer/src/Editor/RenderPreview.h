@@ -26,7 +26,6 @@ namespace Editor
         struct RenderingContext
         {
             Vulkan::CommandList* cmdList = nullptr;
-            uint32_t cmdBufIndex = 0;
         };
     public:
         RenderPreview(Common::Scene* scene, Vulkan::CommandList* cmdList, uint32_t cmdBufIndex = 0);

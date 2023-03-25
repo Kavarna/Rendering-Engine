@@ -26,7 +26,7 @@ namespace Common
         void Update(float dt);
 
         void Begin();
-        void End(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex = 0);
+        void End(Vulkan::CommandList* cmdList);
 
     private:
         void Resize(uint32_t size);
