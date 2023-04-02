@@ -51,4 +51,9 @@ void Editor::RenderPreview::OnRender()
 
 void Editor::RenderPreview::StartRendering()
 {
+    if (boost::icontains(mRendererTypes[mRendererType], "real") &&
+        boost::icontains(mRendererTypes[mRendererType], "time"))
+    {
+
+    }
 }

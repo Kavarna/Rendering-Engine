@@ -177,7 +177,7 @@ void Camera::CalculateViewMatrix()
 
 void Camera::CalculateProjectionMatrix()
 {
-    mProjection = glm::perspectiveLH(mFieldOfView, mAspectRatio, 0.1f, 100.0f);
+    mProjection = glm::perspectiveLH(mFieldOfView, mAspectRatio, 0.1f, 1000.0f);
     mProjection[1][1] *= -1;
 }
 

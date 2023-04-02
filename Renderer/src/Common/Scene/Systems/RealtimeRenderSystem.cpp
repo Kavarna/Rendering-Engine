@@ -9,6 +9,8 @@
 
 #include "glm/gtc/matrix_transform.hpp"
 
+#include <DirectXCollision.h>
+
 using namespace Common;
 using namespace Systems;
 using namespace Vulkan;
@@ -21,6 +23,7 @@ RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
     InitPerObjectBuffer();
     InitUniformBuffer();
     InitMaterialsBuffer(cmdList);
+    mBatchRenderer.Begin();
 }
 
 RealtimeRender::~RealtimeRender()
@@ -114,9 +117,15 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
     }
     cmdList->BindPipeline(mDebugPipeline.get());
-    mBatchRenderer.Begin();
+
+    if (mDrawCameraFrustum)
+    {
+        auto& camera = mScene->GetCamera();
+        DrawCamera(camera);
+    }
     mBatchRenderer.End(cmdList);
     cmdList->EndRendering();
+    mBatchRenderer.Begin();
 }
 
 RootSignature* RealtimeRender::GetRootSiganture() const
@@ -144,6 +153,16 @@ void RealtimeRender::SelectIndices(std::unordered_set<uint32_t> const& selectedI
 void RealtimeRender::ClearSelection()
 {
     mSelectedIndices.clear();
+}
+
+bool RealtimeRender::GetDrawCameraFrustum() const
+{
+    return mDrawCameraFrustum;
+}
+
+void RealtimeRender::SetDrawCameraFrustum(bool draw)
+{
+    mDrawCameraFrustum = draw;
 }
 
 void RealtimeRender::Update(float dt)
@@ -372,9 +391,81 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
     {
         auto& rasterizerInfo = mDebugPipeline->GetRasterizationStateCreateInfo();
         rasterizerInfo.lineWidth = 2.0f;
+        rasterizerInfo.cullMode = VK_CULL_MODE_NONE;
     }
     mOutlinePipeline->SetRootSignature(mDefaultRootSignature.get());
     mDebugPipeline->Bake();
+}
+
+void RealtimeRender::DrawCamera(Camera const& camera)
+{
+    auto projection = camera.GetProjection();
+    projection[1][1] *= -1;
+
+    glm::mat4 inverseViewProjection = glm::inverse(projection * camera.GetView());
+
+    glm::vec4 corners[8] = {
+        glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(+1.0f, -1.0f, -1.0f, 1.0f),glm::vec4(+1.0f, +1.0f, -1.0f, 1.0f),glm::vec4(-1.0f, +1.0f, -1.0f, 1.0f),
+        glm::vec4(-1.0f, -1.0f, +1.0f, 1.0f), glm::vec4(+1.0f, -1.0f, +1.0f, 1.0f),glm::vec4(+1.0f, +1.0f, +1.0f, 1.0f),glm::vec4(-1.0f, +1.0f, +1.0f, 1.0f),
+    };
+
+    for (auto& corner : corners)
+    {
+        corner = inverseViewProjection * corner;
+        corner /= corner.w;
+    }
+
+    auto vertex = [&](glm::vec4 pos)
+    {
+        mBatchRenderer.Vertex(glm::vec3(pos), Jnrlib::Yellow);
+    };
+
+    /* Reduce the size of the frustum for rendering */
+    for (uint32_t i = 0; i < 4; ++i)
+    {
+        auto direction = corners[i + 4] - corners[i];
+        direction = glm::normalize(direction);
+        corners[i + 4] = corners[i] + direction;
+    }
+
+    /* Near plane */
+    vertex(corners[0]);
+    vertex(corners[1]);
+
+    vertex(corners[1]);
+    vertex(corners[2]);
+
+    vertex(corners[2]);
+    vertex(corners[3]);
+
+    vertex(corners[3]);
+    vertex(corners[0]);
+
+    /* Far plane */
+    vertex(corners[4]);
+    vertex(corners[5]);
+
+    vertex(corners[5]);
+    vertex(corners[6]);
+
+    vertex(corners[6]);
+    vertex(corners[7]);
+
+    vertex(corners[7]);
+    vertex(corners[4]);
+
+    /* Sides */
+    vertex(corners[0]);
+    vertex(corners[4]);
+
+    vertex(corners[1]);
+    vertex(corners[5]);
+
+    vertex(corners[2]);
+    vertex(corners[6]);
+
+    vertex(corners[3]);
+    vertex(corners[7]);
 }
 
 

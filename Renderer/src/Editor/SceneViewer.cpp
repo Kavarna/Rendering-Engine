@@ -17,7 +17,7 @@ Editor::SceneViewer::SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdL
     for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
     {
         mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
-        mPerFrameResources[i].renderSystem->SetCamera(&mScene->GetCamera());
+        mPerFrameResources[i].renderSystem->SetDrawCameraFrustum(true);
     }
 }
 
@@ -174,21 +174,27 @@ void Editor::SceneViewer::UpdateCamera(float dt)
         rightMouseButtonPressed = false;
     }
 
+    float speed = 3.0f;
+    if (Editor::Get()->IsKeyPressed(GLFW_KEY_LEFT_SHIFT) || Editor::Get()->IsKeyPressed(GLFW_KEY_RIGHT_SHIFT))
+    {
+        speed *= 3.0f;
+    }
+
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_W) || Editor::Get()->IsKeyPressed(GLFW_KEY_UP))
     {
-        mCamera->MoveForward(dt * 3.0f);
+        mCamera->MoveForward(dt * speed);
     }
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_S) || Editor::Get()->IsKeyPressed(GLFW_KEY_DOWN))
     {
-        mCamera->MoveBackward(dt * 3.0f);
+        mCamera->MoveBackward(dt * speed);
     }
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_A) || Editor::Get()->IsKeyPressed(GLFW_KEY_LEFT))
     {
-        mCamera->StrafeLeft(dt * 3.0f);
+        mCamera->StrafeLeft(dt * speed);
     }
     if (Editor::Get()->IsKeyPressed(GLFW_KEY_D) || Editor::Get()->IsKeyPressed(GLFW_KEY_RIGHT))
     {
-        mCamera->StrafeRight(dt * 3.0f);
+        mCamera->StrafeRight(dt * speed);
     }
     if (!mIsMouseEnabled)
     {

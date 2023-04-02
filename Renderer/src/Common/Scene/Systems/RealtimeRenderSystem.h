@@ -32,6 +32,9 @@ namespace Common::Systems
         void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
         void ClearSelection();
 
+        bool GetDrawCameraFrustum() const;
+        void SetDrawCameraFrustum(bool draw = false);
+
         void Update(float dt);
 
         void OnResize(Vulkan::Image* renderTarget, Vulkan::Image* depthImage, uint32_t width, uint32_t height);
@@ -49,7 +52,11 @@ namespace Common::Systems
         void InitPipelines(uint32_t width, uint32_t height);
 
     private:
+        void DrawCamera(Camera const& camera);
+
+    private:
         Camera const* mCamera = nullptr;
+        bool mDrawCameraFrustum = false;
 
         struct UniformBuffer
         {
