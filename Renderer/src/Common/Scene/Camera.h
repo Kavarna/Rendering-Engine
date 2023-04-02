@@ -28,6 +28,9 @@ namespace Common
 
         Jnrlib::Float GetFieldOfView() const;
 
+        Jnrlib::Float GetProjectionWidth() const;
+        Jnrlib::Float GetProjectionHeight() const;
+
         Ray GetRayForPixel(uint32_t x, uint32_t y) const;
 
         [[deprecated]]

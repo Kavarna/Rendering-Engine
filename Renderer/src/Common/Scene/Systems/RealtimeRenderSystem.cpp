@@ -399,33 +399,23 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
 
 void RealtimeRender::DrawCamera(Camera const& camera)
 {
-    auto projection = camera.GetProjection();
-    projection[1][1] *= -1;
-
-    glm::mat4 inverseViewProjection = glm::inverse(projection * camera.GetView());
-
-    glm::vec4 corners[8] = {
-        glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(+1.0f, -1.0f, -1.0f, 1.0f),glm::vec4(+1.0f, +1.0f, -1.0f, 1.0f),glm::vec4(-1.0f, +1.0f, -1.0f, 1.0f),
-        glm::vec4(-1.0f, -1.0f, +1.0f, 1.0f), glm::vec4(+1.0f, -1.0f, +1.0f, 1.0f),glm::vec4(+1.0f, +1.0f, +1.0f, 1.0f),glm::vec4(-1.0f, +1.0f, +1.0f, 1.0f),
+    auto vertex = [&](glm::vec3 pos)
+    {
+        mBatchRenderer.Vertex(pos, Jnrlib::Yellow);
     };
 
-    for (auto& corner : corners)
-    {
-        corner = inverseViewProjection * corner;
-        corner /= corner.w;
-    }
-
-    auto vertex = [&](glm::vec4 pos)
-    {
-        mBatchRenderer.Vertex(glm::vec3(pos), Jnrlib::Yellow);
+    glm::vec2 coordinates[] = {
+        {0.0f, 0.0f},
+        {0.0f, camera.GetProjectionWidth()},
+        {camera.GetProjectionHeight(), camera.GetProjectionWidth()},
+        {camera.GetProjectionHeight(), 0.0f},
     };
-
-    /* Reduce the size of the frustum for rendering */
-    for (uint32_t i = 0; i < 4; ++i)
+    glm::vec3 corners[8];
+    for (uint32_t i = 0; i < sizeof(coordinates) / sizeof(coordinates[0]); ++i)
     {
-        auto direction = corners[i + 4] - corners[i];
-        direction = glm::normalize(direction);
-        corners[i + 4] = corners[i] + direction;
+        auto currentRay = camera.GetRayForPixel((uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
+        corners[i] = currentRay.GetStartPosition() + currentRay.GetDirection() * camera.GetFocalDistance();
+        corners[i + 4] = currentRay.GetStartPosition() + currentRay.GetDirection() * 10.0f;
     }
 
     /* Near plane */

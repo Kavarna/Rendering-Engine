@@ -75,6 +75,16 @@ Jnrlib::Float Common::Camera::GetFieldOfView() const
     return mFieldOfView;
 }
 
+Jnrlib::Float Common::Camera::GetProjectionWidth() const
+{
+    return mProjectionHeight;
+}
+
+Jnrlib::Float Common::Camera::GetProjectionHeight() const
+{
+    return mProjectionWidth;
+}
+
 Ray Common::Camera::GetRayForPixel(uint32_t x, uint32_t y) const
 {
     Jnrlib::Float u = ((Jnrlib::Float)x) / (mProjectionWidth - 1);
