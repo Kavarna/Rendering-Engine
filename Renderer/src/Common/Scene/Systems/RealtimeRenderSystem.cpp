@@ -38,8 +38,8 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     cmdList->BindIndexBuffer(indexBuffer);
 
     auto const& spheres = mScene->mRegistry.group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
+    /* Build rendering buffers */
     {
-        /* Build rendering buffers */
         /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
@@ -73,8 +73,8 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     cmdList->BindPipeline(mDefaultPipeline.get());
     cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
 
+    /* Render */
     {
-        /* Render */
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
              if (mSelectedIndices.find((uint32_t)entity) != mSelectedIndices.end())
@@ -116,8 +116,9 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
         }
     }
-    cmdList->BindPipeline(mDebugPipeline.get());
 
+    cmdList->BindPipeline(mDebugPipeline.get());
+    cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
     if (mDrawCameraFrustum)
     {
         auto& camera = mScene->GetCamera();
@@ -393,7 +394,7 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         rasterizerInfo.lineWidth = 2.0f;
         rasterizerInfo.cullMode = VK_CULL_MODE_NONE;
     }
-    mOutlinePipeline->SetRootSignature(mDefaultRootSignature.get());
+    mDebugPipeline->SetRootSignature(mDefaultRootSignature.get());
     mDebugPipeline->Bake();
 }
 

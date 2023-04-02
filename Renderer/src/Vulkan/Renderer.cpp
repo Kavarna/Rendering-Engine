@@ -507,6 +507,8 @@ void Renderer::InitDearImGui()
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = CheckResult;
     init_info.BackbufferFormat = mSwapchainFormat;
+    Vulkan::DeviceInstance devInstance{.device = mDevice, .instance = mInstance};
+    ImGui_ImplVulkan_LoadFunctions(Vulkan::GetFunctionByName, &devInstance);
     ImGui_ImplVulkan_Init(&init_info);
 }
 
