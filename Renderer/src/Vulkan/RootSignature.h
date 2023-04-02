@@ -31,7 +31,7 @@ namespace Vulkan
         void Bake(uint32_t instances = 1);
 
     private:
-        VkDescriptorSetLayoutCreateInfo mLayoutInfo;
+        VkDescriptorSetLayoutCreateInfo mLayoutInfo{};
         VkDescriptorPoolCreateInfo mPoolInfo{};
 
         uint32_t mInputBufferCount = 0;

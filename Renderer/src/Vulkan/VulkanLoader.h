@@ -60,6 +60,23 @@ extern JNR_FN(CmdBindIndexBuffer);
 extern JNR_FN(CreatePipelineCache);
 extern JNR_FN(DestroyPipelineCache);
 extern JNR_FN(GetPipelineCacheData);
+extern JNR_FN(AllocateMemory);
+extern JNR_FN(BindBufferMemory);
+extern JNR_FN(BindImageMemory);
+extern JNR_FN(CmdCopyBufferToImage);
+extern JNR_FN(CreateBuffer);
+extern JNR_FN(CreateImage);
+extern JNR_FN(DestroyBuffer);
+extern JNR_FN(DestroyImage);
+extern JNR_FN(MapMemory);
+extern JNR_FN(UnmapMemory);
+extern JNR_FN(FlushMappedMemoryRanges);
+extern JNR_FN(FreeCommandBuffers);
+extern JNR_FN(FreeDescriptorSets);
+extern JNR_FN(FreeMemory);
+extern JNR_FN(GetBufferMemoryRequirements);
+extern JNR_FN(GetImageMemoryRequirements);
+extern JNR_FN(GetPhysicalDeviceMemoryProperties);
 
 // Instance
 extern JNR_FN(DestroyInstance);
@@ -93,4 +110,11 @@ namespace Vulkan
     void LoadFunctions();
     void LoadFunctionsInstance(VkInstance);
     void LoadFunctionsDevice(VkDevice);
+
+    struct DeviceInstance
+    {
+        VkDevice device;
+        VkInstance instance;
+    };
+    PFN_vkVoidFunction GetFunctionByName(char const* name, void* userData);
 }

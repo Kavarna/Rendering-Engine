@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.14)
 
 project("Rendering-Engine")
 
+# Platform specific stuff
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options("/MP")
+endif()
+
 # Options
 option(BUILD_TESTS "Build tests" OFF)
 option(USE_FLOAT64 "Use 64-bit floating point numbers" OFF)
@@ -64,7 +69,6 @@ add_definitions(-DAPPLICATION_VERSION="0.0.0")
 add_definitions(-DNOMINMAX)
 add_definitions(-DWIN32_LEAN_AND_MEAN)
 
-# Add projects
 
 # External projects
 add_subdirectory("external/glfw")

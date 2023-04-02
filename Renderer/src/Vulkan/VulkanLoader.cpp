@@ -87,6 +87,23 @@ JNR_FN(CmdBindIndexBuffer);
 JNR_FN(CreatePipelineCache);
 JNR_FN(DestroyPipelineCache);
 JNR_FN(GetPipelineCacheData);
+JNR_FN(AllocateMemory);
+JNR_FN(BindBufferMemory);
+JNR_FN(BindImageMemory);
+JNR_FN(CmdCopyBufferToImage);
+JNR_FN(CreateBuffer);
+JNR_FN(CreateImage);
+JNR_FN(DestroyBuffer);
+JNR_FN(DestroyImage);
+JNR_FN(MapMemory);
+JNR_FN(UnmapMemory);
+JNR_FN(FlushMappedMemoryRanges);
+JNR_FN(FreeCommandBuffers);
+JNR_FN(FreeDescriptorSets);
+JNR_FN(FreeMemory);
+JNR_FN(GetBufferMemoryRequirements);
+JNR_FN(GetImageMemoryRequirements);
+JNR_FN(GetPhysicalDeviceMemoryProperties);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -145,6 +162,7 @@ void Vulkan::LoadFunctionsInstance(VkInstance instance)
     GET_INST_FN(GetPhysicalDeviceSurfaceCapabilitiesKHR, instance);
     GET_INST_FN(GetPhysicalDeviceSurfaceFormatsKHR, instance);
     GET_INST_FN(GetPhysicalDeviceSurfacePresentModesKHR, instance);
+    GET_INST_FN(GetPhysicalDeviceMemoryProperties, instance);
 }
 
 void Vulkan::LoadFunctionsDevice(VkDevice device)
@@ -201,4 +219,31 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(CreatePipelineCache, device);
     GET_DEV_FN(DestroyPipelineCache, device);
     GET_DEV_FN(GetPipelineCacheData, device);
+    GET_DEV_FN(AllocateMemory, device);
+    GET_DEV_FN(BindBufferMemory, device);
+    GET_DEV_FN(BindImageMemory, device);
+    GET_DEV_FN(CmdCopyBufferToImage, device);
+    GET_DEV_FN(CreateBuffer, device);
+    GET_DEV_FN(CreateImage, device);
+    GET_DEV_FN(DestroyBuffer, device);
+    GET_DEV_FN(DestroyImage, device);
+    GET_DEV_FN(MapMemory, device);
+    GET_DEV_FN(UnmapMemory, device);
+    GET_DEV_FN(FlushMappedMemoryRanges, device);
+    GET_DEV_FN(FreeCommandBuffers, device);
+    GET_DEV_FN(FreeDescriptorSets, device);
+    GET_DEV_FN(FreeMemory, device);
+    GET_DEV_FN(GetBufferMemoryRequirements, device);
+    GET_DEV_FN(GetImageMemoryRequirements, device);
+}
+
+PFN_vkVoidFunction Vulkan::GetFunctionByName(char const* name, void* userData)
+{
+    DeviceInstance* deviceInstance = (DeviceInstance*)userData;
+    PFN_vkVoidFunction returnValue = jnrGetDeviceProcAddr(deviceInstance->device, name);
+    if (returnValue)
+    {
+        return returnValue;
+    }
+    return jnrGetInstanceProcAddr(deviceInstance->instance, name);
 }

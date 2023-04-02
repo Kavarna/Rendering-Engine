@@ -55,37 +55,37 @@ Jnrlib::Float Camera::GetViewportHeight() const
     return mViewportHeight;
 }
 
-Jnrlib::Float Common::Camera::GetRoll() const
+Jnrlib::Float Camera::GetRoll() const
 {
     return mRoll;
 }
 
-Jnrlib::Float Common::Camera::GetYaw() const
+Jnrlib::Float Camera::GetYaw() const
 {
     return mYaw;
 }
 
-Jnrlib::Float Common::Camera::GetPitch() const
+Jnrlib::Float Camera::GetPitch() const
 {
     return mPitch;
 }
 
-Jnrlib::Float Common::Camera::GetFieldOfView() const
+Jnrlib::Float Camera::GetFieldOfView() const
 {
     return mFieldOfView;
 }
 
-Jnrlib::Float Common::Camera::GetProjectionWidth() const
+Jnrlib::Float Camera::GetProjectionWidth() const
 {
     return mProjectionHeight;
 }
 
-Jnrlib::Float Common::Camera::GetProjectionHeight() const
+Jnrlib::Float Camera::GetProjectionHeight() const
 {
     return mProjectionWidth;
 }
 
-Ray Common::Camera::GetRayForPixel(uint32_t x, uint32_t y) const
+Ray Camera::GetRayForPixel(uint32_t x, uint32_t y) const
 {
     Jnrlib::Float u = ((Jnrlib::Float)x) / (mProjectionWidth - 1);
     Jnrlib::Float v = ((Jnrlib::Float)y) / (mProjectionHeight - 1);
@@ -98,41 +98,41 @@ Jnrlib::Direction const& Camera::GetLowerLeftCorner() const
     return mUpperLeftCorner;
 }
 
-void Common::Camera::MoveForward(float amount)
+void Camera::MoveForward(float amount)
 {
     mPosition = mPosition + mForwardDirection * amount;
     MarkDirty();
 }
 
-void Common::Camera::MoveBackward(float amount)
+void Camera::MoveBackward(float amount)
 {
     MoveForward(-amount);
 }
 
-void Common::Camera::StrafeRight(float amount)
+void Camera::StrafeRight(float amount)
 {
     mPosition = mPosition + mRightDirection * amount;
     MarkDirty();
 }
 
-void Common::Camera::StrafeLeft(float amount)
+void Camera::StrafeLeft(float amount)
 {
     StrafeRight(-amount);
 }
 
-void Common::Camera::Roll(float amount)
+void Camera::Roll(float amount)
 {
     mRoll += amount;
     CalculateVectors();
 }
 
-void Common::Camera::Yaw(float amount)
+void Camera::Yaw(float amount)
 {
     mYaw -= amount;
     CalculateVectors();
 }
 
-void Common::Camera::Pitch(float amount)
+void Camera::Pitch(float amount)
 {
     mPitch -= amount;
     CalculateVectors();
@@ -153,7 +153,7 @@ uint32_t Camera::GetDirtyFrames() const
     return mDirtyFrames;
 }
 
-void Common::Camera::CalculateVectors()
+void Camera::CalculateVectors()
 {
     auto rotateMatrix = glm::eulerAngleXYZ(mPitch, mYaw, mRoll);
 
