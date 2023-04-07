@@ -8,7 +8,6 @@
 #include "CreateInfo/SceneCreateInfo.h"
 #include "HitPoint.h"
 #include "Vertex.h"
-#include "Camera.h"
 #include "Vulkan/Buffer.h"
 #include "Scene/Components/MeshComponent.h"
 #include "Entity.h"
@@ -18,16 +17,10 @@ namespace Vulkan
     class CommandList;
 }
 
-namespace Common::Systems
-{
-    class RealtimeRender;
-}
-
 namespace Common
 {
     class Scene
     {
-        friend class Common::Systems::RealtimeRender;
     public:
         Scene(CreateInfo::Scene const& info);
         ~Scene();
@@ -39,10 +32,6 @@ namespace Common
         std::string GetOutputFile() const;
 
         const CreateInfo::ImageInfo& GetImageInfo() const;
-
-        void SetCamera(std::unique_ptr<Camera>&& camera);
-        Camera& GetCamera();
-        Camera const& GetCamera() const;
 
         void InitializeGraphics(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex);
 
@@ -57,18 +46,23 @@ namespace Common
         uint32_t GetNumberOfObjects() const;
         void PerformUpdate();
 
+        Entity const* GetCameraEntity() const;
+
+        entt::registry& GetRegistry() const;
+
     private:
         void CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool alsoBuildRealtime);
         void CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex);
+        void CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRealtime);
 
     private:
         std::string mOutputFile;
         CreateInfo::ImageInfo mImageInfo;
 
-        std::unique_ptr<Camera> mCamera;
         mutable entt::registry mRegistry;
         std::vector<std::unique_ptr<Entity>> mEntities;
         std::vector<Entity*> mRootEntities;
+        Entity* mCameraEntity;
 
         std::unordered_map<std::string, Components::Mesh> mMeshes;
 

@@ -4,6 +4,7 @@
 #include <Jnrlib.h>
 
 #include <nlohmann/json.hpp>
+#include "CameraCreateInfo.h"
 
 namespace CreateInfo
 {
@@ -50,6 +51,8 @@ namespace CreateInfo
     {
         std::string outputFile;
         ImageInfo imageInfo;
+
+        CreateInfo::Camera cameraInfo;
 
         std::vector<Primitive> primitives;
 

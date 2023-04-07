@@ -24,8 +24,8 @@ namespace Editor
         void SetEntity(Common::Entity* entity);
 
     private:
-        void RenderBase(Common::Components::Base& b);
-        void RenderSphere(Common::Components::Sphere& s);
+        void RenderBase(Common::Components::Base& b, bool isUpdatable);
+        void RenderSphere(Common::Components::Sphere& s, bool isUpdatable);
 
     private:
         Common::Entity* mActiveEntity;

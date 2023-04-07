@@ -2,9 +2,11 @@
 #include "GeometryHelpers.h"
 #include "Vulkan/CommandList.h"
 #include "Scene/Systems/IntersectionSystem.h"
+#include "Scene/Systems/CameraSystem.h"
 #include "Scene/Components/BaseComponent.h"
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
+#include "Scene/Components/CameraComponent.h"
 #include "Constants.h"
 #include "MaterialManager.h"
 
@@ -16,6 +18,7 @@ Scene::Scene(CreateInfo::Scene const& info) :
 {
     LOG(INFO) << "Creating scene with info: " << info;
     CreatePrimitives(info.primitives, info.alsoBuildForRealTimeRendering);
+    CreateCamera(info.cameraInfo, info.alsoBuildForRealTimeRendering);
 }
 
 Scene::~Scene()
@@ -30,21 +33,6 @@ std::string Scene::GetOutputFile() const
 const CreateInfo::ImageInfo& Scene::GetImageInfo() const
 {
     return mImageInfo;
-}
-
-void Scene::SetCamera(std::unique_ptr<Camera>&& camera)
-{
-    mCamera = std::move(camera);
-}
-
-Camera& Scene::GetCamera()
-{
-    return *mCamera;
-}
-
-Camera const& Scene::GetCamera() const
-{
-    return *mCamera;
 }
 
 void Common::Scene::InitializeGraphics(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex)
@@ -94,6 +82,16 @@ void Common::Scene::PerformUpdate()
             });
         }
     }
+}
+
+Entity const* Common::Scene::GetCameraEntity() const
+{
+    return mCameraEntity;
+}
+
+entt::registry& Common::Scene::GetRegistry() const
+{
+    return mRegistry;
 }
 
 void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool buildRealtime)
@@ -197,4 +195,50 @@ void Scene::CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBuf
         cmdList->CopyBuffer(mIndexBuffer.get(), localIndexBuffer.get());
         cmdList->AddLocalBuffer(std::move(localIndexBuffer));
     }
+}
+
+void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRealtime)
+{
+    std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
+    entity->AddComponent<Components::Base>(
+        Components::Base{
+            .position = cameraInfo.position,
+            .scaling = glm::vec3(1.0f),
+            .name = "Camera",
+            .entityPtr = entity.get()}
+    );
+
+    auto& cameraComponent = entity->AddComponent(Components::Camera(entity->GetComponent<Components::Base>()));
+    {
+        cameraComponent.primary = true;
+        cameraComponent.aspectRatio = cameraInfo.aspectRatio;
+        cameraComponent.fieldOfView = cameraInfo.fieldOfView;
+        cameraComponent.focalDistance = cameraInfo.focalDistance;
+        cameraComponent.projectionSize = glm::vec2(cameraInfo.projectionWidth, cameraInfo.projectionHeight);
+        cameraComponent.roll = cameraInfo.roll;
+        cameraComponent.pitch = cameraInfo.pitch;
+        cameraComponent.yaw = cameraInfo.yaw;
+        cameraComponent.viewportSize = glm::vec2(cameraInfo.viewportWidth, cameraInfo.viewportHeight);
+        cameraComponent.view;
+        cameraComponent.projection;
+        cameraComponent.forwardDirection;
+        cameraComponent.rightDirection;
+        cameraComponent.upDirection;
+        cameraComponent.upperLeftCorner;
+    }
+
+    if (alsoBuildRealtime)
+    {
+        entity->AddComponent(
+            Components::Update{.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT, .bufferIndex = (uint32_t)mRegistry.size()}
+        );
+    }
+
+    mRootEntities.push_back(entity.get());
+    mCameraEntity = entity.get();
+
+    mEntities.push_back(std::move(entity));
+
+    Common::Systems::Camera cameraSystem(this);
+    cameraSystem.Update();
 }

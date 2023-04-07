@@ -51,7 +51,7 @@ namespace CreateInfo
 
         j["viewport-width"] = cameraInfo.viewportWidth;
         j["viewport-height"] = cameraInfo.viewportHeight;
-        j["focal-length"] = cameraInfo.focalLength;
+        j["focal-distance"] = cameraInfo.focalDistance;
         j["aspect-ratio"] = cameraInfo.aspectRatio;
 
         j["field-of-view"] = cameraInfo.fieldOfView;
@@ -92,7 +92,7 @@ namespace CreateInfo
         }
         if (j.contains("focal-length"))
         {
-            j.at("focal-length").get_to(cameraInfo.focalLength);
+            j.at("focal-distance").get_to(cameraInfo.focalDistance);
         }
         if (j.contains("aspect-ratio"))
         {

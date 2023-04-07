@@ -12,7 +12,7 @@
         "aspect-ratio": -1,
         "viewport-height": -1,
         "viewport-width": -1,
-        "focal-length": 1.0,
+        "focal-distance": 1.0,
         "field-of-view": 0.9
     },
     "materials": [

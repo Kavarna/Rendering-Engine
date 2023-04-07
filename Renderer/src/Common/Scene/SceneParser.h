@@ -7,7 +7,6 @@
 #include "Scene.h"
 
 #include "CreateInfo/SceneCreateInfo.h"
-#include "CreateInfo/CameraCreateInfo.h"
 #include "CreateInfo/RendererCreateInfo.h"
 #include "CreateInfo/MaterialCreateInfo.h"
 
@@ -24,7 +23,6 @@ namespace Common
         struct ParsedScene
         {
             CreateInfo::Scene sceneInfo;
-            CreateInfo::Camera cameraInfo;
             CreateInfo::Renderer rendererInfo;
             std::vector<CreateInfo::Material> materialsInfo;
         };

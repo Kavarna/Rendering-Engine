@@ -18,10 +18,9 @@ Common::Entity* SceneHierarchy::RenderNode(Common::Entity* entity)
     Common::Entity* selectedEntity = nullptr;
 
     auto const& base = entity->GetComponent<Common::Components::Base>();
-    auto entityId = entity->GetEntityId();
 
     ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
-    if (auto it = mSelectedNodes.find(entityId); it != mSelectedNodes.end())
+    if (auto it = mSelectedEntities.find(entity); it != mSelectedEntities.end())
     {
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
     }
@@ -71,7 +70,7 @@ void SceneHierarchy::OnRender()
     }
     if (selectedEntity != nullptr)
     {
-        SelectEntity(*selectedEntity);
+        SelectEntity(selectedEntity);
     }
     else
     {
@@ -81,28 +80,28 @@ void SceneHierarchy::OnRender()
     ImGui::End();
 }
 
-void SceneHierarchy::SelectEntity(Common::Entity& entity)
+void SceneHierarchy::SelectEntity(Common::Entity* entity)
 {
     if (ImGui::GetIO().KeyCtrl)
     {
         // CTRL+click to toggle
-        if (auto it = mSelectedNodes.find(entity.GetEntityId()); it != mSelectedNodes.end())
+        if (auto it = mSelectedEntities.find(entity); it != mSelectedEntities.end())
         {
-            mSelectedNodes.erase(it);
+            mSelectedEntities.erase(it);
         }
         else
         {
-            mSelectedNodes.insert(entity.GetEntityId());
+            mSelectedEntities.insert(entity);
         }
     }
     else
     {
-        mSelectedNodes.clear();
-        mSelectedNodes.insert(entity.GetEntityId());
-        mObjectInspector->SetEntity(&entity);
+        mSelectedEntities.clear();
+        mSelectedEntities.insert(entity);
+        mObjectInspector->SetEntity(entity);
     }
     if (mSceneViewer != nullptr)
-        mSceneViewer->SelectIndices(mSelectedNodes);
+        mSceneViewer->SelectEntities(mSelectedEntities);
 }
 
 void SceneHierarchy::ClearSelection()
@@ -111,7 +110,7 @@ void SceneHierarchy::ClearSelection()
     bool mouseClicked = io.MouseClicked[0];
     if (mouseClicked && ImGui::IsWindowFocused() && ImGui::IsWindowHovered())
     {
-        mSelectedNodes.clear();
+        mSelectedEntities.clear();
         if (mSceneViewer != nullptr)
             mSceneViewer->ClearSelection();
     }

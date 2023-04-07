@@ -1,6 +1,9 @@
 #include "Jnrlib.h"
 #include "PathTracing.h"
 
+#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/BaseComponent.h"
+
 using namespace Renderer;
 using namespace Common;
 
@@ -20,7 +23,9 @@ void PathTracing::Render()
 
     mDumper.SetTotalWork(width * height);
 
-    Jnrlib::Position upperLeftCorner = mScene.GetCamera().GetLowerLeftCorner();
+    // Jnrlib::Position upperLeftCorner = mScene.GetCameraEntity()->GetLowerLeftCorner();
+
+    Jnrlib::Position upperLeftCorner = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>().upperLeftCorner;
 
     for (uint32_t y = 0; y < height; ++y)
     {
@@ -37,12 +42,14 @@ void PathTracing::Render()
 
 void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Jnrlib::Position const& upperLeftCorner)
 {
-    Jnrlib::Position pos = mScene.GetCamera().GetPosition();
-    Jnrlib::Direction rightDirection = mScene.GetCamera().GetRightDirection();
-    Jnrlib::Direction upDirection = mScene.GetCamera().GetUpDirection();
+    auto const& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
+    auto const& baseComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Base>();
+    Jnrlib::Position pos = baseComponent.position;
+    Jnrlib::Direction rightDirection = cameraComponent.rightDirection;
+    Jnrlib::Direction upDirection = cameraComponent.upDirection;
 
-    Jnrlib::Float viewportWidth = mScene.GetCamera().GetViewportWidth();
-    Jnrlib::Float viewportHeight = mScene.GetCamera().GetViewportHeight();
+    Jnrlib::Float viewportWidth = cameraComponent.viewportSize.x;
+    Jnrlib::Float viewportHeight = cameraComponent.viewportSize.y;
 
     Jnrlib::Color color(Jnrlib::Zero);
     for (uint32_t i = 0; i < mNumSamples; ++i)

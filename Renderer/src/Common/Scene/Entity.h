@@ -27,7 +27,7 @@ namespace Common
         void UpdateBase();
 
         template <typename ComponentType>
-        void AddComponent(ComponentType&& component);
+        ComponentType& AddComponent(ComponentType&& component);
 
         template <typename T>
         T const& GetComponent() const;
@@ -69,9 +69,9 @@ namespace Common
     };
 
     template <typename ComponentType>
-    inline void Entity::AddComponent(ComponentType&& component)
+    inline ComponentType& Entity::AddComponent(ComponentType&& component)
     {
-        mEntities.emplace<ComponentType>(mEntity, std::forward<ComponentType>(component));
+        return mEntities.emplace<ComponentType>(mEntity, std::forward<ComponentType>(component));
     }
 
     template<typename T>

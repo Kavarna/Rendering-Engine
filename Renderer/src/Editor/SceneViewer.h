@@ -11,6 +11,10 @@
 
 #include "Scene/Systems/RealtimeRenderSystem.h"
 
+namespace Common
+{
+    class Camera;
+}
 
 
 namespace Editor
@@ -33,7 +37,7 @@ namespace Editor
 
         virtual void OnRender() override;
 
-        void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
+        void SelectEntities(std::unordered_set<Common::Entity*> const& selectedIndices);
         void ClearSelection();
 
         void SetSceneHierarchy(SceneHierarchy* hierarchy);
@@ -75,7 +79,7 @@ namespace Editor
         std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
         std::unique_ptr<Vulkan::Image> mDepthImage;
 
-        std::unique_ptr<Common::Camera> mCamera;
+        std::unique_ptr<Common::EditorCamera> mCamera;
 
         bool mIsMouseEnabled = true;
         glm::vec2 mLastMousePosition{};

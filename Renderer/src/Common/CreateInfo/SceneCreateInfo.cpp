@@ -123,6 +123,7 @@ namespace CreateInfo
         j["output-file"] = sceneInfo.outputFile;
         j["also-build-for-realtime-rendering"] = sceneInfo.alsoBuildForRealTimeRendering;
         to_json(j["image-info"], sceneInfo.imageInfo);
+        to_json(j["camera"], sceneInfo.cameraInfo);
 
         for (const auto& primitive : sceneInfo.primitives)
         {
@@ -148,6 +149,10 @@ namespace CreateInfo
                 from_json(object, primitive);
                 p.primitives.emplace_back(primitive);
             }
+        }
+        if (j.contains("camera"))
+        {
+            from_json(j["camera"], p.cameraInfo);
         }
         if (j.contains("also-build-for-realtime-rendering"))
         {

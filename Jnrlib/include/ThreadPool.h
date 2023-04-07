@@ -57,7 +57,9 @@ namespace Jnrlib
         // If there will be lots of tasks, adding a look-up table would be very useful
         std::mutex mWorkListMutex;
         std::shared_ptr<struct Task> mWorkList = nullptr;
-        std::shared_ptr<struct Task> mLastTask = nullptr;
+        
+        /* TODO: Keep track of the last task */
+        // std::shared_ptr<struct Task> mLastTask = nullptr;
 
         std::atomic<uint64_t> mActiveTasksCount = 0;
     };

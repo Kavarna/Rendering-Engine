@@ -346,9 +346,7 @@ void Editor::Editor::InitScene(Common::SceneParser::ParsedScene const* parsedSce
         return;
     }
 
-    std::unique_ptr<Common::Camera> camera = std::make_unique<Common::Camera>(parsedScene->cameraInfo);
     mActiveScene = std::make_unique<Common::Scene>(parsedScene->sceneInfo);
-    mActiveScene->SetCamera(std::move(camera));
     mActiveScene->InitializeGraphics(mInitializationCmdList.get(), 0);
 }
 

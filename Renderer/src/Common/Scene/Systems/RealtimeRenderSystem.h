@@ -10,26 +10,35 @@
 #include "Helpers/BatchRenderer.h"
 
 #include "Scene/Scene.h"
-#include "Scene/Camera.h"
 
 #include "LightHelpers.h"
+
+namespace Common
+{
+    class EditorCamera;
+}
+
+namespace Common::Components
+{
+    struct Camera;
+}
 
 namespace Common::Systems
 {
     class RealtimeRender : public Jnrlib::ISingletone<RealtimeRender>
     {
     public:
-        RealtimeRender(Common::Scene const* scene, Vulkan::CommandList* cmdList);
+        RealtimeRender(Common::Scene* scene, Vulkan::CommandList* cmdList);
         ~RealtimeRender();
 
     public:
         void RenderScene(Vulkan::CommandList* cmdList);
         Vulkan::RootSignature* GetRootSiganture() const;
 
-        void SetCamera(Camera const* camera);
+        void SetCamera(EditorCamera const* camera);
         void SetLight(DirectionalLight const& light);
 
-        void SelectIndices(std::unordered_set<uint32_t> const& selectedIndices);
+        void SelectEntities(std::unordered_set<Entity*> const& selectedIndices);
         void ClearSelection();
 
         bool GetDrawCameraFrustum() const;
@@ -52,10 +61,11 @@ namespace Common::Systems
         void InitPipelines(uint32_t width, uint32_t height);
 
     private:
-        void DrawCamera(Camera const& camera);
+        void DrawCameraEntities();
+        void DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected);
 
     private:
-        Camera const* mCamera = nullptr;
+        EditorCamera const* mCamera = nullptr;
         bool mDrawCameraFrustum = false;
 
         struct UniformBuffer
@@ -97,8 +107,9 @@ namespace Common::Systems
 
         std::unique_ptr<Vulkan::RootSignature> mDefaultRootSignature;
         std::unique_ptr<Vulkan::RootSignature> mOutlineRootSignature;
+        
+        Common::Scene* mScene;
 
-        mutable Common::Scene const* mScene;
-        mutable std::unordered_set<uint32_t> mSelectedIndices;
+        mutable std::unordered_set<Entity*> mSelectedEntities;
     };
 }

@@ -1,5 +1,10 @@
 #include "IntersectionSystem.h"
 
+#include "Ray.h"
+#include "HitPoint.h"
+#include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/SphereComponent.h"
+
 using namespace Common;
 using namespace Components;
 using namespace Systems;

@@ -22,7 +22,7 @@ namespace Editor
         virtual void OnRender() override;
 
     public:
-        void SelectEntity(Common::Entity& entity);
+        void SelectEntity(Common::Entity* entity);
         void ClearSelection();
 
     private:
@@ -33,6 +33,6 @@ namespace Editor
         SceneViewer* mSceneViewer;
         ObjectInspector* mObjectInspector;
 
-        std::unordered_set<uint32_t> mSelectedNodes;
+        std::unordered_set<Common::Entity*> mSelectedEntities;
     };
 }

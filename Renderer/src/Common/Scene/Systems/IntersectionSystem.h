@@ -1,10 +1,19 @@
 #pragma once
 
 #include <entt/entt.hpp>
-#include "Ray.h"
-#include "HitPoint.h"
-#include "Scene/Components/BaseComponent.h"
-#include "Scene/Components/SphereComponent.h"
+#include <Jnrlib.h>
+
+namespace Common
+{
+    class Ray;
+    class HitPoint;
+}
+
+namespace Common::Components
+{
+    struct Base;
+    struct Sphere;
+}
 
 namespace Common::Systems
 {

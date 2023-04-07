@@ -120,4 +120,5 @@ namespace Jnrlib
     constexpr Color Blue = Color(Zero, Zero, One, One);
     constexpr Color Green = Color(Zero, One, Zero, One);
     constexpr Color Cyan = Color(Zero, One, One, One);
+    constexpr Color Grey = Color(0.2f, 0.2f, 0.2f, One);
 }

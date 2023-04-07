@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project("Rendering-Engine")
 
-# Platform specific stuff
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options("/MP")
-endif()
-
 # Options
 option(BUILD_TESTS "Build tests" OFF)
 option(USE_FLOAT64 "Use 64-bit floating point numbers" OFF)
@@ -47,7 +42,8 @@ endmacro()
 
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(/JMC)
+    add_compile_options(/JMC) # Just My Code
+    add_compile_options(/MP)  # Multiprocess compilation
 endif()
 
 # Start building

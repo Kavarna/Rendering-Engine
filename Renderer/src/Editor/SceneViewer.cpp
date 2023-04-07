@@ -9,6 +9,11 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/CameraComponent.h"
+#include "EditorCamera.h"
+#include "CameraUtils.h"
+
 using namespace Vulkan;
 
 Editor::SceneViewer::SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList)
@@ -73,11 +78,11 @@ void Editor::SceneViewer::OnRender()
     ImGui::End();
 }
 
-void Editor::SceneViewer::SelectIndices(std::unordered_set<uint32_t> const& selectedIndices)
+void Editor::SceneViewer::SelectEntities(std::unordered_set<Common::Entity*> const& selectedIndices)
 {
     for (auto& perFrameResources : mPerFrameResources)
     {
-        perFrameResources.renderSystem->SelectIndices(selectedIndices);
+        perFrameResources.renderSystem->SelectEntities(selectedIndices);
     }
 }
 
@@ -137,11 +142,11 @@ void Editor::SceneViewer::SelectObject()
             }
 
 
-            auto ray = mCamera->GetRayForPixel((uint32_t)pos.x, (uint32_t)pos.y);
+            auto ray = Common::CameraUtils::GetRayForPixel(mCamera.get(), (uint32_t)pos.x, (uint32_t)pos.y);
             auto hp = mScene->GetClosestHit(ray);
             if (hp.has_value())
             {
-                mSceneHierarchy->SelectEntity(*hp->GetEntity());
+                mSceneHierarchy->SelectEntity(hp->GetEntity());
             }
             else
             {
@@ -293,29 +298,31 @@ void Editor::SceneViewer::InitCamera()
         CreateInfo::Camera cameraInfo;
         {
             cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
-            cameraInfo.focalLength = currentCamera.GetFocalDistance();
+            cameraInfo.focalDistance = currentCamera.GetFocalDistance();
             cameraInfo.roll = currentCamera.GetRoll();
             cameraInfo.yaw = currentCamera.GetYaw();
             cameraInfo.pitch = currentCamera.GetPitch();
             cameraInfo.position = currentCamera.GetPosition();
             cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
         }
-        mCamera.reset(new Common::Camera(cameraInfo));
+        mCamera.reset(new Common::EditorCamera(cameraInfo));
     }
     else
     {
-        auto sceneCamera = mScene->GetCamera();
+        auto cameraEntity = mScene->GetCameraEntity();
+        auto& baseComponent = cameraEntity->GetComponent<Common::Components::Base>();
+        auto& cameraComponent = cameraEntity->GetComponent<Common::Components::Camera>();
         CreateInfo::Camera cameraInfo;
         {
             cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
-            cameraInfo.focalLength = sceneCamera.GetFocalDistance();
-            cameraInfo.roll = sceneCamera.GetRoll();
-            cameraInfo.yaw = sceneCamera.GetYaw();
-            cameraInfo.pitch = sceneCamera.GetPitch();
-            cameraInfo.position = sceneCamera.GetPosition();
+            cameraInfo.focalDistance = cameraComponent.focalDistance;
+            cameraInfo.roll = cameraComponent.roll;
+            cameraInfo.yaw = cameraComponent.yaw;
+            cameraInfo.pitch = cameraComponent.pitch;
+            cameraInfo.position = baseComponent.position;
             cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
         }
-        mCamera.reset(new Common::Camera(cameraInfo));
+        mCamera.reset(new Common::EditorCamera(cameraInfo));
     }
 
     for (auto& perFrameResource : mPerFrameResources)

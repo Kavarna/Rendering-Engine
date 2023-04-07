@@ -15,7 +15,7 @@ namespace CreateInfo
         Jnrlib::Float aspectRatio = -Jnrlib::One;
         Jnrlib::Float viewportHeight = -Jnrlib::One;
         Jnrlib::Float viewportWidth = -Jnrlib::One;
-        Jnrlib::Float focalLength = Jnrlib::One;
+        Jnrlib::Float focalDistance = Jnrlib::One;
         Jnrlib::Float fieldOfView = Jnrlib::PI * Jnrlib::Half;
 
         Jnrlib::Float projectionWidth = Jnrlib::Zero;

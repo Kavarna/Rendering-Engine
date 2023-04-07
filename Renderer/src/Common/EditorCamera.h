@@ -8,10 +8,10 @@
 
 namespace Common
 {
-    class Camera
+    class EditorCamera
     {
     public:
-        Camera(CreateInfo::Camera const&);
+        EditorCamera(CreateInfo::Camera const&);
 
     public:
         Jnrlib::Position const& GetPosition() const;
@@ -19,8 +19,9 @@ namespace Common
         Jnrlib::Direction const& GetRightDirection() const;
         Jnrlib::Direction const& GetUpDirection() const;
         Jnrlib::Float GetFocalDistance() const;
-        Jnrlib::Float GetViewportWidth() const;
-        Jnrlib::Float GetViewportHeight() const;
+
+        glm::vec2 GetViewportSize() const;
+        glm::vec2 GetProjectionSize() const;
 
         Jnrlib::Float GetRoll() const;
         Jnrlib::Float GetYaw() const;
@@ -28,13 +29,8 @@ namespace Common
 
         Jnrlib::Float GetFieldOfView() const;
 
-        Jnrlib::Float GetProjectionWidth() const;
-        Jnrlib::Float GetProjectionHeight() const;
 
-        Ray GetRayForPixel(uint32_t x, uint32_t y) const;
-
-        [[deprecated]]
-        Jnrlib::Direction const& GetLowerLeftCorner() const;
+        Jnrlib::Direction const& GetUpperLeftCorner() const;
 
         void MoveForward(float amount);
         void MoveBackward(float amount);
@@ -71,7 +67,8 @@ namespace Common
         glm::vec3 mUpDirection = glm::vec3(0.0f);
 
         Jnrlib::Float mFocalDistance = 0.0f, mFieldOfView = 0.0f, mAspectRatio = 0.0f;
-        Jnrlib::Float mViewportWidth = 0.0f, mViewportHeight = 0.0f;
+        glm::vec2 mViewportSize;
+        glm::vec2 mProjectionSize;
 
         Jnrlib::Float mRoll, mPitch, mYaw;
 
@@ -80,7 +77,6 @@ namespace Common
         glm::mat4x4 mView;
         glm::mat4x4 mProjection;
 
-        Jnrlib::Float mProjectionWidth, mProjectionHeight;
 
         Jnrlib::Direction mUpperLeftCorner;
     };

@@ -48,7 +48,6 @@ std::optional<SceneParser::ParsedScene> SceneParser::LoadSceneFromJSON(std::stri
 
     nlohmann::json js;
     CreateInfo::Scene sceneInfo;
-    CreateInfo::Camera cameraInfo;
     CreateInfo::Renderer rendererInfo;
     std::vector<CreateInfo::Material> materials;
 
@@ -81,12 +80,6 @@ std::optional<SceneParser::ParsedScene> SceneParser::LoadSceneFromJSON(std::stri
         }
         CreateInfo::from_json(js, sceneInfo);
         CreateInfo::from_json(js, rendererInfo);
-        if (js.contains("camera"))
-        {
-            LOG(INFO) << "Found camera, parsing camera";
-            CreateInfo::from_json(js["camera"], cameraInfo);
-            LOG(INFO) << "Successfully parsed camera";
-        }
     }
     catch (std::exception const& e)
     {
@@ -96,11 +89,10 @@ std::optional<SceneParser::ParsedScene> SceneParser::LoadSceneFromJSON(std::stri
 
     LOG(INFO) << "Successfully loaded scene from JSON file " << path;
 
-    cameraInfo.RecalculateViewport((uint32_t)sceneInfo.imageInfo.width, (uint32_t)sceneInfo.imageInfo.height);
+    sceneInfo.cameraInfo.RecalculateViewport((uint32_t)sceneInfo.imageInfo.width, (uint32_t)sceneInfo.imageInfo.height);
 
     return ParsedScene{
         .sceneInfo = sceneInfo,
-        .cameraInfo = cameraInfo,
         .rendererInfo = rendererInfo,
         .materialsInfo = materials
     };

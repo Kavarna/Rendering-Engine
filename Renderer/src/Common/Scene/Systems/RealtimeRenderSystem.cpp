@@ -4,19 +4,21 @@
 #include "Scene/Components/MeshComponent.h"
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
+#include "Scene/Components/CameraComponent.h"
+#include "EditorCamera.h"
+
+#include "CameraUtils.h"
 
 #include "MaterialManager.h"
 
 #include "glm/gtc/matrix_transform.hpp"
-
-#include <DirectXCollision.h>
 
 using namespace Common;
 using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Scene const* scene, CommandList* cmdList) :
+RealtimeRender::RealtimeRender(Scene* scene, CommandList* cmdList) :
     mScene(scene)
 {
     InitRootSignatures();
@@ -37,7 +39,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     cmdList->BindVertexBuffer(vertexBuffer, 0);
     cmdList->BindIndexBuffer(indexBuffer);
 
-    auto const& spheres = mScene->mRegistry.group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
+    auto const& spheres = mScene->GetRegistry().group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
     /* Build rendering buffers */
     {
         /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed */
@@ -77,7 +79,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     {
         for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
         {
-             if (mSelectedIndices.find((uint32_t)entity) != mSelectedIndices.end())
+             if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
                 continue;
 
             /* TODO: pass this as instance */
@@ -87,33 +89,39 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
     }
 
-    if (mSelectedIndices.size())
+    if (mSelectedEntities.size())
     {
         cmdList->BindPipeline(mSelectedObjectsPipeline.get());
         
         /* Render selected objects */
-        for (const auto& entity : mSelectedIndices)
+        for (const auto& entity : mSelectedEntities)
         {
-            auto& update = mScene->mRegistry.get<Components::Update>((entt::entity)entity);
-            auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
-            uint32_t index = update.bufferIndex;
+            auto* update = entity->TryGetComponent<Components::Update>();
+            auto* mesh = entity->TryGetComponent<Mesh>();
+            if (mesh == nullptr || update == nullptr)
+                continue;
+
+            uint32_t index = update->bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
+            cmdList->DrawIndexedInstanced(mesh->indexCount, mesh->firstIndex, mesh->firstVertex);
         }
 
         cmdList->BindPipeline(mOutlinePipeline.get());
         cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mOutlineRootSignature.get());
         /* Render the outlines */
-        for (const auto& entity : mSelectedIndices)
+        for (const auto& entity : mSelectedEntities)
         {
-            auto& update = mScene->mRegistry.get<Components::Update>((entt::entity)entity);
-            auto& mesh = mScene->mRegistry.get<Mesh>((entt::entity)entity);
-            uint32_t index = update.bufferIndex;
+            auto* update = entity->TryGetComponent<Components::Update>();
+            auto* mesh = entity->TryGetComponent<Mesh>();
+            if (mesh == nullptr || update == nullptr)
+                continue;
+
+            uint32_t index = update->bufferIndex;
 
             OutlineVertPushConstants outlineVertPushConstants{.objectIndex = index, .lineWidth = 0.025f};
             cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1, &outlineVertPushConstants,
                                                              VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
+            cmdList->DrawIndexedInstanced(mesh->indexCount, mesh->firstIndex, mesh->firstVertex);
         }
     }
 
@@ -121,8 +129,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
     if (mDrawCameraFrustum)
     {
-        auto& camera = mScene->GetCamera();
-        DrawCamera(camera);
+        DrawCameraEntities();
     }
     mBatchRenderer.End(cmdList);
     cmdList->EndRendering();
@@ -134,7 +141,7 @@ RootSignature* RealtimeRender::GetRootSiganture() const
     return mDefaultRootSignature.get();
 }
 
-void RealtimeRender::SetCamera(Camera const* camera)
+void RealtimeRender::SetCamera(EditorCamera const* camera)
 {
     mCamera = camera;
 }
@@ -146,14 +153,14 @@ void RealtimeRender::SetLight(DirectionalLight const& light)
     ((DirectionalLight*)memory)->direction = glm::normalize(((DirectionalLight*)memory)->direction);
 }
 
-void RealtimeRender::SelectIndices(std::unordered_set<uint32_t> const& selectedIndices)
+void RealtimeRender::SelectEntities(std::unordered_set<Entity*> const& selectedIndices)
 {
-    mSelectedIndices = selectedIndices;
+    mSelectedEntities = selectedIndices;
 }
 
 void RealtimeRender::ClearSelection()
 {
-    mSelectedIndices.clear();
+    mSelectedEntities.clear();
 }
 
 bool RealtimeRender::GetDrawCameraFrustum() const
@@ -398,24 +405,49 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
     mDebugPipeline->Bake();
 }
 
-void RealtimeRender::DrawCamera(Camera const& camera)
+void RealtimeRender::DrawCameraEntities()
 {
-    auto vertex = [&](glm::vec3 pos)
+    auto* cameraEntity = mScene->GetCameraEntity();
+    auto& cameraComponent = cameraEntity->GetComponent<Camera>();
+    if (mSelectedEntities.find(const_cast<Entity*>(cameraEntity)) != mSelectedEntities.end())
     {
-        mBatchRenderer.Vertex(pos, Jnrlib::Yellow);
-    };
+        DrawCameraEntity(cameraComponent, true);
+    }
+    else
+    {
+        DrawCameraEntity(cameraComponent, false);
+    }
+}
+
+void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected)
+{
+    std::function<void(glm::vec3)> vertex;
+    if (isSelected)
+    {
+        vertex = [&](glm::vec3 pos)
+        {
+            mBatchRenderer.Vertex(pos, Jnrlib::Yellow);
+        };
+    }
+    else
+    {
+        vertex = [&](glm::vec3 pos)
+        {
+            mBatchRenderer.Vertex(pos, Jnrlib::Grey);
+        };
+    }
 
     glm::vec2 coordinates[] = {
         {0.0f, 0.0f},
-        {0.0f, camera.GetProjectionWidth()},
-        {camera.GetProjectionHeight(), camera.GetProjectionWidth()},
-        {camera.GetProjectionHeight(), 0.0f},
+        {0.0f, cameraComponent.projectionSize.x},
+        {cameraComponent.projectionSize.y, cameraComponent.projectionSize.x},
+        {cameraComponent.projectionSize.y, 0.0f},
     };
     glm::vec3 corners[8];
     for (uint32_t i = 0; i < sizeof(coordinates) / sizeof(coordinates[0]); ++i)
     {
-        auto currentRay = camera.GetRayForPixel((uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
-        corners[i] = currentRay.GetStartPosition() + currentRay.GetDirection() * camera.GetFocalDistance();
+        auto currentRay = CameraUtils::GetRayForPixel(&cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
+        corners[i] = currentRay.GetStartPosition() + currentRay.GetDirection() * cameraComponent.focalDistance;
         corners[i + 4] = currentRay.GetStartPosition() + currentRay.GetDirection() * 10.0f;
     }
 
@@ -458,5 +490,3 @@ void RealtimeRender::DrawCamera(Camera const& camera)
     vertex(corners[3]);
     vertex(corners[7]);
 }
-
-
