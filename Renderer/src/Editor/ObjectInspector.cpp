@@ -8,6 +8,7 @@
 #include "Common/Scene/Components/BaseComponent.h"
 #include "Common/Scene/Components/UpdateComponent.h"
 #include "Common/Scene/Components/SphereComponent.h"
+#include "Common/Scene/Components/CameraComponent.h"
 
 using namespace Editor;
 using namespace Common;
@@ -34,6 +35,11 @@ void ObjectInspector::OnRender()
     if (auto* s = mActiveEntity->TryGetComponent<Sphere>(); s != nullptr && ImGui::CollapsingHeader("Sphere"))
     {
         RenderSphere(*s, isUpdatable);
+    }
+
+    if (auto* c = mActiveEntity->TryGetComponent<Camera>(); c != nullptr && ImGui::CollapsingHeader("Camera"))
+    {
+        RenderCamera(*c, isUpdatable);
     }
 
     ImGui::End();
@@ -75,14 +81,14 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
         }
     }
 
-    if (ImGui::DragFloat3("Position", (float*)&position) && isUpdatable)
+    if (ImGui::DragFloat3("Position", (float*)&position, 0.01f) && isUpdatable)
     {
             mActiveEntity->PatchComponent<Base>([&](Base& b)
             {
                 b.position = position;
             });
     }
-    if (ImGui::DragFloat3("Scaling", (float*)&scaling) && isUpdatable)
+    if (ImGui::DragFloat3("Scaling", (float*)&scaling, 0.01f) && isUpdatable)
     {
         mActiveEntity->PatchComponent<Base>([&](Base& b)
         {
@@ -95,4 +101,53 @@ void ObjectInspector::RenderSphere(Sphere& s, bool isUpdatable)
 {
     /* TODO: Create a material inspector, and set the material there */
     ImGui::Text("Material name: %s", s.material->GetName().c_str());
+}
+
+void ObjectInspector::RenderCamera(Common::Components::Camera& c, bool isUpdatable)
+{
+    bool isPrimary = c.primary;
+    Jnrlib::Float focalDistance = c.focalDistance;
+    glm::vec2 viewportSize = c.viewportSize, projectionSize = c.projectionSize;
+    glm::vec3 rotation = glm::vec3(c.pitch, c.yaw, c.roll);
+    if (ImGui::Checkbox("Primary", &isPrimary) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        {
+            c.primary = isPrimary;
+        });
+    }
+
+    if (ImGui::DragFloat("Focal distance", &focalDistance, 0.01f) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        {
+            c.focalDistance = focalDistance;
+        });
+    }
+
+    if (ImGui::DragFloat2("Viewport size", (float*)&viewportSize, 0.01f) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        {
+            c.viewportSize = viewportSize;
+        });
+    }
+
+    if (ImGui::DragFloat2("Projection size", (float*)&projectionSize, 0.01f) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        {
+            c.projectionSize = projectionSize;
+        });
+    }
+
+    if (ImGui::DragFloat3("Euler rotation", (float*)&rotation, 0.01f) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        {
+            c.pitch = rotation.x;
+            c.yaw = rotation.y;
+            c.roll = rotation.z;
+        });
+    }
 }

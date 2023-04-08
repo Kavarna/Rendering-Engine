@@ -2,7 +2,6 @@
 #include "GeometryHelpers.h"
 #include "Vulkan/CommandList.h"
 #include "Scene/Systems/IntersectionSystem.h"
-#include "Scene/Systems/CameraSystem.h"
 #include "Scene/Components/BaseComponent.h"
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
@@ -211,20 +210,13 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
     auto& cameraComponent = entity->AddComponent(Components::Camera(entity->GetComponent<Components::Base>()));
     {
         cameraComponent.primary = true;
-        cameraComponent.aspectRatio = cameraInfo.aspectRatio;
-        cameraComponent.fieldOfView = cameraInfo.fieldOfView;
         cameraComponent.focalDistance = cameraInfo.focalDistance;
         cameraComponent.projectionSize = glm::vec2(cameraInfo.projectionWidth, cameraInfo.projectionHeight);
         cameraComponent.roll = cameraInfo.roll;
         cameraComponent.pitch = cameraInfo.pitch;
         cameraComponent.yaw = cameraInfo.yaw;
         cameraComponent.viewportSize = glm::vec2(cameraInfo.viewportWidth, cameraInfo.viewportHeight);
-        cameraComponent.view;
-        cameraComponent.projection;
-        cameraComponent.forwardDirection;
-        cameraComponent.rightDirection;
-        cameraComponent.upDirection;
-        cameraComponent.upperLeftCorner;
+        cameraComponent.Update();
     }
 
     if (alsoBuildRealtime)
@@ -232,13 +224,15 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
         entity->AddComponent(
             Components::Update{.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT, .bufferIndex = (uint32_t)mRegistry.size()}
         );
+        mRegistry.on_update<Components::Base>().connect<&Components::Camera::Update>(cameraComponent);
+        mRegistry.on_update<Components::Camera>().connect<&Components::Camera::Update>(cameraComponent);
+
+        mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
     }
+
 
     mRootEntities.push_back(entity.get());
     mCameraEntity = entity.get();
 
     mEntities.push_back(std::move(entity));
-
-    Common::Systems::Camera cameraSystem(this);
-    cameraSystem.Update();
 }

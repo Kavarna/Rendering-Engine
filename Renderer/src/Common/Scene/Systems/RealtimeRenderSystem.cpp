@@ -360,7 +360,7 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
     mOutlinePipeline->InitFrom(*mSelectedObjectsPipeline);
     {
         mOutlinePipeline->AddShader("Shaders/outline.vert.spv");
-        mOutlinePipeline->AddShader("Shaders/white.frag.spv");
+        mOutlinePipeline->AddShader("Shaders/yellow.frag.spv");
     }
     {
         auto& depthStencil = mOutlinePipeline->GetDepthStencilStateCreateInfo();
