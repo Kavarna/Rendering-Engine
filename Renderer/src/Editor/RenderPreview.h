@@ -4,9 +4,16 @@
 #include <memory>
 #include "ImguiWindow.h"
 
+
+namespace RayTracing
+{
+    class PathTracing;
+}
+
 namespace Common
 {
     class Scene;
+    class BufferDumper;
 }
 namespace Common::Systems
 {
@@ -14,6 +21,7 @@ namespace Common::Systems
 }
 namespace Vulkan
 {
+    class Buffer;
     class Image;
     class CommandList;
 }
@@ -38,13 +46,24 @@ namespace Editor
     private:
         void StartRendering();
 
+        void ShowProgress();
+
+    private:
+        void RenderSimplePathTracing();
+
     private:
         Common::Scene* mScene;
 
         RenderingContext mActiveRenderingContext{};
 
+        std::unique_ptr<Common::BufferDumper> mBufferDumper;
+        std::unique_ptr<Common::BufferDumper> mLastBufferDumper;
+
+        std::unique_ptr<RayTracing::PathTracing> mPathTracing;
+
         int32_t mRendererType = 0;
         std::vector<const char*> mRendererTypes;
+        bool mIsRenderingActive = false;
     };
 }
 

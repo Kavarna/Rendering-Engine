@@ -235,6 +235,7 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(FreeMemory, device);
     GET_DEV_FN(GetBufferMemoryRequirements, device);
     GET_DEV_FN(GetImageMemoryRequirements, device);
+    GET_DEV_FN(CmdCopyBufferToImage, device);
 }
 
 PFN_vkVoidFunction Vulkan::GetFunctionByName(char const* name, void* userData)

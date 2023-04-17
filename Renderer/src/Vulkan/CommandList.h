@@ -61,6 +61,8 @@ namespace Vulkan
         void TransitionImageTo(Image* img, TransitionInfo const& transitionInfo);
         void TransitionImageToImguiLayout(Image* img);
 
+        void CopyWholeBufferToImage(Image*, Buffer*);
+
         void BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor);
         void BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgroundColor, Image* depth, bool useStencil);
         void EndRendering();

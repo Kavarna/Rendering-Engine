@@ -7,7 +7,7 @@
 #include "Scene.h"
 
 #include "CreateInfo/SceneCreateInfo.h"
-#include "CreateInfo/RendererCreateInfo.h"
+#include "CreateInfo/RayTracingCreateInfo.h"
 #include "CreateInfo/MaterialCreateInfo.h"
 
 namespace Common
@@ -23,7 +23,7 @@ namespace Common
         struct ParsedScene
         {
             CreateInfo::Scene sceneInfo;
-            CreateInfo::Renderer rendererInfo;
+            CreateInfo::RayTracing rendererInfo;
             std::vector<CreateInfo::Material> materialsInfo;
         };
 

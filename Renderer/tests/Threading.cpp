@@ -246,29 +246,6 @@ namespace
         threadPool->WaitForAll();
     }
 
-    /*TEST_P(Threading, ParralelForCorrectness)
-    {
-        EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
-
-        auto threadPool = ThreadPool::Get();
-        EXPECT_NE(threadPool, nullptr);
-
-        const unsigned int cols = threadPool->GetNumberOfThreads() * 100;
-        const unsigned int rows = 10;
-        std::mutex numbersMutex;
-        std::set<std::pair<uint32_t, uint32_t>> numbers;
-        std::shared_ptr<struct Task> forTask =
-            threadPool->ParralelForDeffered2D([&numbersMutex, &numbers](uint32_t i, uint32_t j)
-        {
-            std::unique_lock<std::mutex> lock(numbersMutex);
-            numbers.insert({i,j});
-            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
-        }, rows, cols, cols / threadPool->GetNumberOfThreads());
-
-
-
-    }*/
-
     INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 1000));
 
 }

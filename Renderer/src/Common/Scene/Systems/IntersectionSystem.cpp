@@ -22,7 +22,7 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray const& r, entt::r
     Jnrlib::Float closestHitSoFar = std::numeric_limits<Jnrlib::Float>::max();
     {
         /* Perform ray-sphere intersections */
-        auto view = objects.group<const Base>(entt::get<const Sphere>);
+        auto view = objects.view<const Base, const Sphere>();
         for (auto const& [entity, base, sphere] : view.each())
         {
             std::optional<HitPoint> hp = RaySphereIntersection(r, base, sphere);

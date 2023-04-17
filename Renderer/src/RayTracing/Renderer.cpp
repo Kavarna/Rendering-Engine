@@ -4,7 +4,7 @@
 
 
 
-void Renderer::RenderScene(std::unique_ptr<Common::Scene>& scene, CreateInfo::Renderer const& rendererInfo)
+void RayTracing::RenderScene(std::unique_ptr<Common::Scene>& scene, CreateInfo::RayTracing const& rendererInfo)
 {
 	using namespace std::placeholders;
 
@@ -14,7 +14,7 @@ void Renderer::RenderScene(std::unique_ptr<Common::Scene>& scene, CreateInfo::Re
 
 	switch (rendererInfo.rendererType)
 	{
-		case CreateInfo::RendererType::PathTracing:
+		case CreateInfo::RayTracingType::PathTracing:
 		{
 			PathTracing(dumper, *scene.get(), rendererInfo.numSamples, rendererInfo.maxDepth).Render();
 			break;

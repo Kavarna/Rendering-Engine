@@ -274,6 +274,36 @@ void CommandList::TransitionImageToImguiLayout(Image* img)
     TransitionImageTo(img, ti);
 }
 
+void CommandList::CopyWholeBufferToImage(Image* image, Buffer* buffer)
+{
+    CHECK(image->mExtent2D.width * image->mExtent2D.height == buffer->mCount);
+    CHECK(image->mCreateInfo.imageType == VK_IMAGE_TYPE_2D);
+    
+    VkImageAspectFlags imageAspectFlags = 0;
+    for (auto const& [key, value] : image->mImageViews)
+    {
+        imageAspectFlags |= key;
+    }
+    VkImageSubresourceLayers imageLayers = {};
+    {
+        imageLayers.mipLevel = 0;
+        imageLayers.layerCount = image->mCreateInfo.arrayLayers;
+        imageLayers.baseArrayLayer = 0;
+        imageLayers.aspectMask = imageAspectFlags;
+    }
+    VkExtent3D imageExtent{.width = image->mExtent2D.width, .height = image->mExtent2D.height, .depth = 1};
+    VkBufferImageCopy region{};
+    {
+        region.bufferImageHeight = image->mExtent2D.width;
+        region.bufferOffset = 0;
+        region.bufferRowLength = image->mExtent2D.width;
+        region.imageExtent = imageExtent;
+        region.imageOffset = VkOffset3D{.x = 0, .y = 0, .z = 0};
+        region.imageSubresource = imageLayers;
+    }
+    jnrCmdCopyBufferToImage(mCommandBuffers[mActiveCommandIndex], buffer->mBuffer, image->mImage, mLayoutTracker.GetImageLayout(image), 1, &region);
+}
+
 void CommandList::BeginRenderingOnBackbuffer(Jnrlib::Color const& backgroundColor)
 {
     if (mBackbufferAvailable == nullptr)

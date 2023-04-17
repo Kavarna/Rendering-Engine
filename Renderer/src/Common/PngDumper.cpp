@@ -60,39 +60,6 @@ void PngDumper::SetTotalWork(uint32_t totalWork)
 void PngDumper::AddDoneWork()
 {
     mDoneWork++;
-
-#define SHOW_CLI_PROGRESS
-#ifdef SHOW_CLI_PROGRESS
-    if (mDoneWork % 1000 != 0)
-        return;
-
-    static std::mutex mu;
-    std::unique_lock<std::mutex> lock(mu);
-    int barLength = 10;
-    float progress = (float)mDoneWork / mTotalWork;
-    uint32_t secondNumber = (uint32_t)(progress * 100) % 10;
-    int pos = int(progress * barLength);
-
-    std::cout << "Progress: [";
-    for (int i = 0; i != barLength; ++i)
-    {
-        if (i < pos - 1)
-        {
-            std::cout << "#";
-        }
-        else if (i == pos - 1)
-        {
-            std::cout << (i + 1);
-        }
-        else if (i == pos)
-        {
-            std::cout << secondNumber;
-        }
-        else
-            std::cout << " ";
-    }
-    std::cout << "]\r";
-#endif
 }
 
 uint32_t PngDumper::GetWidth() const

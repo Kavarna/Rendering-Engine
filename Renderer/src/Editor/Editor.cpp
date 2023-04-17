@@ -55,6 +55,9 @@ Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::ScenePar
 
 Editor::Editor::~Editor()
 {
+    /* To be replaced */
+    Jnrlib::ThreadPool::Get()->CancelRemainingTasks();
+    Jnrlib::ThreadPool::Get()->WaitForAll();
     Renderer::Get()->WaitIdle();
 
     SerializeWindows();

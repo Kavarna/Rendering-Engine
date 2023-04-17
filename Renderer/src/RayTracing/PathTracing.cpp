@@ -4,10 +4,10 @@
 #include "Scene/Components/CameraComponent.h"
 #include "Scene/Components/BaseComponent.h"
 
-using namespace Renderer;
+using namespace RayTracing;
 using namespace Common;
 
-PathTracing::PathTracing(PngDumper& dumper, Scene& scene, uint32_t numSamples, uint32_t maxDepth) :
+PathTracing::PathTracing(IDumper& dumper, Scene& scene, uint32_t numSamples, uint32_t maxDepth) :
     mDumper(dumper),
     mScene(scene),
     mNumSamples(numSamples),
@@ -22,8 +22,6 @@ void PathTracing::Render()
     auto threadPool = Jnrlib::ThreadPool::Get();
 
     mDumper.SetTotalWork(width * height);
-
-    // Jnrlib::Position upperLeftCorner = mScene.GetCameraEntity()->GetLowerLeftCorner();
 
     Jnrlib::Position upperLeftCorner = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>().GetUpperLeftCorner();
 

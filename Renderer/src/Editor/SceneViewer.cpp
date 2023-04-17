@@ -272,7 +272,7 @@ void Editor::SceneViewer::InitRenderTargets()
         info.height = (uint32_t)mHeight;
         info.format = VK_FORMAT_B8G8R8A8_UNORM;
         info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | Image::IMGUI_IMAGE_LAYOUT;
+        info.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | Image::IMGUI_IMAGE_USAGE;
     }
     for (auto& frameResources : mPerFrameResources)
     {

@@ -48,7 +48,7 @@ std::optional<SceneParser::ParsedScene> SceneParser::LoadSceneFromJSON(std::stri
 
     nlohmann::json js;
     CreateInfo::Scene sceneInfo;
-    CreateInfo::Renderer rendererInfo;
+    CreateInfo::RayTracing rendererInfo;
     std::vector<CreateInfo::Material> materials;
 
     try

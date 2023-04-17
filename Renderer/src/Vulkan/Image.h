@@ -12,6 +12,7 @@ namespace Vulkan
         friend class CommandList;
     public:
         static constexpr const VkImageLayout IMGUI_IMAGE_LAYOUT = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        static constexpr const VkImageUsageFlags IMGUI_IMAGE_USAGE = VK_IMAGE_USAGE_SAMPLED_BIT;
         struct Info2D
         {
             uint32_t width, height;

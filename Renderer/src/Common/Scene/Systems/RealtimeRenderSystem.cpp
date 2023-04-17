@@ -71,7 +71,13 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
     }
 
-    cmdList->BeginRenderingOnImage(mRenderTarget, Jnrlib::Black, mDepthImage, true);
+
+    {
+        static Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
+        static Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Quarter, Jnrlib::Quarter, Jnrlib::One, 1.0f);
+        static Jnrlib::Color skyColor = 0.5f * whiteSkyColor + 0.5f * blueSkyColor;
+        cmdList->BeginRenderingOnImage(mRenderTarget, skyColor, mDepthImage, true);
+    }
     cmdList->BindPipeline(mDefaultPipeline.get());
     cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
 

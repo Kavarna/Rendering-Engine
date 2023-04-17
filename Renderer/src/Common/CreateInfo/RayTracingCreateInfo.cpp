@@ -1,4 +1,4 @@
-#include "RendererCreateInfo.h"
+#include "RayTracingCreateInfo.h"
 
 #include "TypeHelpers.h"
 #include <boost/algorithm/string.hpp>
@@ -8,26 +8,26 @@ using json = nlohmann::json;
 
 namespace CreateInfo
 {
-    RendererType GetRendererTypeFromString(std::string const& str)
+    RayTracingType GetRendererTypeFromString(std::string const& str)
     {
         if (boost::iequals(str, "pathtracing"))
-            return RendererType::PathTracing;
-        return RendererType::None;
+            return RayTracingType::PathTracing;
+        return RayTracingType::None;
     }
 
-    std::string GetStringFromRendererType(RendererType rendererType)
+    std::string GetStringFromRendererType(RayTracingType rendererType)
     {
         switch (rendererType)
         {
-            case RendererType::PathTracing:
+            case RayTracingType::PathTracing:
                 return "PathTracing";
-            case RendererType::None:
+            case RayTracingType::None:
             default:
                 return "None";
         }
     }
 
-    std::ostream& operator<<(std::ostream& stream, Renderer const& info)
+    std::ostream& operator<<(std::ostream& stream, RayTracing const& info)
     {
         json j;
 
@@ -37,7 +37,7 @@ namespace CreateInfo
         return stream;
     }
 
-    std::istream& operator>>(std::istream& stream, Renderer& info)
+    std::istream& operator>>(std::istream& stream, RayTracing& info)
     {
         json j;
 
@@ -47,14 +47,14 @@ namespace CreateInfo
         return stream;
     }
 
-    void to_json(nlohmann::json& j, const Renderer& p)
+    void to_json(nlohmann::json& j, const RayTracing& p)
     {
         j["num-samples"] = p.numSamples;
         j["renderer-type"] = GetStringFromRendererType(p.rendererType);
         j["max-depth"] = p.maxDepth;
     }
 
-    void from_json(const nlohmann::json& j, Renderer& p)
+    void from_json(const nlohmann::json& j, RayTracing& p)
     {
         std::string rendererTypeString;
         j.at("renderer-type").get_to(rendererTypeString);

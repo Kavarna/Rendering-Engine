@@ -1,17 +1,17 @@
 #pragma once
 
 #include "Jnrlib.h"
-#include "PngDumper.h"
+#include "IDumper.h"
 #include "Scene/Scene.h"
 #include "Ray.h"
 
-namespace Renderer
+namespace RayTracing
 {
 
     class PathTracing
     {
     public:
-        PathTracing(Common::PngDumper& dumper, Common::Scene& scene, uint32_t numSamples, uint32_t maxDepth);
+        PathTracing(Common::IDumper& dumper, Common::Scene& scene, uint32_t numSamples, uint32_t maxDepth);
 
         void Render();
 
@@ -21,7 +21,7 @@ namespace Renderer
         Jnrlib::Color GetRayColor(Common::Ray const&, uint32_t depth = 1);
 
     private:
-        Common::PngDumper& mDumper;
+        Common::IDumper& mDumper;
         Common::Scene& mScene;
 
         const uint32_t mNumSamples;

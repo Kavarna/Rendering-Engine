@@ -5,10 +5,12 @@
 #include <png++/image.hpp>
 #include "Jnrlib.h"
 
+#include "IDumper.h"
+
 namespace Common
 {
 
-    class PngDumper
+    class PngDumper : public IDumper
     {
     public:
         PngDumper(uint32_t width, uint32_t height, std::string const& name);
@@ -16,22 +18,22 @@ namespace Common
 
     public:
         void SetPixelColor(float u, float v,
-                           float r, float g, float b, float a = 1.0f);
+                           float r, float g, float b, float a = 1.0f) override;
 
         void SetPixelColor(uint32_t x, uint32_t y,
-                           float r, float g, float b, float a = 1.0f);
+                           float r, float g, float b, float a = 1.0f) override;
 
         void SetPixelColor(float u, float v,
-                           Jnrlib::Color const&);
+                           Jnrlib::Color const&) override;
 
         void SetPixelColor(uint32_t x, uint32_t y,
-                           Jnrlib::Color const&);
+                           Jnrlib::Color const&) override;
 
-        void SetTotalWork(uint32_t totalWork);
-        void AddDoneWork();
+        void SetTotalWork(uint32_t totalWork) override;
+        void AddDoneWork() override;
 
-        uint32_t GetWidth() const;
-        uint32_t GetHeight() const;
+        uint32_t GetWidth() const override;
+        uint32_t GetHeight() const override;
 
         void Flush();
 
