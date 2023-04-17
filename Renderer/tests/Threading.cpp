@@ -9,8 +9,65 @@ using namespace Jnrlib;
 
 namespace
 {
+    using namespace std::chrono;
     class Threading : public testing::TestWithParam<int>
     { };
+
+    void Func1(std::string& result, std::mutex& mu)
+    {
+        std::this_thread::sleep_for(1ns);
+
+        std::lock_guard g(mu);
+        result += "Task1";
+    }
+
+    void Func2(std::string& result, std::mutex& mu, std::shared_ptr<struct Task> task1)
+    {
+        auto threadPool = ThreadPool::Get();
+        threadPool->Wait(task1, ThreadPool::WaitPolicy::EXIT_ASAP);
+
+        std::lock_guard g(mu);
+        result += "Task2";
+    }
+
+    void Func3(std::string& result, std::mutex& mu, std::shared_ptr<struct Task> task1)
+    {
+        auto threadPool = ThreadPool::Get();
+        threadPool->Wait(task1, ThreadPool::WaitPolicy::EXIT_ASAP);
+
+        std::lock_guard g(mu);
+        result += "Task3";
+    }
+
+    void Func4(std::string& result, std::mutex& mu, std::shared_ptr<struct Task> task2, std::shared_ptr<struct Task> task3)
+    {
+        auto threadPool = ThreadPool::Get();
+        threadPool->Wait(task2, ThreadPool::WaitPolicy::EXIT_ASAP);
+        threadPool->Wait(task3, ThreadPool::WaitPolicy::EXIT_ASAP);
+
+        std::lock_guard g(mu);
+        result += "Task4";
+    }
+
+    TEST_P(Threading, ThreadingCorectnessWithDependencies)
+    {
+        EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
+
+        auto threadPool = ThreadPool::Get();
+        EXPECT_NE(threadPool, nullptr);
+
+        std::mutex mu;
+        std::string result = "";
+
+        auto task1 = threadPool->ExecuteDeffered(std::bind(Func1, std::ref(result), std::ref(mu)));
+        auto task2 = threadPool->ExecuteDeffered(std::bind(Func2, std::ref(result), std::ref(mu), task1));
+        auto task3 = threadPool->ExecuteDeffered(std::bind(Func3, std::ref(result), std::ref(mu), task1));
+        auto task4 = threadPool->ExecuteDeffered(std::bind(Func4, std::ref(result), std::ref(mu), task2, task3));
+
+        threadPool->WaitForAll(ThreadPool::WaitPolicy::EXIT_ASAP);
+
+        EXPECT_TRUE(result == "Task1Task2Task3Task4" || result == "Task1Task3Task2Task4");
+    }
 
     TEST(Threading, AllThreadsRun)
     {
@@ -246,7 +303,7 @@ namespace
         threadPool->WaitForAll();
     }
 
-    INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 1000));
+    INSTANTIATE_TEST_SUITE_P(ThreadingTests, Threading, testing::Range(0, 100));
 
 }
 

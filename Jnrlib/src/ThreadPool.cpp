@@ -359,13 +359,15 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
 void Jnrlib::ThreadPool::WaitForAllToFinish()
 {
     // Make sure that there are no tasks to be run
-    std::unique_lock<std::mutex> lock(mWorkListMutex);
-    if (mWorkList != nullptr)
     {
-        mWorkersCV.wait(lock, [this]
+        std::unique_lock<std::mutex> lock(mWorkListMutex);
+        if (mWorkList != nullptr)
         {
-            return mWorkList == nullptr;
-        });
+            mWorkersCV.wait(lock, [this]
+            {
+                return mWorkList == nullptr;
+            });
+        }
     }
 
     WAIT_ALL_ACTIVE_THREADS;
