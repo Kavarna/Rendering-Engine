@@ -64,11 +64,10 @@ void Editor::SceneViewer::OnRender()
         RenderScene();
 
         auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
-        auto textureId = currentFrameResources.renderTarget->GetTextureID();
         ImVec2 size;
         size.x = (float)currentFrameResources.renderTarget->GetExtent2D().width;
         size.y = (float)currentFrameResources.renderTarget->GetExtent2D().height;
-        ImGui::Image(textureId, size);
+        ImGui::Image(currentFrameResources.renderTarget->GetTextureID(), size);
     }
     else
     {

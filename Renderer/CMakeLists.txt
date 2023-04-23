@@ -5,6 +5,7 @@ add_definitions(-DVK_NO_PROTOTYPES)
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_definitions(-DGLM_FORCE_LEFT_HANDED)
+add_definitions(-DImTextureID=uint64_t)
 # add_definitions(-DGLM_FORCE_DEFAULT_ALIGNED_GENTYPES)
 
 include_directories("src/Common")

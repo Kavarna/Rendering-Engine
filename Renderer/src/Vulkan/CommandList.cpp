@@ -73,9 +73,7 @@ void CommandList::Begin()
         mImageIndex = -1;
     }
 
-    /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
-    mLayoutTracker.Flush();
-    mMemoryTracker.Flush();
+    VLOG(2) << "[" << (void*)mCommandBuffers[mActiveCommandIndex] << "] Start recording command buffer";
 }
 
 void CommandList::End()
@@ -98,6 +96,12 @@ void CommandList::End()
     }
 
     ThrowIfFailed(jnrEndCommandBuffer(mCommandBuffers[mActiveCommandIndex]));
+
+    /* TODO: To be more correct, we could do this after the CPUSynchronizationObject was triggered */
+    mLayoutTracker.Flush();
+    mMemoryTracker.Flush();
+
+    VLOG(2) << "[" << (void*)mCommandBuffers[mActiveCommandIndex] << "] Finish recording command buffer";
 }
 
 void Vulkan::CommandList::CopyBuffer(Vulkan::Buffer* dst, Vulkan::Buffer* src)
@@ -214,6 +218,9 @@ void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo)
     );
 
     mLayoutTracker.TransitionBackBufferImage(mImageIndex, transitionInfo.newLayout);
+
+    VLOG(2) << "[" << (void*)mCommandBuffers[mActiveCommandIndex] << "] Transitioning backbuffer image " << mImageIndex << " from layout " <<
+        string_VkImageLayout(imageMemoryBarrier.oldLayout) << " to " << string_VkImageLayout(imageMemoryBarrier.newLayout);
 }
 
 void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo)
@@ -260,6 +267,9 @@ void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transition
     );
 
     mLayoutTracker.TransitionImage(img, transitionInfo.newLayout);
+
+    VLOG(2) << "[" << (void*)mCommandBuffers[mActiveCommandIndex] << "] Transitioning image " << img->mImage << " from layout " <<
+        string_VkImageLayout(imageMemoryBarrier.oldLayout) << " to " << string_VkImageLayout(imageMemoryBarrier.newLayout);
 }
 
 void CommandList::TransitionImageToImguiLayout(Image* img)
@@ -381,6 +391,7 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         }
         TransitionImageTo(depth, ti);
     }
+    auto colorImageView = img->GetImageView(VK_IMAGE_ASPECT_COLOR_BIT);
     VkRenderingAttachmentInfo colorAttachment{};
     {
         VkClearValue clearValue{};
@@ -391,13 +402,14 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
 
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment.imageView = img->GetImageView(VK_IMAGE_ASPECT_COLOR_BIT);
+        colorAttachment.imageView = colorImageView.GetView();
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.clearValue = clearValue;
     }
     VkImageAspectFlags depthAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
     depthAspectFlags |= useStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+    auto depthImageView = depth->GetImageView(depthAspectFlags);
     VkRenderingAttachmentInfo depthAttachment{};
     {
         VkClearValue clearValue{};
@@ -406,7 +418,7 @@ void CommandList::BeginRenderingOnImage(Image* img, Jnrlib::Color const& backgro
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         depthAttachment.imageLayout = useStencil ?
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        depthAttachment.imageView = depth->GetImageView(depthAspectFlags);
+        depthAttachment.imageView = depthImageView.GetView();
         depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.clearValue = clearValue;
@@ -436,12 +448,12 @@ void CommandList::EndRendering()
 
 void CommandList::InitImGui()
 {
-    ImGui_ImplVulkan_CreateFontsTexture(mCommandBuffers[mActiveCommandIndex]);
+    ImGui_ImplVulkan_CreateFontsTexture(this);
 }
 
 void CommandList::UINewFrame()
 {
-    ImGui_ImplVulkan_NewFrame(mCommandBuffers[mActiveCommandIndex]);
+    ImGui_ImplVulkan_NewFrame(this);
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
@@ -450,14 +462,14 @@ void CommandList::FlushUI()
 {
     ImGui::Render();
 
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), mCommandBuffers[mActiveCommandIndex]);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), this);
 
-    auto& io = ImGui::GetIO();
+    /*auto& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
-    }
+    }*/
 }
 
 void Vulkan::CommandList::AddLocalBuffer(std::unique_ptr<Buffer>&& buffer)
@@ -495,6 +507,7 @@ void CommandList::Submit(CPUSynchronizationObject* signalWhenFinished)
 
 void CommandList::SubmitToScreen(CPUSynchronizationObject* signalWhenFinished)
 {
+    VLOG(2) << "Submitting command buffer " << (void*)mCommandBuffers[mActiveCommandIndex] << " to the screen";
     if (mRenderingFinished == nullptr)
         mRenderingFinished = std::make_unique<GPUSynchronizationObject>();
     

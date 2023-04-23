@@ -30,10 +30,14 @@ namespace Vulkan
         uint32_t AcquireNextImage(GPUSynchronizationObject*);
         VkImageView GetSwapchainImageView(uint32_t index);
 
+        void InitDearImGui();
+        void DestroyDearImGui();
+
     public:
         /* Default stuff */
         VkPipelineLayout GetEmptyPipelineLayout();
         VkSampler GetPointSampler();
+        VkSampler GetFontSampler();
 
         VkPipelineCache GetPipelineCache();
 
@@ -49,7 +53,6 @@ namespace Vulkan
         void InitSurface();
         void InitSwapchain();
         void InitAllocator();
-        void InitDearImGui();
 
     private:
         struct QueueFamilyIndices
@@ -136,7 +139,6 @@ namespace Vulkan
         std::vector<VkImageView> mSwapchainImageViews;
         std::vector<VkImageLayout> mSwapchainImageLayouts; // Used in command buffer to figure out what to do with transitions
 
-        VkDescriptorPool mImGuiPool;
         VmaAllocator mAllocator;
 
         /* Some "default" variables will be store in the renderer, so they will be available as soon
@@ -144,6 +146,7 @@ namespace Vulkan
          */
         VkPipelineLayout mEmptyPipelineLayout = VK_NULL_HANDLE;
         VkSampler mPointSampler = VK_NULL_HANDLE;
+        VkSampler mFontSampler = VK_NULL_HANDLE;
         VkPipelineCache mPipelineCache = VK_NULL_HANDLE;
     };
 }

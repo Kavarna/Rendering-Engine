@@ -21,11 +21,13 @@ namespace Vulkan
     public:
         void ClearShaders();
         void AddShader(std::string const& path);
+        void AddShader(std::vector<char> const& shaderContent, VkShaderStageFlags shaderStage);
 
         void SetRootSignature(RootSignature const* rootSignature);
 
         void AddBackbufferColorOutput();
         void AddImageColorOutput(class Image const* img);
+        void AddFormatColorOutput(VkFormat format);
         void SetBackbufferDepthStencilOutput();
         void SetDepthImage(class Image const* img);
         void SetDepthStencilImage(class Image const* img);
@@ -75,8 +77,6 @@ namespace Vulkan
 
     private:
         void InitDefaultPipelineState();
-
-        void MapStates();
 
     private:
         std::string mName;

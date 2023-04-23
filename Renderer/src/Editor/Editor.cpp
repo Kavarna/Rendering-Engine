@@ -40,6 +40,7 @@ Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::ScenePar
         InitCommandLists();
         InitScene(&scenes[0]);
         InitImguiWindows();
+        Renderer::Get()->InitDearImGui();
         OnResize(mWidth, mHeight);
 
         mInitializationCmdList->InitImGui();
@@ -66,6 +67,7 @@ Editor::Editor::~Editor()
     
     mImguiWindows.clear();
 
+    Renderer::Get()->DestroyDearImGui();
     for (auto& perResourceFrames : mPerFrameResources)
     {
         perResourceFrames.commandList.reset();
@@ -205,6 +207,7 @@ CreateInfo::VulkanRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
         LOG(INFO) << "Enabling vulkan validation layers";
         info.instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
         info.instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        info.instanceLayers.push_back("VK_LAYER_LUNARG_api_dump");
     }
 
     return info;

@@ -41,6 +41,11 @@ void Pipeline::AddImageColorOutput(Image const* img)
     mColorOutputs.push_back(img->GetFormat());
 }
 
+void Pipeline::AddFormatColorOutput(VkFormat format)
+{
+    mColorOutputs.push_back(format);
+}
+
 void Pipeline::SetBackbufferDepthStencilOutput()
 {
     mDepthFormat = Renderer::Get()->GetDefaultDepthFormat();
@@ -178,14 +183,18 @@ void Pipeline::AddShader(std::string const& path)
     }
 
     CHECK(shaderStage != 0) << "\"" << path << "\" doesn't contain the vertex type";
+    auto shaderContent = Jnrlib::ReadWholeFile(path);
 
+    AddShader(shaderContent, shaderStage);
+}
+
+void Pipeline::AddShader(std::vector<char> const& shaderContent, VkShaderStageFlags shaderStage)
+{
     VkDevice device = Renderer::Get()->GetDevice();
 
-    auto shaderContent = Jnrlib::ReadWholeFile(path);
-    
     VkShaderModuleCreateInfo shaderInfo = {};
     shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderInfo.pCode = reinterpret_cast<uint32_t*>(shaderContent.data());
+    shaderInfo.pCode = reinterpret_cast<const uint32_t*>(shaderContent.data());
     shaderInfo.codeSize = (uint32_t)shaderContent.size();
 
     VkShaderModule shaderModule;
@@ -199,7 +208,7 @@ void Pipeline::AddShader(std::string const& path)
         pipelineStageInfo.module = shaderModule;
         pipelineStageInfo.flags = 0;
         pipelineStageInfo.pName = "main";
-        pipelineStageInfo.stage = shaderStage;        
+        pipelineStageInfo.stage = (VkShaderStageFlagBits)shaderStage;
     }
 
     mShaderModules.push_back(pipelineStageInfo);

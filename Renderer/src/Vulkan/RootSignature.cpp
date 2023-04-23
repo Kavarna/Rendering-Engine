@@ -1,4 +1,5 @@
 #include "RootSignature.h"
+#include "Image.h"
 #include "VulkanLoader.h"
 #include "Renderer.h"
 
@@ -62,7 +63,68 @@ DescriptorSet::~DescriptorSet()
     }
 }
 
-void Vulkan::DescriptorSet::AddStorageBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages)
+void DescriptorSet::AddSampler(uint32_t binding, std::vector<VkSampler> const& samplers, VkShaderStageFlags stages)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    {
+        layoutBinding.binding = binding;
+        layoutBinding.descriptorCount = (uint32_t)samplers.size();
+        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        layoutBinding.pImmutableSamplers = samplers.data();
+        layoutBinding.stageFlags = stages;
+    }
+
+    mBindings.push_back(layoutBinding);
+
+    mSamplerCount++;
+}
+
+void DescriptorSet::AddCombinedImageSampler(uint32_t binding, VkSampler* sampler, VkShaderStageFlags stages)
+{
+    VkDescriptorSetLayoutBinding layoutBinding{};
+    {
+        layoutBinding.binding = binding;
+        layoutBinding.descriptorCount = 1;
+        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBinding.pImmutableSamplers = sampler;
+        layoutBinding.stageFlags = stages;
+    }
+
+    mBindings.push_back(layoutBinding);
+
+    mCombinedImageSamplerCount++;
+}
+
+void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::Image* image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance)
+{
+    auto device = Renderer::Get()->GetDevice();
+    auto imageView = image->GetImageView(aspectFlags);
+    BindCombinedImageSampler(binding, imageView, aspectFlags, sampler, instance);
+}
+
+void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::ImageView image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance)
+{
+    auto device = Renderer::Get()->GetDevice();
+    VkDescriptorImageInfo imageInfo{};
+    {
+        imageInfo.sampler = sampler;
+        imageInfo.imageLayout = image.GetLayout();
+        imageInfo.imageView = image.GetView();
+    }
+    VkWriteDescriptorSet writeDescriptorSet{};
+    {
+        writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptorSet.dstArrayElement = 0;
+        writeDescriptorSet.dstBinding = binding;
+        writeDescriptorSet.dstSet = mDescriptorSets[instance];
+        writeDescriptorSet.pImageInfo = &imageInfo;
+    }
+    jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
+}
+
+void DescriptorSet::AddStorageBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
     {
@@ -78,7 +140,7 @@ void Vulkan::DescriptorSet::AddStorageBuffer(uint32_t binding, uint32_t descript
     mStorageBufferCount++;
 }
 
-void Vulkan::DescriptorSet::BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+void DescriptorSet::BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
@@ -118,7 +180,7 @@ void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, V
     mInputBufferCount++;
 }
 
-void Vulkan::DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+void DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
@@ -143,7 +205,7 @@ void Vulkan::DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t bin
 }
 
 
-void Vulkan::DescriptorSet::BakeLayout()
+void DescriptorSet::BakeLayout()
 {
     auto device = Renderer::Get()->GetDevice();
 
@@ -181,6 +243,22 @@ void DescriptorSet::Bake(uint32_t instances)
         {
             inputBufferSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             inputBufferSize.descriptorCount = mStorageBufferCount;
+        }
+    }
+    if (mSamplerCount != 0)
+    {
+        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        {
+            inputBufferSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+            inputBufferSize.descriptorCount = mSamplerCount;
+        }
+    }
+    if (mCombinedImageSamplerCount != 0)
+    {
+        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        {
+            inputBufferSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            inputBufferSize.descriptorCount = mCombinedImageSamplerCount;
         }
     }
     VkDescriptorPoolCreateInfo& poolInfo = mPoolInfo;

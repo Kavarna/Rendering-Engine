@@ -53,17 +53,12 @@ Renderer::Renderer(CreateInfo::VulkanRenderer const& info)
     InitDevice(info);
     InitAllocator();
     InitSwapchain();
-    InitDearImGui();
 
     LOG(INFO) << "Vulkan renderer initialised successfully";
 }
 
 Renderer::~Renderer()
 {
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
     if (mEmptyPipelineLayout != VK_NULL_HANDLE)
     {
         jnrDestroyPipelineLayout(mDevice, mEmptyPipelineLayout, nullptr);
@@ -71,6 +66,10 @@ Renderer::~Renderer()
     if (mPointSampler != VK_NULL_HANDLE)
     {
         jnrDestroySampler(mDevice, mPointSampler, nullptr);
+    }
+    if (mFontSampler != VK_NULL_HANDLE)
+    {
+        jnrDestroySampler(mDevice, mFontSampler, nullptr);
     }
     if (mPipelineCache != VK_NULL_HANDLE)
     {
@@ -94,7 +93,6 @@ Renderer::~Renderer()
     jnrDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
     jnrDestroySurfaceKHR(mInstance, mRenderingSurface, nullptr);
 
-    jnrDestroyDescriptorPool(mDevice, mImGuiPool, nullptr);
     vmaDestroyAllocator(mAllocator);
     
     jnrDestroyDevice(mDevice, nullptr);
@@ -435,38 +433,8 @@ void Renderer::InitAllocator()
     ThrowIfFailed(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
 }
 
-void CheckResult(VkResult err)
-{
-    ThrowIfFailed(err);
-}
-
 void Renderer::InitDearImGui()
 {
-    // Create Descriptor Pool
-    {
-        VkDescriptorPoolSize pool_sizes[] =
-        {
-            { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-            { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-        };
-        VkDescriptorPoolCreateInfo pool_info = {};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
-        pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
-        pool_info.pPoolSizes = pool_sizes;
-        ThrowIfFailed(jnrCreateDescriptorPool(mDevice, &pool_info, nullptr, &mImGuiPool));
-    }
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -493,22 +461,9 @@ void Renderer::InitDearImGui()
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(mWindow, true);
     ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = mInstance;
-    init_info.PhysicalDevice = mPhysicalDevice;
-    init_info.Device = mDevice;
-    init_info.QueueFamily = *mQueueIndices.graphicsFamily;
-    init_info.Queue = mGraphicsQueue;
-    init_info.PipelineCache = VK_NULL_HANDLE;
-    init_info.DescriptorPool = mImGuiPool;
-    init_info.Subpass = 0;
-    init_info.MinImageCount = mSwapchainDetails.capabilities.minImageCount;
     init_info.ImageCount = (uint32_t)mSwapchainImages.size();
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.Allocator = nullptr;
-    init_info.CheckVkResultFn = CheckResult;
     init_info.BackbufferFormat = mSwapchainFormat;
-    Vulkan::DeviceInstance devInstance{.device = mDevice, .instance = mInstance};
-    ImGui_ImplVulkan_LoadFunctions(Vulkan::GetFunctionByName, &devInstance);
     ImGui_ImplVulkan_Init(&init_info);
 }
 
@@ -805,6 +760,33 @@ VkSampler Renderer::GetPointSampler()
     return mPointSampler;
 }
 
+VkSampler Renderer::GetFontSampler()
+{
+    if (mFontSampler != VK_NULL_HANDLE)
+        return mFontSampler;
+
+    VkSamplerCreateInfo samplerInfo = {};
+    {
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.minFilter = VK_FILTER_LINEAR;
+        samplerInfo.magFilter = VK_FILTER_LINEAR;
+        samplerInfo.maxLod = 1000.0f;
+        samplerInfo.minLod = -1000.0f;
+        samplerInfo.maxAnisotropy = 1.f;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    }
+    ThrowIfFailed(
+        jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mFontSampler)
+    );
+
+    return mFontSampler;
+}
+
 VkPipelineCache Vulkan::Renderer::GetPipelineCache()
 {
     if (mPipelineCache != VK_NULL_HANDLE)
@@ -872,4 +854,11 @@ VkImageView Renderer::GetSwapchainImageView(uint32_t index)
 {
     CHECK(index >= 0 && index < mSwapchainImageViews.size()) << "Invalid image view requested";
     return mSwapchainImageViews[index];
+}
+
+void Renderer::DestroyDearImGui()
+{
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }

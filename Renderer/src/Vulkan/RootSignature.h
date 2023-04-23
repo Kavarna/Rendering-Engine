@@ -7,6 +7,9 @@
 
 namespace Vulkan
 {
+    class Image;
+    class ImageView;
+
     class DescriptorSet
     {
         friend class RootSignature;
@@ -19,6 +22,12 @@ namespace Vulkan
         /* Make this non-copyable */
         DescriptorSet(const DescriptorSet&) = delete;
         DescriptorSet& operator=(const DescriptorSet&) = delete;
+
+        void AddSampler(uint32_t binding, std::vector<VkSampler> const& samplers, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
+
+        void AddCombinedImageSampler(uint32_t binding, VkSampler* sampler, VkShaderStageFlags stages);
+        void BindCombinedImageSampler(uint32_t binding, Vulkan::Image* image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance = 0);
+        void BindCombinedImageSampler(uint32_t binding, Vulkan::ImageView image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance = 0);
 
         void AddStorageBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
         void BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
@@ -36,6 +45,8 @@ namespace Vulkan
 
         uint32_t mInputBufferCount = 0;
         uint32_t mStorageBufferCount = 0;
+        uint32_t mSamplerCount = 0;
+        uint32_t mCombinedImageSamplerCount = 0;
 
         std::vector<VkDescriptorSetLayoutBinding> mBindings;
         VkDescriptorSetLayout mLayout = VK_NULL_HANDLE;

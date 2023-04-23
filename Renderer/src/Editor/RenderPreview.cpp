@@ -102,9 +102,8 @@ void Editor::RenderPreview::ShowProgress()
         size.x = width;
         size.y = height;
         auto image = mBufferDumper->GetImage();
-        auto textureId = image->GetTextureID();
         mActiveRenderingContext.cmdList->TransitionImageToImguiLayout(image);
-        ImGui::Image(textureId, size);
+        ImGui::Image(image->GetTextureID(), size);
     }
 }
 

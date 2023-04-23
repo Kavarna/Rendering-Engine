@@ -79,17 +79,17 @@ Image::~Image()
 
     if (mImguiTextureID)
     {
-        ImGui_ImplVulkan_RemoveTexture(mImguiTextureID);
+        // ImGui_ImplVulkan_RemoveTexture(mImguiTextureID);
     }
 
     vmaDestroyImage(allocator, mImage, mAllocation);
 }
 
-VkImageView Image::GetImageView(VkImageAspectFlags aspectMask)
+void Image::EnsureAspect(VkImageAspectFlags aspectMask)
 {
     if (auto it = mImageViews.find(aspectMask); it != mImageViews.end())
     {
-        return it->second;
+        return;
     }
     auto renderer = Renderer::Get();
     auto device = renderer->GetDevice();
@@ -119,8 +119,16 @@ VkImageView Image::GetImageView(VkImageAspectFlags aspectMask)
         jnrCreateImageView(device, &viewInfo, nullptr, &imageView)
     );
     mImageViews[aspectMask] = imageView;
+}
 
-    return imageView;
+ImageView Image::GetImageView(VkImageAspectFlags aspectMask)
+{
+    if (auto it = mImageViews.find(aspectMask); it != mImageViews.end())
+    {
+        return {it->second, aspectMask, mLayout};
+    }
+    EnsureAspect(aspectMask);
+    return {mImageViews[aspectMask], aspectMask, mLayout};
 }
 
 VkFormat Image::GetFormat() const
@@ -151,13 +159,18 @@ VkExtent2D Image::GetExtent2D() const
     return mExtent2D;
 }
 
-ImTextureID Image::GetTextureID()
+VkImageLayout Vulkan::Image::GetLayout() const
 {
-    if (mImguiTextureID != VK_NULL_HANDLE)
-        return mImguiTextureID;
-    auto renderer = Renderer::Get();
-    VkSampler sampler = renderer->GetPointSampler();
-    mImguiTextureID = ImGui_ImplVulkan_AddTexture(
-        sampler, GetImageView(VK_IMAGE_ASPECT_COLOR_BIT), IMGUI_IMAGE_LAYOUT);
-    return (ImTextureID)mImguiTextureID;
+    return mLayout;
+}
+
+ImTextureID Vulkan::Image::GetTextureID()
+{
+    if (mTextureId != (ImTextureID)NULL)
+        return mTextureId;
+
+    auto sampler = Renderer::Get()->GetPointSampler();
+    mTextureId = ImGui_ImplVulkan_AddTexture(sampler, GetImageView(VK_IMAGE_ASPECT_COLOR_BIT));
+
+    return mTextureId;
 }

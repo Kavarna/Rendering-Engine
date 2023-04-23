@@ -23,8 +23,6 @@ BufferDumper::BufferDumper(uint32_t width, uint32_t height) :
         imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | Image::IMGUI_IMAGE_USAGE;
     }
     mImage = std::make_unique<Vulkan::Image>(imageInfo);
-    /* Insert the aspect mask used by imgui in order to be safe to copying from buffer here */
-    mImage->GetTextureID();
 }
 
 BufferDumper::~BufferDumper()
