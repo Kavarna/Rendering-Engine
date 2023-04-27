@@ -35,6 +35,9 @@ namespace Common::Systems
         void RenderScene(Vulkan::CommandList* cmdList);
         Vulkan::RootSignature* GetRootSiganture() const;
 
+        void SetDepthImage(Vulkan::Image* depthImage);
+        void SetRenderTarget(Vulkan::Image* renderTarget);
+
         void SetCamera(EditorCamera const* camera);
         void SetLight(DirectionalLight const& light);
 
@@ -46,7 +49,7 @@ namespace Common::Systems
 
         void Update(float dt);
 
-        void OnResize(Vulkan::Image* renderTarget, Vulkan::Image* depthImage, uint32_t width, uint32_t height);
+        void OnResize(uint32_t width, uint32_t height);
 
         void AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds);
 
@@ -101,7 +104,6 @@ namespace Common::Systems
 
         Common::BatchRenderer mBatchRenderer;
 
-        // TODO: Make these a bit more dynamic (?) - take them as parameters
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;
         std::unique_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;
 

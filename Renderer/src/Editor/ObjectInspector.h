@@ -23,6 +23,7 @@ namespace Editor
 
     public:
         void SetEntity(Common::Entity* entity);
+        void ClearSelection();
 
     private:
         void RenderBase(Common::Components::Base& b, bool isUpdatable);

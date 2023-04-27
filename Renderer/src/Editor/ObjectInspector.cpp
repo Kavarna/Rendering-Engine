@@ -50,6 +50,11 @@ void ObjectInspector::SetEntity(Entity* entity)
     mActiveEntity = entity;
 }
 
+void ObjectInspector::ClearSelection()
+{
+    mActiveEntity = nullptr;
+}
+
 void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
 {
 

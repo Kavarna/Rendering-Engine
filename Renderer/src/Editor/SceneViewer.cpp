@@ -19,11 +19,8 @@ using namespace Vulkan;
 Editor::SceneViewer::SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList)
     : mScene(scene)
 {
-    for (uint32_t i = 0; i < Common::Constants::FRAMES_IN_FLIGHT; ++i)
-    {
-        mPerFrameResources[i].renderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
-        mPerFrameResources[i].renderSystem->SetDrawCameraFrustum(true);
-    }
+    mRenderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
+    mRenderSystem->SetDrawCameraFrustum(true);
 }
 
 Editor::SceneViewer::~SceneViewer()
@@ -79,18 +76,12 @@ void Editor::SceneViewer::OnRender()
 
 void Editor::SceneViewer::SelectEntities(std::unordered_set<Common::Entity*> const& selectedIndices)
 {
-    for (auto& perFrameResources : mPerFrameResources)
-    {
-        perFrameResources.renderSystem->SelectEntities(selectedIndices);
-    }
+    mRenderSystem->SelectEntities(selectedIndices);
 }
 
 void Editor::SceneViewer::ClearSelection()
 {
-    for (auto& perFrameResources : mPerFrameResources)
-    {
-        perFrameResources.renderSystem->ClearSelection();
-    }
+    mRenderSystem->ClearSelection();
 }
 
 void Editor::SceneViewer::SetSceneHierarchy(SceneHierarchy* hierarchy)
@@ -106,7 +97,8 @@ void Editor::SceneViewer::RenderScene()
     auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
     auto& cmdList = mActiveRenderingContext.cmdList;
     
-    currentFrameResources.renderSystem->RenderScene(cmdList);
+    mRenderSystem->SetRenderTarget(currentFrameResources.renderTarget.get());
+    mRenderSystem->RenderScene(cmdList);
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get());
 
     mScene->PerformUpdate();
@@ -115,10 +107,7 @@ void Editor::SceneViewer::RenderScene()
 
 void Editor::SceneViewer::AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time)
 {
-    for (auto& perFrameResources : mPerFrameResources)
-    {
-        perFrameResources.renderSystem->AddVertex(pos, color, time);
-    }
+    mRenderSystem->AddVertex(pos, color, time);
 }
 
 void Editor::SceneViewer::SelectObject()
@@ -226,10 +215,7 @@ void Editor::SceneViewer::UpdateCamera(float dt)
 void Editor::SceneViewer::UpdatePassive()
 {
     auto dt = ImGui::GetIO().DeltaTime;
-    for (auto& perFrameResource : mPerFrameResources)
-    {
-        perFrameResource.renderSystem->Update(dt);
-    }
+    mRenderSystem->Update(dt);
 
     /* Fix for when right click doesn't work because the mouse clicked on other window */
     if (!ImGui::IsWindowFocused() && Editor::Get()->IsMousePressed(GLFW_MOUSE_BUTTON_RIGHT) && !mIsMouseEnabled)
@@ -256,11 +242,10 @@ void Editor::SceneViewer::OnResize(float newWidth, float newHeight)
 
     InitRenderTargets();
     InitCamera();
-    for (auto& perFrameResource : mPerFrameResources)
-    {
-        perFrameResource.renderSystem->OnResize(
-            perFrameResource.renderTarget.get(), mDepthImage.get(), (uint32_t)mWidth, (uint32_t)mHeight);
-    }
+
+    mRenderSystem->SetDepthImage(mDepthImage.get());
+    mRenderSystem->SetRenderTarget(mPerFrameResources[mActiveRenderingContext.activeFrame].renderTarget.get());
+    mRenderSystem->OnResize((uint32_t)mWidth, (uint32_t)mHeight);
 }
 
 void Editor::SceneViewer::InitRenderTargets()
@@ -324,10 +309,7 @@ void Editor::SceneViewer::InitCamera()
         mCamera.reset(new Common::EditorCamera(cameraInfo));
     }
 
-    for (auto& perFrameResource : mPerFrameResources)
-    {
-        perFrameResource.renderSystem->SetCamera(mCamera.get());
-    }
+    mRenderSystem->SetCamera(mCamera.get());
 }
 
 

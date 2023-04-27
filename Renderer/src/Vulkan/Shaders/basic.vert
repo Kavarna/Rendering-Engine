@@ -33,5 +33,5 @@ void main()
     gl_Position = uniformObject.viewProj * ob.world * vec4(position, 1.0);
     
     materialIndex = ob.materialIndex;
-    outNormal = inNormal;
+    outNormal = (ob.world * vec4(inNormal, 0.0f)).xyz;
 }

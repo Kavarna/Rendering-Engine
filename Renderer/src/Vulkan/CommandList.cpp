@@ -225,7 +225,6 @@ void CommandList::TransitionBackbufferTo(TransitionInfo const& transitionInfo)
 
 void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transitionInfo)
 {
-    /* TODO: Do not transition if the old layout is already new layout */
     VkImageAspectFlags aspectMask = 0;
     if (transitionInfo.newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
     {
@@ -256,6 +255,12 @@ void CommandList::TransitionImageTo(Image* img, TransitionInfo const& transition
             .baseArrayLayer = 0,
             .layerCount = 1,
         };
+    }
+
+    /* Do not transition if the layout is already set */
+    if (imageMemoryBarrier.oldLayout == imageMemoryBarrier.newLayout)
+    {
+        return;
     }
 
     jnrCmdPipelineBarrier(

@@ -72,9 +72,10 @@ namespace Editor
         struct PerFrameResources
         {
             std::unique_ptr<Vulkan::Image> renderTarget = nullptr;
-            std::unique_ptr<Common::Systems::RealtimeRender> renderSystem = nullptr;
         };
         std::array<PerFrameResources, Common::Constants::FRAMES_IN_FLIGHT> mPerFrameResources;
+
+        std::unique_ptr<Common::Systems::RealtimeRender> mRenderSystem;
 
         std::unique_ptr<Vulkan::Pipeline> mDefaultPipeline;
         std::unique_ptr<Vulkan::Image> mDepthImage;

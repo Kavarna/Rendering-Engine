@@ -113,6 +113,8 @@ void SceneHierarchy::ClearSelection()
         mSelectedEntities.clear();
         if (mSceneViewer != nullptr)
             mSceneViewer->ClearSelection();
+        if (mObjectInspector != nullptr)
+            mObjectInspector->ClearSelection();
     }
 }
 

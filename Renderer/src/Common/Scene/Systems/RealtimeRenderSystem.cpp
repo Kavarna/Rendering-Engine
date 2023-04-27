@@ -147,6 +147,16 @@ RootSignature* RealtimeRender::GetRootSiganture() const
     return mDefaultRootSignature.get();
 }
 
+void RealtimeRender::SetDepthImage(Vulkan::Image* depthImage)
+{
+    mDepthImage = depthImage;
+}
+
+void RealtimeRender::SetRenderTarget(Vulkan::Image * renderTarget)
+{
+    mRenderTarget = renderTarget;
+}
+
 void RealtimeRender::SetCamera(EditorCamera const* camera)
 {
     mCamera = camera;
@@ -184,10 +194,8 @@ void RealtimeRender::Update(float dt)
     mBatchRenderer.Update(dt);
 }
 
-void RealtimeRender::OnResize(Image* renderTarget, Image* depthImage, uint32_t width, uint32_t height)
+void RealtimeRender::OnResize(uint32_t width, uint32_t height)
 {
-    mRenderTarget = renderTarget;
-    mDepthImage = depthImage;
     InitPipelines(width, height);
 }
 
@@ -277,6 +285,8 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
 
 void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
 {
+    CHECK(mRenderTarget != nullptr) << "Cannot initialize pipelines if a render target is not set ;(";
+
     mDefaultPipeline = std::make_unique<Pipeline>("RealtimeRender_DefaultPipeline");
     {
         mDefaultPipeline->AddShader("Shaders/basic.vert.spv");

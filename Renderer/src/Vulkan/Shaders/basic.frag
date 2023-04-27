@@ -26,6 +26,7 @@ void main()
     vec3 normal = normalize(inNormal);
     vec4 color = materialBuffer.materials[materialIndex].color;
     float factor = max(dot(normal, uniformObject.direction), 0.0f);
+    factor = min(factor + 0.2, 1.0);
 
     outColor = color * factor;
 }
