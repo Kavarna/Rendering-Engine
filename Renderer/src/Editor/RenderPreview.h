@@ -8,6 +8,7 @@
 namespace RayTracing
 {
     class PathTracing;
+    class SimpleRayTracing;
 }
 
 namespace Common
@@ -50,6 +51,7 @@ namespace Editor
 
     private:
         void RenderSimplePathTracing();
+        void RenderSimpleRayTracing();
 
     private:
         Common::Scene* mScene;
@@ -60,9 +62,10 @@ namespace Editor
         std::unique_ptr<Common::BufferDumper> mLastBufferDumper;
 
         std::unique_ptr<RayTracing::PathTracing> mPathTracing;
+        std::unique_ptr<RayTracing::SimpleRayTracing> mSimpleRayTracing;
 
         int32_t mRendererType = 0;
-        std::vector<const char*> mRendererTypes;
+        std::vector<std::string> mRendererTypes;
         bool mIsRenderingActive = false;
     };
 }

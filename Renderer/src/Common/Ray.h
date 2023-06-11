@@ -9,16 +9,18 @@ namespace Common
     {
     public:
         Ray() = default;
-        Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction);
+        Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction) :
+            origin(position), direction(glm::normalize(direction))
+        { }
+        Jnrlib::Position At(Jnrlib::Float t) const
+        {
+            return origin + direction * t;
+        }
 
-        Jnrlib::Position const& GetStartPosition() const;
-        Jnrlib::Direction const& GetDirection() const;
-
-        Jnrlib::Position At(Jnrlib::Float t) const;
-
-    private:
-        Jnrlib::Position mStartPosition = Jnrlib::Position(0.0f);
-        Jnrlib::Direction mDirection = Jnrlib::Direction(0.0f);
+    public:
+        Jnrlib::Position origin = Jnrlib::Position(0.0f);
+        Jnrlib::Direction direction= Jnrlib::Direction(0.0f);
+        Jnrlib::Float maxT = Jnrlib::Infinity;
     };
 
 }

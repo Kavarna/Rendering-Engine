@@ -42,7 +42,7 @@ namespace Common
         std::vector<std::unique_ptr<Entity>>& GetEntities();
 
     public:
-        std::optional<HitPoint> GetClosestHit(Ray const&) const;
+        std::optional<HitPoint> GetClosestHit(Ray&) const;
         uint32_t GetNumberOfObjects() const;
         void PerformUpdate();
 

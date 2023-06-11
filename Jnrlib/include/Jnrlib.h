@@ -7,6 +7,7 @@
 #include "TypeHelpers.h"
 #include "RandomHelpers.h"
 #include "MathHelpers.h"
+#include "BoundingBox.h"
 
 #include "glog/logging.h"
 #include "glm/glm.hpp"

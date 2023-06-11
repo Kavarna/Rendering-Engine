@@ -12,7 +12,7 @@ namespace Common
         struct Base
         {
             Jnrlib::Position position;
-            glm::vec3 scaling;
+            // glm::vec3 scaling;
 
             std::string name;
 

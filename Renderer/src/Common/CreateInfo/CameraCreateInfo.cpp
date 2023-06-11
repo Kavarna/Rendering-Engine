@@ -9,8 +9,8 @@ namespace CreateInfo
 {
     void Camera::RecalculateViewport(uint32_t width, uint32_t height)
     {
-        projectionWidth = width;
-        projectionHeight = height;
+        projectionWidth = (Jnrlib::Float)width;
+        projectionHeight = (Jnrlib::Float)height;
         if (aspectRatio == -1)
         {
             aspectRatio = (float)width / (float)height;

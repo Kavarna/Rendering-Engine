@@ -12,7 +12,9 @@ namespace CreateInfo
     {
         if (boost::iequals(str, "pathtracing"))
             return RayTracingType::PathTracing;
-        return RayTracingType::None;
+        if (boost::iequals(str, "simple raytracing") || boost::iequals(str, "raytracing"))
+            return RayTracingType::SimpleRayTracing;
+        return RayTracingType::COUNT;
     }
 
     std::string GetStringFromRendererType(RayTracingType rendererType)
@@ -21,7 +23,9 @@ namespace CreateInfo
         {
             case RayTracingType::PathTracing:
                 return "PathTracing";
-            case RayTracingType::None:
+            case RayTracingType::SimpleRayTracing:
+                return "Simple RayTracing";
+            case RayTracingType::COUNT:
             default:
                 return "None";
         }
@@ -59,7 +63,10 @@ namespace CreateInfo
         std::string rendererTypeString;
         j.at("renderer-type").get_to(rendererTypeString);
         p.rendererType = GetRendererTypeFromString(rendererTypeString);
-        j.at("num-samples").get_to(p.numSamples);
         j.at("max-depth").get_to(p.maxDepth);
+        if (p.rendererType == RayTracingType::PathTracing)
+        {
+            j.at("num-samples").get_to(p.numSamples);
+        }
     }
 }

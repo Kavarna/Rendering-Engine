@@ -7,5 +7,6 @@ namespace Common::Components
     struct Sphere
     {
         std::shared_ptr<Common::IMaterial> material;
+        Jnrlib::Float radius;
     };
 }

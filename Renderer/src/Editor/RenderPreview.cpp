@@ -3,7 +3,9 @@
 #include "Scene/Scene.h"
 #include "Scene/Systems/RealtimeRenderSystem.h"
 
+#include "CreateInfo/RayTracingCreateInfo.h"
 #include "RayTracing/PathTracing.h"
+#include "RayTracing/SimpleRayTracing.h"
 
 #include "BufferDumper.h"
 
@@ -15,16 +17,17 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
-#define REALTIME_RENDER_TYPE 0
-#define SIMPLE_PATH_TRACING_RENDER_TYPE 1
-
 using namespace Common;
 
 Editor::RenderPreview::RenderPreview(Common::Scene* scene, Vulkan::CommandList* cmdList, uint32_t cmdBufIndex) :
     mScene(scene)
 {
-    mRendererTypes.push_back("Real time render");
-    mRendererTypes.push_back("Simple path tracing");
+    using namespace CreateInfo;
+
+    for (uint32_t type = (uint32_t)RayTracingType::BEGIN; type < (uint32_t)RayTracingType::COUNT; ++type)
+    {
+        mRendererTypes.push_back(GetStringFromRendererType((RayTracingType)type));
+    }
 }
 
 Editor::RenderPreview::~RenderPreview()
@@ -57,7 +60,16 @@ void Editor::RenderPreview::OnRender()
         ImGui::PopStyleVar();
     }
     ImGui::SameLine();
-    ImGui::Combo("Renderer type", &mRendererType, mRendererTypes.data(), (int)mRendererTypes.size());
+    static std::vector<const char*> rendererTypes;
+    if (rendererTypes.size() != mRendererTypes.size())
+    {
+        /* Convert from array of std::strings to array of const char* */
+        for (uint32_t i = 0; i < mRendererTypes.size(); ++i)
+        {
+            rendererTypes.push_back(mRendererTypes[i].c_str());
+        }
+    }
+    ImGui::Combo("Renderer type", &mRendererType, rendererTypes.data(), (int)rendererTypes.size());
 
     ShowProgress();
 
@@ -66,9 +78,14 @@ void Editor::RenderPreview::OnRender()
 
 void Editor::RenderPreview::StartRendering()
 {
-    if (mRendererType == SIMPLE_PATH_TRACING_RENDER_TYPE)
+    if (mRendererType == (uint32_t)CreateInfo::RayTracingType::PathTracing)
     {
         RenderSimplePathTracing();
+        mIsRenderingActive = true;
+    }
+    else if (mRendererType == (uint32_t)CreateInfo::RayTracingType::SimpleRayTracing)
+    {
+        RenderSimpleRayTracing();
         mIsRenderingActive = true;
     }
 }
@@ -94,6 +111,7 @@ void Editor::RenderPreview::ShowProgress()
         time += ImGui::GetIO().DeltaTime;
         if (time >= 5.0f)
         {
+            // Once every 5 seconds update the preview
             mBufferDumper->Flush(mActiveRenderingContext.cmdList);
             time -= 5.0f;
         }
@@ -118,6 +136,23 @@ void Editor::RenderPreview::RenderSimplePathTracing()
     {
         mPathTracing->Render();
         mIsRenderingActive = false;
+        mPathTracing.reset();
+    });
+    th.detach();
+}
+
+void Editor::RenderPreview::RenderSimpleRayTracing()
+{
+    auto const& imageInfo = mScene->GetImageInfo();
+    mLastBufferDumper = std::move(mBufferDumper);
+    mBufferDumper = std::make_unique<BufferDumper>((uint32_t)imageInfo.width, (uint32_t)imageInfo.height);
+
+    mSimpleRayTracing = std::make_unique<RayTracing::SimpleRayTracing>(*(Common::IDumper*)mBufferDumper.get(), *mScene, 10);
+    std::thread th([&]()
+    {
+        mSimpleRayTracing->Render();
+        mIsRenderingActive = false;
+        mSimpleRayTracing.reset();
     });
     th.detach();
 }

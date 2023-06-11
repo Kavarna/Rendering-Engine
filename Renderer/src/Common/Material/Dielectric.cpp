@@ -33,7 +33,7 @@ std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& h
 {
 
     Float refractionRatio = hp.GetFrontFace() ? One / mRefractionIndex : mRefractionIndex;
-    Float cosTheta = fmin(dot(-rIn.GetDirection(), hp.GetNormal()), 1.0f);
+    Float cosTheta = fmin(dot(-rIn.direction, hp.GetNormal()), 1.0f);
     Float sinTheta = sqrt(One - cosTheta * cosTheta);
 
     Position newPosition = rIn.At(hp.GetIntersectionPoint());
@@ -44,11 +44,11 @@ std::optional<ScatterInfo> Dielectric::Scatter(Ray const& rIn, HitPoint const& h
 
     if (cannotRefract || reflectance)
     {
-        finalRay = glm::reflect(rIn.GetDirection(), hp.GetNormal());
+        finalRay = glm::reflect(rIn.direction, hp.GetNormal());
     }
     else
     {
-        finalRay = refract(rIn.GetDirection(), hp.GetNormal(), refractionRatio);
+        finalRay = refract(rIn.direction, hp.GetNormal(), refractionRatio);
     }
 
 

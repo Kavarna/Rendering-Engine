@@ -90,6 +90,11 @@ namespace Jnrlib
 {
     using Random = effolkronium::random_static;
 
+    enum class Axis
+    {
+        X, Y, Z
+    };
+
 #if USE_FLOAT32
     using Color = glm::vec4;
     using Position = glm::vec3;
@@ -106,13 +111,19 @@ namespace Jnrlib
     using Float = double;
 #endif
 
+
     constexpr Float Zero = (Float)0;
     constexpr Float Quarter = (Float)1 / (Float)4;
     constexpr Float Half = (Float)1 / (Float)2;
     constexpr Float One = (Float)1;
     constexpr Float EPSILON = (Float)0.0001f;
+    constexpr Float Infinity = std::numeric_limits<Float>::max();
 
     constexpr Float PI = glm::pi<Float>();
+
+    constexpr Direction Right = Direction(One, Zero, Zero);
+    constexpr Direction Forward = Direction(Zero, Zero, One);
+    constexpr Direction Up = Direction(Zero, One, Zero);
 
     constexpr Color Black = Color(Zero);
     constexpr Color Yellow = Color(One, One, Zero, One);

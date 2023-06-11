@@ -16,7 +16,7 @@ Metal::Metal(CreateInfo::Material const& info, uint32_t materialIndex) :
 
 std::optional<ScatterInfo> Metal::Scatter(Ray const& rIn, HitPoint const& hp) const
 {
-    Jnrlib::Direction reflectedDirection = glm::reflect(rIn.GetDirection(), hp.GetNormal());
+    Jnrlib::Direction reflectedDirection = glm::reflect(rIn.direction, hp.GetNormal());
     Jnrlib::Position newPosition = rIn.At(hp.GetIntersectionPoint());
 
     if (glm::dot(reflectedDirection, hp.GetNormal()) < 0)

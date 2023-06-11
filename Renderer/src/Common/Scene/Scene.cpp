@@ -59,7 +59,7 @@ std::vector<std::unique_ptr<Entity>>& Common::Scene::GetEntities()
     return mEntities;
 }
 
-std::optional<HitPoint> Scene::GetClosestHit(Ray const& r) const
+std::optional<HitPoint> Scene::GetClosestHit(Ray& r) const
 {
     return Systems::Intersection::Get()->IntersectRay(r, mRegistry);
 }
@@ -122,18 +122,17 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
             mRootEntities.push_back(entity.get());
         }
 
+        entity->AddComponent(
+            Components::Base{.position = p.position, .name = p.name, .entityPtr = entity.get()}
+        );
+
         switch (p.primitiveType)
         {
             case CreateInfo::PrimitiveType::Sphere:
             {
-                entity->AddComponent(
-                    Components::Base{.position = p.position, .scaling = glm::vec3(p.radius, p.radius, p.radius), .name = p.name, .entityPtr = entity.get()}
-                );
-
                 auto material = MaterialManager::Get()->GetMaterial(p.materialName);
                 CHECK(material) << "A sphere must have a material";
-                entity->AddComponent(Components::Sphere{.material = material});
-                
+                entity->AddComponent(Components::Sphere{.material = material, .radius = p.radius});
 
                 if (buildRealtime)
                 {
@@ -155,6 +154,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                         Components::Update{.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT, .bufferIndex = currentBufferIndex++}
                     );
                     mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
+                    mRegistry.on_update<Components::Sphere>().connect<&Entity::UpdateBase>(entity.get());
                 }
 
                 break;
@@ -202,7 +202,6 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
     entity->AddComponent<Components::Base>(
         Components::Base{
             .position = cameraInfo.position,
-            .scaling = glm::vec3(1.0f),
             .name = "Camera",
             .entityPtr = entity.get()}
     );

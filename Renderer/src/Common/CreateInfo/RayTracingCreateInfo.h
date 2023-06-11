@@ -7,10 +7,12 @@
 
 namespace CreateInfo
 {
-    enum class RayTracingType
+    enum class RayTracingType : uint32_t
     {
-        PathTracing,
-        None
+        PathTracing = 0,
+        SimpleRayTracing,
+        COUNT,
+        BEGIN = PathTracing,
     };
     RayTracingType GetRendererTypeFromString(std::string const& str);
     std::string GetStringFromRendererType(RayTracingType rendererType);

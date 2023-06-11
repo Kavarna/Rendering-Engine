@@ -66,7 +66,7 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
     mDumper.AddDoneWork();
 }
 
-Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
+Jnrlib::Color PathTracing::GetRayColor(Ray& ray, uint32_t depth)
 {
     if (depth >= mMaxDepth)
     {
@@ -89,7 +89,7 @@ Jnrlib::Color PathTracing::GetRayColor(Ray const& ray, uint32_t depth)
     }
     else
     {
-        Jnrlib::Float t = Jnrlib::Half * (ray.GetDirection().y + Jnrlib::One);
+        Jnrlib::Float t = Jnrlib::Half * (ray.direction.y + Jnrlib::One);
         Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
         Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Quarter, Jnrlib::Quarter, Jnrlib::One, 1.0f);
         return t * whiteSkyColor + (Jnrlib::One - t) * blueSkyColor;

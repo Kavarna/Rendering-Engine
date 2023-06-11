@@ -59,7 +59,7 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
 {
 
     std::string name = b.name;
-    glm::vec3 position = b.position, scaling = b.scaling;
+    glm::vec3 position = b.position;
 
     auto inputTextFlags = ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue;
     if (isUpdatable)
@@ -76,7 +76,7 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
             std::string* name = (std::string*)data->UserData;
             name->resize(data->BufSize); // NB: On resizing calls, generally data->BufSize == data->BufTextLen + 1
         }
-    return 0;
+        return 0;
     }, &b.name);
     if (nameChanged)
     {
@@ -88,16 +88,9 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
 
     if (ImGui::DragFloat3("Position", (float*)&position, 0.01f) && isUpdatable)
     {
-            mActiveEntity->PatchComponent<Base>([&](Base& b)
-            {
-                b.position = position;
-            });
-    }
-    if (ImGui::DragFloat3("Scaling", (float*)&scaling, 0.01f) && isUpdatable)
-    {
         mActiveEntity->PatchComponent<Base>([&](Base& b)
         {
-            b.scaling = scaling;
+            b.position = position;
         });
     }
 }
@@ -106,6 +99,18 @@ void ObjectInspector::RenderSphere(Sphere& s, bool isUpdatable)
 {
     /* TODO: Create a material inspector, and set the material there */
     ImGui::Text("Material name: %s", s.material->GetName().c_str());
+
+    float radius = s.radius;
+    if (ImGui::DragFloat("Radius", &radius, 0.01f) && isUpdatable)
+    {
+        if (radius > 0.0f)
+        {
+            mActiveEntity->PatchComponent<Sphere>([&](Sphere& b)
+            {
+                s.radius = radius;
+            });
+        }
+    }
 }
 
 void ObjectInspector::RenderCamera(Common::Components::Camera& c, bool isUpdatable)

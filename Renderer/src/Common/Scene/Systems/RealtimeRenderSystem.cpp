@@ -50,7 +50,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
                 PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
 
                 objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
-                objectInfo->world = glm::scale(objectInfo->world, base.scaling);
+                objectInfo->world = glm::scale(objectInfo->world, glm::vec3(sphere.radius));
                 objectInfo->materialIndex = sphere.material->GetMaterialIndex();
             }
         }
@@ -463,8 +463,8 @@ void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraCo
     for (uint32_t i = 0; i < sizeof(coordinates) / sizeof(coordinates[0]); ++i)
     {
         auto currentRay = CameraUtils::GetRayForPixel(&cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
-        corners[i] = currentRay.GetStartPosition() + currentRay.GetDirection() * cameraComponent.focalDistance;
-        corners[i + 4] = currentRay.GetStartPosition() + currentRay.GetDirection() * 10.0f;
+        corners[i] = currentRay.origin + currentRay.direction * cameraComponent.focalDistance;
+        corners[i + 4] = currentRay.origin + currentRay.direction * 10.0f;
     }
 
     /* Near plane */

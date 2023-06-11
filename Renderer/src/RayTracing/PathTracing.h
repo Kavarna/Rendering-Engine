@@ -18,7 +18,7 @@ namespace RayTracing
     private:
         void SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Jnrlib::Position const& upperLeftCorner);
 
-        Jnrlib::Color GetRayColor(Common::Ray const&, uint32_t depth = 1);
+        Jnrlib::Color GetRayColor(Common::Ray&, uint32_t depth = 1);
 
     private:
         Common::IDumper& mDumper;
