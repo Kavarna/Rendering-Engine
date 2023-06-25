@@ -1,6 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <cmath>
+
+#include "TypeHelpers.h"
 
 namespace Jnrlib
 {
@@ -96,5 +99,30 @@ namespace Jnrlib
         v++;
 
         return v;
+    }
+
+    inline bool Quadratic(Float a, Float b, Float c, Float* t1, Float* t2)
+    {
+        Float delta = b * b - 4 * a * c;
+        if (delta < 0)
+        {
+            return false;
+        }
+        else if (delta == 0)
+        {
+            if (*t1) *t1 = -0.5f * (-b) / (a);
+            if (*t2) *t2 = *t1;
+            return true;
+        }
+        else
+        {
+            Float q = (b > 0) ?
+                -0.5f * (b + sqrt(delta)) :
+                -0.5f * (b - sqrt(delta));
+            *t1 = q / a;
+            *t2 = c / q;
+            if (*t1 > *t2) std::swap(*t1, *t2);
+        }
+        return true;
     }
 }

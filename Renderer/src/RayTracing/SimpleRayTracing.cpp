@@ -52,7 +52,7 @@ void SimpleRayTracing::RenderTile(uint32_t _x, uint32_t _y, uint32_t tileId)
     {
         for (uint32_t x = _x; x < actualWidth; ++x)
         {
-            Jnrlib::Color color = Jnrlib::Yellow;
+            Jnrlib::Color color = Jnrlib::Black;
             auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
             auto hp = mScene.GetClosestHit(ray);
             

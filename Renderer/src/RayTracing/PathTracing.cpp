@@ -82,7 +82,7 @@ Jnrlib::Color PathTracing::GetRayColor(Ray& ray, uint32_t depth)
         std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, hp);
         if (!scatterInfo.has_value())
             return Jnrlib::Color(Jnrlib::Zero);
-;
+
         Jnrlib::Color newColor = GetRayColor(scatterInfo->ray, depth + 1);
 
         return scatterInfo->attenuation * newColor;

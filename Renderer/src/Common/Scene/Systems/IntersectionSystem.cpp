@@ -18,59 +18,58 @@ inline Float gamma(int n)
     return (n * EPSILON) / (1 - n * EPSILON);
 }
 
-std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& b, Sphere const& s)
+std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& base, Sphere const& s)
 {
-    float radius = s.radius;
-    Direction toCenter = b.position - r.origin;
-    Float tca = glm::dot(toCenter, r.direction);
-    if (tca < Zero)
+    /* sphere = (x-pos.x)^2 + (y-pos.y)^2 + (z-pos.z)^2 - radius^2 = 0
+     * ray = o + t * d
+     */
+    Float radius = s.radius;
+    Float px = base.position.x;
+    Float py = base.position.y;
+    Float pz = base.position.z;
+
+    Float ox = r.origin.x;
+    Float oy = r.origin.y;
+    Float oz = r.origin.z;
+
+    Float dx = r.direction.x;
+    Float dy = r.direction.y;
+    Float dz = r.direction.z;
+
+    /* Extracing the components for the equation ax^2 + bx + c = 0 */
+    Float lx = ox - px;
+    Float ly = oy - py;
+    Float lz = oz - pz;
+
+    Float a = dx * dx + dy * dy + dz * dz;
+    Float b = 2 * (dx * lx + dy * ly + dz * lz);
+    Float c = lx * lx + ly * ly + lz * lz - s.radius * s.radius;
+
+    Float t1, t2;
+    if (!Quadratic(a, b, c, &t1, &t2))
         return std::nullopt;
 
-    Float d2 = glm::dot(toCenter, toCenter) - tca * tca;
-    if (d2 > radius * radius)
-        return std::nullopt;
-
-    Float thc = sqrt(radius * radius - d2);
-
-    Float minPoint = Zero, maxPoint = Zero, intersectionPoint = Zero;
-    /* Compute the intersection point */
+    Float intersectionPoint;
+    if (t1 >= 0.0)
     {
-        Float firstPoint = tca - thc;
-        Float secondPoint = tca + thc;
-
-        if (firstPoint > secondPoint)
-        {
-            minPoint = secondPoint;
-            maxPoint = firstPoint;
-        }
-        else
-        {
-            minPoint = firstPoint;
-            maxPoint = secondPoint;
-        }
-        if (minPoint >= 0.0)
-        {
-            intersectionPoint = minPoint;
-        }
-        else if (maxPoint > 0.0)
-        {
-            intersectionPoint = maxPoint;
-        }
-        else
-        {
-            return std::nullopt;
-        }
+        intersectionPoint = t1;
+    }
+    else if (t2 >= 0.0) // && (t1 < 0)
+    {
+        intersectionPoint = t2;
+    }
+    else
+    {
+        return std::nullopt;
     }
 
-    /* Compute the normal */
-    Position hitPosition = r.At(intersectionPoint);
-    Direction normal = hitPosition - b.position;
+    Position hitPosition = r.At(t1);
+    Direction normal = hitPosition - base.position;
 
     if (fabs(intersectionPoint) < EPSILON || intersectionPoint > r.maxT)
         return std::nullopt;
 
-    /* Fill the hitpoint */
-    HitPoint hp = {};
+    HitPoint hp{};
     hp.SetIntersectionPoint(intersectionPoint);
     hp.SetMaterial(s.material);
     if (glm::dot(normal, r.direction) < 0)
@@ -86,14 +85,18 @@ std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& b, Spher
         hp.SetFrontFace(false);
     }
 
+
     return hp;
 }
 
 bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = nullptr, Float* hitt1 = nullptr)
 {
+    /* Check intersection with the 6 planes that define the AABB
+     * Important note: the intersection has to be always between t0 and t1 (eg. planes Y t1 and t2 should be between t1 and t2 for the plane X)
+     */
     Float t0 = Zero, t1 = Infinity;
     {
-        /* Check against X plane */
+        /* Check against X planes */
         Float invRay = One / r.direction.x;
         Float tNear = (b.pMin.x - r.origin.x) * invRay;
         Float tFar = (b.pMax.x - r.origin.x) * invRay;
@@ -106,7 +109,7 @@ bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = 
         if (t0 > t1) return false;
     }
     {
-        /* Check against Y plane */
+        /* Check against Y planes */
         Float invRay = One / r.direction.y;
         Float tNear = (b.pMin.y - r.origin.y) * invRay;
         Float tFar = (b.pMax.y - r.origin.y) * invRay;
@@ -119,7 +122,7 @@ bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = 
         if (t0 > t1) return false;
     }
     {
-        /* Check against Z plane */
+        /* Check against Z planes */
         Float invRay = One / r.direction.z;
         Float tNear = (b.pMin.z - r.origin.z) * invRay;
         Float tFar = (b.pMax.z - r.origin.z) * invRay;
