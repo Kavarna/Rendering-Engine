@@ -42,21 +42,18 @@ namespace CreateInfo
 
     PrimitiveType GetPrimitiveTypeFromString(std::string const& str)
     {
-        if (boost::iequals(str, "sphere"))
-            return PrimitiveType::Sphere;
-        return PrimitiveType::None;
+        auto type = magic_enum::enum_cast<PrimitiveType>(str);
+        if (type.has_value())
+        {
+            return *type;
+        }
+        else
+            return PrimitiveType::None;
     }
 
     std::string GetStringFromPrimitiveType(PrimitiveType primitiveType)
     {
-        switch (primitiveType)
-        {
-            case CreateInfo::PrimitiveType::Sphere:
-                return "Sphere";
-            case CreateInfo::PrimitiveType::None:
-            default:
-                return "None";
-        }
+        return std::string(magic_enum::enum_name(primitiveType));
     }
 
     void to_json(nlohmann::json& j, const Primitive& p)

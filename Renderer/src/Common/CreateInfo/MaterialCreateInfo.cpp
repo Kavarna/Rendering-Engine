@@ -8,29 +8,18 @@ namespace CreateInfo
 {
     MaterialType GetMaterialTypeFromString(std::string const& str)
     {
-        if (boost::iequals(str, "lambertian"))
-            return MaterialType::Lambertian;
-        else if (boost::iequals(str, "metal"))
-            return MaterialType::Metal;
-        else if (boost::iequals(str, "dielectric"))
-            return MaterialType::Dieletric;
-        return MaterialType::None;
+        auto type = magic_enum::enum_cast<MaterialType>(str);
+        if (type.has_value())
+        {
+            return *type;
+        }
+        else
+            return MaterialType::None;
     }
 
     std::string GetStringFromMaterialType(MaterialType materialType)
     {
-        switch (materialType)
-        {
-            case MaterialType::Lambertian:
-                return "Lambertian";
-            case MaterialType::Metal:
-                return "Metal";
-            case MaterialType::Dieletric:
-                return "Dielectric";
-            case MaterialType::None:
-            default:
-                return "None";
-        }
+        return std::string(magic_enum::enum_name(materialType));
     }
 
     std::ostream& operator<<(std::ostream& stream, Material const& info)

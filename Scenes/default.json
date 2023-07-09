@@ -1,5 +1,5 @@
 {
-    "renderer-type": "pathtracing",
+    "renderer-type": "PathTracing",
     "num-samples": 50,
     "max-depth": 100,
     "output-file": "result.png",

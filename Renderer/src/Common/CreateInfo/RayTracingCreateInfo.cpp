@@ -10,25 +10,18 @@ namespace CreateInfo
 {
     RayTracingType GetRendererTypeFromString(std::string const& str)
     {
-        if (boost::iequals(str, "pathtracing"))
-            return RayTracingType::PathTracing;
-        if (boost::iequals(str, "simple raytracing") || boost::iequals(str, "raytracing"))
-            return RayTracingType::SimpleRayTracing;
-        return RayTracingType::COUNT;
+        auto type = magic_enum::enum_cast<RayTracingType>(str);
+        if (type.has_value())
+        {
+            return *type;
+        }
+        else
+            return RayTracingType::BEGIN;
     }
 
     std::string GetStringFromRendererType(RayTracingType rendererType)
     {
-        switch (rendererType)
-        {
-            case RayTracingType::PathTracing:
-                return "PathTracing";
-            case RayTracingType::SimpleRayTracing:
-                return "Simple RayTracing";
-            case RayTracingType::COUNT:
-            default:
-                return "None";
-        }
+        return std::string(magic_enum::enum_name(rendererType));
     }
 
     std::ostream& operator<<(std::ostream& stream, RayTracing const& info)

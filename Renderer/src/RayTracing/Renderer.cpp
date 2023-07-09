@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "PathTracing.h"
+#include "SimpleRayTracing.h"
 #include "PngDumper.h"
 
 
@@ -16,7 +17,12 @@ void RayTracing::RenderScene(std::unique_ptr<Common::Scene>& scene, CreateInfo::
 	{
 		case CreateInfo::RayTracingType::PathTracing:
 		{
-			PathTracing(dumper, *scene.get(), rendererInfo.numSamples, rendererInfo.maxDepth).Render();
+			PathTracing(dumper, *scene, rendererInfo.numSamples, rendererInfo.maxDepth).Render();
+			break;
+		}
+		case CreateInfo::RayTracingType::SimpleRayTracing:
+		{
+			SimpleRayTracing(dumper, *scene, rendererInfo.maxDepth).Render();
 			break;
 		}
 		default:

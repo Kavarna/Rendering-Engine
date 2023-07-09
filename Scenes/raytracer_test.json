@@ -1,0 +1,46 @@
+{
+    "renderer-type": "SimpleRayTracing",
+    "max-depth": 100,
+    "output-file": "result.png",
+    "image-info": {
+        "width": 512,
+        "height": 512
+    },
+    "camera": {
+        "position": "(0.0, 4.0, -4.0)",
+        "aspect-ratio": -1,
+        "viewport-height": -1,
+        "viewport-width": -1,
+        "focal-distance": 1.0,
+        "field-of-view": 0.9
+    },
+    "materials": [
+        {
+            "name": "red",
+            "type": "Lambertian",
+            "attenuation": "(1.0, 0.0, 0.0, 1.0)"
+        },
+        {
+            "name": "green",
+            "type": "Lambertian",
+            "attenuation": "(0.0, 1.0, 0.0, 1.0)"
+        }
+    ],
+    "objects": [
+        {
+            "type": "Sphere",
+            "name": "Earth",
+            "radius": 1000.0,
+            "position": "(0.0, -1000.0, 0.0)",
+            "material": "green"
+        },
+        {
+            "type": "Sphere",
+            "name": "Red-Sphere",
+            "radius": 1.0,
+            "position": "(0.0, 1.0, 5.0)",
+            "material": "red",
+            "parent": "Earth"
+        }
+    ]
+}
