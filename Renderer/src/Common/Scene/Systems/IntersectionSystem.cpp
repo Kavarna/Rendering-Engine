@@ -143,24 +143,24 @@ bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = 
 
 bool RayAABBIntersectionFast(Ray const& r, BoundingBox const& b, const Direction& invDir, int const dirIsNeg[3])
 {
-    // Check for ray intersection against $x$ and $y$ slabs
+    // Check for ray intersection against x and y slabs
     Float tMin = (b[dirIsNeg[0]].x - r.origin.x) * invDir.x;
     Float tMax = (b[1 - dirIsNeg[0]].x - r.origin.x) * invDir.x;
     Float tyMin = (b[dirIsNeg[1]].y - r.origin.y) * invDir.y;
     Float tyMax = (b[1 - dirIsNeg[1]].y - r.origin.y) * invDir.y;
 
-    // Update _tMax_ and _tyMax_ to ensure robust bounds intersection
+    // Update tMax and tyMax to ensure robust bounds intersection
     tMax *= 1 + 2 * gamma(3);
     tyMax *= 1 + 2 * gamma(3);
     if (tMin > tyMax || tyMin > tMax) return false;
     if (tyMin > tMin) tMin = tyMin;
     if (tyMax < tMax) tMax = tyMax;
 
-    // Check for ray intersection against $z$ slab
+    // Check for ray intersection against z slab
     Float tzMin = (b[dirIsNeg[2]].z - r.origin.z) * invDir.z;
     Float tzMax = (b[1 - dirIsNeg[2]].z - r.origin.z) * invDir.z;
 
-    // Update _tzMax_ to ensure robust bounds intersection
+    // Update tzMax to ensure robust bounds intersection
     tzMax *= 1 + 2 * gamma(3);
     if (tMin > tzMax || tzMin > tMax) return false;
     if (tzMin > tMin) tMin = tzMin;
@@ -195,33 +195,6 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
             hp->SetEntity(base.entityPtr);
 
             finalHitPoint = hp.value();
-        }
-    }
-    {
-        /* Perform ray-aabb intersection */
-        BoundingBox bb(Position(0, 0, 0), Position(2, 2, 2));
-        Direction invDir = One / r.direction;
-        int dirIsNeg[3] = {invDir.x < 0, invDir.y < 0, invDir.z < 0};
-#if ENABLE_SLOW_VS_FAST
-        CHECK(RayAABBIntersectionFast(r, bb, invDir, dirIsNeg) == RayAABBIntersectionSlow(r, bb)) << "Something went wrong checking the slow vs fast AABB instersection";
-#endif
-        if (RayAABBIntersectionFast(r, bb, invDir, dirIsNeg))
-        {
-            static std::shared_ptr<Lambertian> lamb = std::make_shared<Lambertian>(
-                CreateInfo::Material{
-                    .name = "default",
-                    .attenuation = Cyan,
-                    .fuziness = 0.0f,
-                    .refractionIndex = 0.0f,
-                    .type = CreateInfo::MaterialType::Lambertian,
-                    .mask = CreateInfo::Material::FeaturesMask::Attenuation
-                }, 69);
-            HitPoint hp = {};
-            hp.SetFrontFace(true);
-            hp.SetIntersectionPoint(0.0f);
-            hp.SetNormal(Up);
-            hp.SetMaterial(lamb);
-            finalHitPoint = hp;
         }
     }
 

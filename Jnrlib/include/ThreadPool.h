@@ -34,6 +34,7 @@ namespace Jnrlib
 
         bool IsTaskCompleted(std::shared_ptr<struct Task> task);
 
+        uint32_t GetCurrentThreadId() const;
         uint32_t GetNumberOfThreads() const;
 
     private:

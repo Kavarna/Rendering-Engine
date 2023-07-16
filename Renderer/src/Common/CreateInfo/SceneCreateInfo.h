@@ -23,8 +23,9 @@ namespace CreateInfo
 
     enum class PrimitiveType
     {
-        Sphere = 0,
-        None
+        None = 0,
+        Sphere,
+        Mesh
     };
     PrimitiveType GetPrimitiveTypeFromString(std::string const& str);
     std::string GetStringFromPrimitiveType(PrimitiveType primitiveType);
@@ -42,6 +43,8 @@ namespace CreateInfo
         /* Sphere info */
         float radius;
 
+        /* Mesh info */
+        std::string path;
     };
 
     void to_json(nlohmann::json& j, const Primitive& p);

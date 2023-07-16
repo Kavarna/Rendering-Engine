@@ -5,6 +5,7 @@
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
 #include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/ModelComponent.h"
 #include "EditorCamera.h"
 
 #include "CameraUtils.h"
@@ -39,19 +40,27 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     cmdList->BindVertexBuffer(vertexBuffer, 0);
     cmdList->BindIndexBuffer(indexBuffer);
 
-    auto const& spheres = mScene->GetRegistry().group<const Base, const Components::Update, const Mesh>(entt::get<const Sphere>);
+    auto const& updatables = mScene->GetRegistry().group<const Base, const Components::Update, const Mesh>();
     /* Build rendering buffers */
     {
         /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed */
-        for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
+        for (auto const& [entity, base, update, mesh] : updatables.each())
         {
             if (update.dirtyFrames > 0)
             {
                 PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
 
                 objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
-                objectInfo->world = glm::scale(objectInfo->world, glm::vec3(sphere.radius));
-                objectInfo->materialIndex = sphere.material->GetMaterialIndex();
+                /* TODO: Simply this - move the material to base + move radius to scaling */
+                if (auto sphere = base.entityPtr->TryGetComponent<Sphere>(); sphere != nullptr)
+                {
+                    objectInfo->world = glm::scale(objectInfo->world, glm::vec3(sphere->radius));
+                    objectInfo->materialIndex = sphere->material->GetMaterialIndex();
+                }
+                if (auto model = base.entityPtr->TryGetComponent<Model>(); model != nullptr)
+                {
+                    objectInfo->materialIndex = model->material->GetMaterialIndex();
+                }
             }
         }
 
@@ -83,7 +92,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
 
     /* Render */
     {
-        for (auto const& [entity, base, update, mesh, sphere] : spheres.each())
+        for (auto const& [entity, base, update, mesh] : updatables.each())
         {
              if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
                 continue;
@@ -278,7 +287,7 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
         mLightBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(DirectionalLight), sizeof(glm::vec4)), 1,
                                                         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(1.0f, 1.0f, 0.0f)});
+        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.5f, 0.5f, -1.0f)});
     }
     mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
 }

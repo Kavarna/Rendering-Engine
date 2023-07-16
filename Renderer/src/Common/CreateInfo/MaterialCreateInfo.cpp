@@ -14,7 +14,9 @@ namespace CreateInfo
             return *type;
         }
         else
+        {
             return MaterialType::None;
+        }
     }
 
     std::string GetStringFromMaterialType(MaterialType materialType)

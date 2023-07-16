@@ -71,7 +71,8 @@ namespace Common
     template <typename ComponentType>
     inline ComponentType& Entity::AddComponent(ComponentType&& component)
     {
-        return mEntities.emplace<ComponentType>(mEntity, std::forward<ComponentType>(component));
+        using DecayedComponentType = std::decay_t<ComponentType>;
+        return mEntities.emplace<DecayedComponentType>(mEntity, std::forward<ComponentType>(component));
     }
 
     template<typename T>

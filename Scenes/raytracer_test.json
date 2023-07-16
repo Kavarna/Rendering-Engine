@@ -38,6 +38,14 @@
             "type": "Sphere",
             "name": "Red-Sphere",
             "radius": 1.0,
+            "position": "(1.0, 1.0, 5.0)",
+            "material": "red",
+            "parent": "Earth"
+        },
+        {
+            "type": "Mesh",
+            "name": "Red-Icosphere",
+            "path": "Scenes\\Models\\Icosphere.obj",
             "position": "(0.0, 1.0, 5.0)",
             "material": "red",
             "parent": "Earth"

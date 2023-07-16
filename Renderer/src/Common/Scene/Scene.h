@@ -50,6 +50,13 @@ namespace Common
 
         entt::registry& GetRegistry() const;
 
+    public:
+        uint32_t AddVertices(std::vector<Common::VertexPositionNormal>&& vertices);
+        uint32_t AddIndices(std::vector<uint32_t>&& indices);
+        bool IsMeshPresent(std::string const& meshName) const;
+        void AddMesh(std::string const& meshName, Components::Mesh const& mesh);
+        Components::Mesh& GetMesh(std::string const& meshName);
+
     private:
         void CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool alsoBuildRealtime);
         void CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBufIndex);

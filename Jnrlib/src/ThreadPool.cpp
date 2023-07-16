@@ -98,6 +98,19 @@ bool ThreadPool::IsTaskCompleted(std::shared_ptr<struct Task> task)
 }
 
 
+uint32_t Jnrlib::ThreadPool::GetCurrentThreadId() const
+{
+    auto currentThreadId = std::this_thread::get_id();
+    for (uint32_t i = 0; i < mThreads.size(); ++i)
+    {
+        if (currentThreadId == mThreads[i].get_id())
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 uint32_t Jnrlib::ThreadPool::GetNumberOfThreads() const
 {
     return (uint32_t)mThreads.size();
@@ -149,7 +162,7 @@ void ThreadPool::Init(uint32_t nthreads)
 {
     auto numThreads = std::max(1u, nthreads);
     mThreads.reserve(numThreads);
-
+    
     for (uint32_t i = 0; i < nthreads; ++i)
     {
         mThreads.emplace_back(&ThreadPool::WorkerThread, this, i);

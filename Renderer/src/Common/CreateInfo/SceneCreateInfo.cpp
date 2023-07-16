@@ -48,7 +48,9 @@ namespace CreateInfo
             return *type;
         }
         else
+        {
             return PrimitiveType::None;
+        }
     }
 
     std::string GetStringFromPrimitiveType(PrimitiveType primitiveType)
@@ -78,10 +80,12 @@ namespace CreateInfo
     {
         std::string primitiveTypeString;
         j.at("type").get_to(primitiveTypeString);
-        p.primitiveType = GetPrimitiveTypeFromString(primitiveTypeString);
-
         std::string positionString, materialName;
         j.at("name").get_to(p.name);
+
+        p.primitiveType = GetPrimitiveTypeFromString(primitiveTypeString);
+        CHECK(p.primitiveType != PrimitiveType::None) << "Primitive type " << primitiveTypeString << " is not valid";
+
         j.at("position").get_to(positionString); p.position = Jnrlib::to_type<Jnrlib::Position>(positionString);
         j.at("material").get_to(p.materialName);
         if (j.contains("parent"))
@@ -92,6 +96,10 @@ namespace CreateInfo
         if (p.primitiveType == PrimitiveType::Sphere)
         {
             j.at("radius").get_to(p.radius);
+        }
+        else if (p.primitiveType == PrimitiveType::Mesh)
+        {
+            j.at("path").get_to(p.path);
         }
     }
 

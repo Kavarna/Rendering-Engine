@@ -16,7 +16,9 @@ namespace CreateInfo
             return *type;
         }
         else
+        {
             return RayTracingType::BEGIN;
+        }
     }
 
     std::string GetStringFromRendererType(RayTracingType rendererType)
