@@ -4,6 +4,7 @@
 #include "HitPoint.h"
 #include "Scene/Components/BaseComponent.h"
 #include "Scene/Components/SphereComponent.h"
+#include "Scene/Components/MeshComponent.h"
 
 #include "Material/Lambertian.h"
 
@@ -18,7 +19,7 @@ inline Float gamma(int n)
     return (n * EPSILON) / (1 - n * EPSILON);
 }
 
-std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& base, Sphere const& s)
+std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& base, Sphere const& s, Mesh const& m)
 {
     /* sphere = (x-pos.x)^2 + (y-pos.y)^2 + (z-pos.z)^2 - radius^2 = 0
      * ray = o + t * d
@@ -71,7 +72,7 @@ std::optional<HitPoint> RaySphereIntersection(Ray const& r, Base const& base, Sp
 
     HitPoint hp{};
     hp.SetIntersectionPoint(intersectionPoint);
-    hp.SetMaterial(s.material);
+    hp.SetMaterial(m.material);
     if (glm::dot(normal, r.direction) < 0)
     {
         /* We're hitting the sphere in the front */
@@ -181,10 +182,10 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
     Direction invDir = One / r.origin;
     {
         /* Perform ray-sphere intersections */
-        auto view = objects.view<const Base, const Sphere>();
-        for (auto const& [entity, base, sphere] : view.each())
+        auto view = objects.view<const Base, const Sphere, const Mesh>();
+        for (auto const& [entity, base, sphere, mesh] : view.each())
         {
-            std::optional<HitPoint> hp = RaySphereIntersection(r, base, sphere);
+            std::optional<HitPoint> hp = RaySphereIntersection(r, base, sphere, mesh);
 
             if (!hp.has_value())
                 continue;

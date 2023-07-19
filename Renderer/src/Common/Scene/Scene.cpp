@@ -6,7 +6,6 @@
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
 #include "Scene/Components/CameraComponent.h"
-#include "Scene/Components/ModelComponent.h"
 #include "Constants.h"
 #include "MaterialManager.h"
 
@@ -68,23 +67,25 @@ if (!mSuccess)\
             threadPool->WaitForAll();
         }
 
-        void LoadModel(std::string const& path, Entity* ent)
+        void LoadModel(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material)
         {
             RETURN_IF_FAILURE_FOUND;
 
             MarkMesh(path);
 
             auto threadPool = ThreadPool::Get();
-            threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent));
+            threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent, material));
         }
 
     private:
         void MarkMesh(std::string const& path)
         {
-            mScene->AddMesh(GetMeshNameFromPath(path), Components::Mesh{0});
+            std::string name = GetMeshNameFromPath(path);
+            Components::Indices indices{};
+            mScene->AddMeshIndices(name, indices);
         }
 
-        void HandleLoading(std::string const& path, Entity* ent)
+        void HandleLoading(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material)
         {
             auto threadPool = ThreadPool::Get();
             uint32_t id = threadPool->GetCurrentThreadId();
@@ -116,10 +117,17 @@ if (!mSuccess)\
             ProcessNode(scene, scene->mRootNode, context);
 
             {
-                Components::Mesh& mesh = mScene->GetMesh(GetMeshNameFromPath(path));
-                mesh.indexCount = (uint32_t)context.indices.size();
-                mesh.firstVertex = mScene->AddVertices(std::move(context.vertices));
-                mesh.firstIndex = mScene->AddIndices(std::move(context.indices));
+                std::string name = GetMeshNameFromPath(path);
+                Components::Mesh mesh;
+                mesh.indices.indexCount = (uint32_t)context.indices.size();
+                mesh.indices.firstVertex = mScene->AddVertices(std::move(context.vertices));
+                mesh.indices.firstIndex = mScene->AddIndices(std::move(context.indices));
+                mesh.name = name;
+                mesh.material = material;
+                
+                /* Update the indices */
+                auto& indices = mScene->GetMeshIndices(name);
+                indices = mesh.indices;
 
                 ent->AddComponent(mesh);
             }
@@ -297,26 +305,26 @@ uint32_t Scene::AddIndices(std::vector<uint32_t>&& indices)
     return indexCount;
 }
 
-bool Common::Scene::IsMeshPresent(std::string const& meshName) const
+bool Scene::IsMeshLoaded(std::string const& meshName) const
 {
-    return mMeshes.find(meshName) != mMeshes.end();
+    return mMeshIndices.find(meshName) != mMeshIndices.end();
 }
 
-void Scene::AddMesh(std::string const& meshName, Components::Mesh const& mesh)
+void Scene::AddMeshIndices(std::string const& meshName, Components::Indices const& mesh)
 {
     static std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
 
-    CHECK(mMeshes.find(meshName) == mMeshes.end()) << "Mesh " << meshName << " already inserted";
+    CHECK(mMeshIndices.find(meshName) == mMeshIndices.end()) << "Mesh " << meshName << " already inserted";
 
-    mMeshes.insert({meshName, mesh});
+    mMeshIndices.insert({meshName, mesh});
 }
 
-Components::Mesh& Common::Scene::GetMesh(std::string const& meshName)
+Components::Indices& Common::Scene::GetMeshIndices(std::string const& meshName)
 {
-    CHECK(mMeshes.find(meshName) != mMeshes.end()) << "Cannot get mesh that was not inserted";
+    CHECK(mMeshIndices.find(meshName) != mMeshIndices.end()) << "Cannot get mesh that was not inserted";
 
-    return mMeshes[meshName];
+    return mMeshIndices[meshName];
 }
 
 void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool buildRealtime)
@@ -370,39 +378,45 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
         {
             case CreateInfo::PrimitiveType::Sphere:
             {
-                if (buildRealtime)
+                if (mMeshIndices.find("Sphere") == mMeshIndices.end())
                 {
-                    if (mMeshes.find("Sphere") == mMeshes.end())
+                    if (buildRealtime)
                     {
-                        Components::Mesh mesh{};
-                        mesh.firstVertex = (uint32_t)mVertices.size();
-                        mesh.firstIndex = (uint32_t)mIndices.size();
+                        Components::Indices indices{};
+                        indices.firstVertex = (uint32_t)mVertices.size();
+                        indices.firstIndex = (uint32_t)mIndices.size();
                         uint32_t stackCount = 36;
                         uint32_t sliceCount = 36;
-                        std::vector<VertexPositionNormal> vertices;
-                        std::vector<uint32_t> indices;
-                        Sphere::GetVertices(One, sliceCount, stackCount, vertices, indices);
-                        AddVertices(std::move(vertices));
-                        AddIndices(std::move(indices));
-                        mesh.indexCount = (uint32_t)mIndices.size() - mesh.firstIndex;
-                        AddMesh("Sphere", mesh);
+                        std::vector<VertexPositionNormal> sphereVertices;
+                        std::vector<uint32_t> sphereIndices;
+                        Sphere::GetVertices(One, sliceCount, stackCount, sphereVertices, sphereIndices);
+                        AddVertices(std::move(sphereVertices));
+                        AddIndices(std::move(sphereIndices));
+                        indices.indexCount = (uint32_t)mIndices.size() - indices.firstIndex;
+                        AddMeshIndices("Sphere", indices);
+
+                        mRegistry.on_update<Components::Sphere>().connect<&Entity::UpdateBase>(entity.get());
                     }
-
-                    entity->AddComponent(Components::Mesh(mMeshes["Sphere"]));
-                    mRegistry.on_update<Components::Sphere>().connect<&Entity::UpdateBase>(entity.get());
                 }
-
-                entity->AddComponent(Components::Sphere{.material = material, .radius = p.radius});
+                Components::Mesh mesh{};
+                mesh.material = material;
+                mesh.name = p.name;
+                if (buildRealtime)
+                {
+                    /* They are only needed for realtime rendering */
+                    mesh.indices = GetMeshIndices("Sphere");
+                }
+                entity->AddComponent(mesh);
+                entity->AddComponent(Components::Sphere{.radius = p.radius});
 
                 break;
             }
             case CreateInfo::PrimitiveType::Mesh:
             { 
                 std::string name = Helpers::GetMeshNameFromPath(p.path);
-                entity->AddComponent(Components::Model{.name = name, .material = material});
-                if (mMeshes.find(name) == mMeshes.end())
+                if (mMeshIndices.find(name) == mMeshIndices.end())
                 {
-                    loader.LoadModel(p.path, entity.get());
+                    loader.LoadModel(p.path, entity.get(), material);
                 }
                 else
                 {

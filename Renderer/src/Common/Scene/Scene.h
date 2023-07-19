@@ -53,9 +53,9 @@ namespace Common
     public:
         uint32_t AddVertices(std::vector<Common::VertexPositionNormal>&& vertices);
         uint32_t AddIndices(std::vector<uint32_t>&& indices);
-        bool IsMeshPresent(std::string const& meshName) const;
-        void AddMesh(std::string const& meshName, Components::Mesh const& mesh);
-        Components::Mesh& GetMesh(std::string const& meshName);
+        bool IsMeshLoaded(std::string const& meshName) const;
+        void AddMeshIndices(std::string const& meshName, Components::Indices const& mesh);
+        Components::Indices& GetMeshIndices(std::string const& meshName);
 
     private:
         void CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool alsoBuildRealtime);
@@ -71,7 +71,7 @@ namespace Common
         std::vector<Entity*> mRootEntities;
         Entity* mCameraEntity;
 
-        std::unordered_map<std::string, Components::Mesh> mMeshes;
+        std::unordered_map<std::string, Components::Indices> mMeshIndices;
 
         bool mGraphicsInitialized = false;
 

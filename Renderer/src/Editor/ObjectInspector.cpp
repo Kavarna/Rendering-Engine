@@ -9,6 +9,7 @@
 #include "Common/Scene/Components/UpdateComponent.h"
 #include "Common/Scene/Components/SphereComponent.h"
 #include "Common/Scene/Components/CameraComponent.h"
+#include "Common/Scene/Components/MeshComponent.h"
 
 using namespace Editor;
 using namespace Common;
@@ -40,6 +41,11 @@ void ObjectInspector::OnRender()
     if (auto* c = mActiveEntity->TryGetComponent<Camera>(); c != nullptr && ImGui::CollapsingHeader("Camera"))
     {
         RenderCamera(*c, isUpdatable);
+    }
+
+    if (auto* m = mActiveEntity->TryGetComponent<Mesh>(); m != nullptr && ImGui::CollapsingHeader("Mesh"))
+    {
+        RenderMesh(*m, isUpdatable);
     }
 
     ImGui::End();
@@ -97,9 +103,6 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
 
 void ObjectInspector::RenderSphere(Sphere& s, bool isUpdatable)
 {
-    /* TODO: Create a material inspector, and set the material there */
-    ImGui::Text("Material name: %s", s.material->GetName().c_str());
-
     float radius = s.radius;
     if (ImGui::DragFloat("Radius", &radius, 0.01f) && isUpdatable)
     {
@@ -113,7 +116,7 @@ void ObjectInspector::RenderSphere(Sphere& s, bool isUpdatable)
     }
 }
 
-void ObjectInspector::RenderCamera(Common::Components::Camera& c, bool isUpdatable)
+void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
 {
     bool isPrimary = c.primary;
     Jnrlib::Float focalDistance = c.focalDistance;
@@ -160,4 +163,13 @@ void ObjectInspector::RenderCamera(Common::Components::Camera& c, bool isUpdatab
             c.roll = rotation.z;
         });
     }
+}
+
+void ObjectInspector::RenderMesh(Mesh& m, bool isUpdatable)
+{
+    /* TODO: Create a material inspector and set the material there */
+    ImGui::Text("Material name: %s", m.material->GetName().c_str());
+
+    /* TODO: Create a combo box / drop down menu from which you can select the mesh */
+    ImGui::Text("Mesh: %s", m.name.c_str());
 }

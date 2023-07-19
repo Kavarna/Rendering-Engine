@@ -4,11 +4,19 @@
 
 namespace Common::Components
 {
+    struct Indices
+    {
+        uint32_t firstVertex = 0;
+        uint32_t firstIndex = 0;
+        uint32_t indexCount = 0;
+    };
+
     struct Mesh
     {
-        /* TODO: Merge this with model */
-        uint32_t firstVertex;
-        uint32_t firstIndex;
-        uint32_t indexCount;
+        std::string name;
+
+        Indices indices;
+
+        std::shared_ptr<Common::IMaterial> material = nullptr;
     };
 }

@@ -5,7 +5,6 @@
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
 #include "Scene/Components/CameraComponent.h"
-#include "Scene/Components/ModelComponent.h"
 #include "EditorCamera.h"
 
 #include "CameraUtils.h"
@@ -51,15 +50,11 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
                 PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
 
                 objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
+                objectInfo->materialIndex = mesh.material->GetMaterialIndex();
                 /* TODO: Simply this - move the material to base + move radius to scaling */
-                if (auto sphere = base.entityPtr->TryGetComponent<Sphere>(); sphere != nullptr)
+                if (auto sphere = base.entityPtr->TryGetComponent<Sphere>(); sphere != nullptr) [[unlikely]]
                 {
                     objectInfo->world = glm::scale(objectInfo->world, glm::vec3(sphere->radius));
-                    objectInfo->materialIndex = sphere->material->GetMaterialIndex();
-                }
-                if (auto model = base.entityPtr->TryGetComponent<Model>(); model != nullptr)
-                {
-                    objectInfo->materialIndex = model->material->GetMaterialIndex();
                 }
             }
         }
@@ -100,7 +95,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             /* TODO: pass this as instance */
             uint32_t index = update.bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh.indexCount, mesh.firstIndex, mesh.firstVertex);
+            cmdList->DrawIndexedInstanced(mesh.indices.indexCount, mesh.indices.firstIndex, mesh.indices.firstVertex);
         }
     }
 
@@ -118,7 +113,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
 
             uint32_t index = update->bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh->indexCount, mesh->firstIndex, mesh->firstVertex);
+            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex, mesh->indices.firstVertex);
         }
 
         cmdList->BindPipeline(mOutlinePipeline.get());
@@ -136,7 +131,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             OutlineVertPushConstants outlineVertPushConstants{.objectIndex = index, .lineWidth = 0.025f};
             cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1, &outlineVertPushConstants,
                                                              VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh->indexCount, mesh->firstIndex, mesh->firstVertex);
+            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex, mesh->indices.firstVertex);
         }
     }
 
