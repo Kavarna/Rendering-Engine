@@ -38,6 +38,9 @@ namespace Common
         Vulkan::Buffer const* GetVertexBuffer() const;
         Vulkan::Buffer const* GetIndexBuffer() const;
 
+        std::vector<Common::VertexPositionNormal> const& GetVertices() const;
+        std::vector<uint32_t> const& GetIndices() const;
+
         std::vector<Entity*>& GetRootEntities();
         std::vector<std::unique_ptr<Entity>>& GetEntities();
 

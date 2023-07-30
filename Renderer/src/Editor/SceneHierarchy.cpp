@@ -59,7 +59,10 @@ Common::Entity* SceneHierarchy::RenderNode(Common::Entity* entity)
 void SceneHierarchy::OnRender()
 {
     auto& entities = mScene->GetRootEntities();
-    ImGui::Begin("Scene hierarchy");
+    if (!ImGui::Begin("Scene hierarchy"))
+    {
+        // return;
+    }
     
     Common::Entity* selectedEntity = nullptr; 
     for (uint32_t i = 0; i < entities.size(); ++i)

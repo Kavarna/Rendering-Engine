@@ -16,21 +16,21 @@ PathTracing::PathTracing(IDumper& dumper, Scene& scene, uint32_t numSamples, uin
 
 void PathTracing::Render()
 {
-    uint32_t width = mDumper.GetWidth();
-    uint32_t height = mDumper.GetHeight();
+    mWidth = mDumper.GetWidth();
+    mHeight = mDumper.GetHeight();
 
     auto threadPool = Jnrlib::ThreadPool::Get();
 
-    mDumper.SetTotalWork(width * height);
+    mDumper.SetTotalWork(mWidth * mHeight);
 
-    Jnrlib::Position upperLeftCorner = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>().GetUpperLeftCorner();
+    mUpperLeftCorner = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>().GetUpperLeftCorner();
 
-    for (uint32_t y = 0; y < height; ++y)
+    for (uint32_t y = 0; y < mHeight; ++y)
     {
-        for (uint32_t x = 0; x < width; ++x)
+        for (uint32_t x = 0; x < mWidth; ++x)
         {
             threadPool->ExecuteDeffered(
-                std::bind(&PathTracing::SetPixelColor, this, x, y, width, height, upperLeftCorner)
+                std::bind(&PathTracing::TracePixel, this, x, y)
             );
         }
     }
@@ -38,7 +38,7 @@ void PathTracing::Render()
     threadPool->WaitForAll();
 }
 
-void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t height, Jnrlib::Position const& upperLeftCorner)
+void PathTracing::TracePixel(uint32_t x, uint32_t y)
 {
     auto const& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
     auto const& baseComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Base>();
@@ -52,10 +52,10 @@ void PathTracing::SetPixelColor(uint32_t x, uint32_t y, uint32_t width, uint32_t
     Jnrlib::Color color(Jnrlib::Zero);
     for (uint32_t i = 0; i < mNumSamples; ++i)
     {
-        Jnrlib::Float u = ((Jnrlib::Float)x + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (width - 1);
-        Jnrlib::Float v = ((Jnrlib::Float)y + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (width - 1);
+        Jnrlib::Float u = ((Jnrlib::Float)x + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (mWidth - 1);
+        Jnrlib::Float v = ((Jnrlib::Float)y + Jnrlib::Random::get(-Jnrlib::One, Jnrlib::One)) / (mHeight - 1);
 
-        Ray ray(pos, upperLeftCorner + u * rightDirection * viewportWidth - v * upDirection * viewportHeight - pos);
+        Ray ray(pos, mUpperLeftCorner + u * rightDirection * viewportWidth - v * upDirection * viewportHeight - pos);
         color += GetRayColor(ray);
     }
 

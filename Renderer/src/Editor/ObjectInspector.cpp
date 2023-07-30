@@ -17,7 +17,10 @@ using namespace Common::Components;
 
 void ObjectInspector::OnRender()
 {
-    ImGui::Begin("Object inspector");
+    if (!ImGui::Begin("Object inspector"))
+    {
+        // return;
+    }
 
     if (mActiveEntity == nullptr)
     {

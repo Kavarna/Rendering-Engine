@@ -3,6 +3,7 @@
 #include <ostream>
 #include <vector>
 #include <vector>
+#include <functional>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
@@ -90,11 +91,6 @@ namespace Jnrlib
 {
     using Random = effolkronium::random_static;
 
-    enum class Axis
-    {
-        X, Y, Z
-    };
-
 #if USE_FLOAT32
     using Color = glm::vec4;
     using Position = glm::vec3;
@@ -132,4 +128,32 @@ namespace Jnrlib
     constexpr Color Green = Color(Zero, One, Zero, One);
     constexpr Color Cyan = Color(Zero, One, One, One);
     constexpr Color Grey = Color(0.2f, 0.2f, 0.2f, One);
+
+    class DefferCall
+    {
+    public:
+        DefferCall(const DefferCall& that) = delete;
+        DefferCall& operator=(const DefferCall& that) = delete;
+
+        DefferCall(std::function<void()>&& f)
+            : mFunc(f)
+        { }
+
+        ~DefferCall()
+        {
+            Execute();
+        }
+
+        void Execute()
+        {
+            if (mFunc)
+            {
+                mFunc();
+            }
+        }
+
+    private:
+        std::function<void()> mFunc;
+    };
+
 }

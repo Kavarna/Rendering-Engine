@@ -164,6 +164,11 @@ VkImageLayout Vulkan::Image::GetLayout() const
     return mLayout;
 }
 
+VkImageUsageFlags Vulkan::Image::GetUsage() const
+{
+    return mCreateInfo.usage;
+}
+
 ImTextureID Vulkan::Image::GetTextureID()
 {
     if (mTextureId != (ImTextureID)NULL)

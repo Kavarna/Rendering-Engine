@@ -12,7 +12,7 @@ BufferDumper::BufferDumper(uint32_t width, uint32_t height) :
     mHeight(height)
 {
     mBuffer = std::make_unique<Vulkan::Buffer>(
-        sizeof(float) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
+        sizeof(Jnrlib::Color), width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT
         );
     Vulkan::Image::Info2D imageInfo{};
     {
@@ -52,6 +52,7 @@ void BufferDumper::SetPixelColor(float u, float v, Jnrlib::Color const& c)
 
 void BufferDumper::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& col)
 {
+    CHECK(x < mWidth && y < mHeight);
     Jnrlib::Color c = glm::clamp(col, Jnrlib::Zero, Jnrlib::One);
 
 #define USE_GAMMA
@@ -60,8 +61,17 @@ void BufferDumper::SetPixelColor(uint32_t x, uint32_t y, Jnrlib::Color const& co
     c = sqrt(c);
 #endif
 
-    float* color = (float*)mBuffer->GetElement(y * mHeight + x);
-    memcpy(color, &col, sizeof(float) * 4);
+    Jnrlib::Color* color = (Jnrlib::Color*)mBuffer->GetElement(y * mHeight + x);
+    memcpy(color, &col, sizeof(Jnrlib::Color));
+
+    mNeedsFlush = true;
+}
+
+Jnrlib::Color Common::BufferDumper::GetPixelColor(uint32_t x, uint32_t y) const
+{
+    CHECK(x < mWidth && y < mHeight);
+    Jnrlib::Color* color = (Jnrlib::Color*)mBuffer->GetElement(y * mHeight + x);
+    return *color;
 }
 
 void BufferDumper::SetTotalWork(uint32_t totalWork)
@@ -94,8 +104,18 @@ uint32_t BufferDumper::GetDoneWork() const
     return mDoneWork;
 }
 
-void BufferDumper::Flush(Vulkan::CommandList* cmdList)
+bool BufferDumper::NeedsFlush() const
 {
+    return mNeedsFlush.load();
+}
+
+void BufferDumper::Flush(Vulkan::CommandList* cmdList, bool forceFlush)
+{
+    if (!NeedsFlush() && !forceFlush)
+    {
+        return;
+    }
+
     CommandList::TransitionInfo ti{};
     {
         ti.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -103,11 +123,23 @@ void BufferDumper::Flush(Vulkan::CommandList* cmdList)
         ti.srcStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         ti.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     }
+    mImage->EnsureAspect(VK_IMAGE_ASPECT_COLOR_BIT);
     cmdList->TransitionImageTo(mImage.get(), ti);
     cmdList->CopyWholeBufferToImage(mImage.get(), mBuffer.get());
+    mNeedsFlush = false;
 }
 
-Vulkan::Image* Common::BufferDumper::GetImage() const
+Vulkan::Image* BufferDumper::GetImage() const
 {
     return mImage.get();
+}
+
+Vulkan::Buffer const* const BufferDumper::GetBuffer() const
+{
+    return mBuffer.get();
+}
+
+Vulkan::Buffer* BufferDumper::GetBuffer()
+{
+    return mBuffer.get();
 }

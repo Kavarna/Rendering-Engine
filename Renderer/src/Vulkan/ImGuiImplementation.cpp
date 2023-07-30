@@ -9,7 +9,8 @@
 #include "Image.h"
 #include "CommandList.h"
 
-static constexpr uint32_t MAXIMUM_NUMBER_OF_DESCRIPTOR_SET_INSTANCES = 10;
+/* TODO: Find a way to reduce this - Add a way to remove a image from the descriptor set */
+static constexpr uint32_t MAXIMUM_NUMBER_OF_DESCRIPTOR_SET_INSTANCES = 1001;
 
 struct PerFrameBuffers
 {
@@ -394,7 +395,7 @@ void ImGui_ImplVulkan_RenderDrawData(ImDrawData* drawData, Vulkan::CommandList* 
                 //}
                 
                 // Draw
-                cmdList->BindDescriptorSet(bd->DescriptorSet.get(), pcmd->TextureId, bd->RootSignature.get());
+                cmdList->BindDescriptorSet(bd->DescriptorSet.get(), (uint32_t)pcmd->TextureId, bd->RootSignature.get());
                 cmdList->DrawIndexedInstanced(pcmd->ElemCount, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset);
             }
         }

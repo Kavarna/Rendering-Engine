@@ -32,6 +32,8 @@ namespace Common
         void SetPixelColor(uint32_t x, uint32_t y,
                            Jnrlib::Color const&);
 
+        Jnrlib::Color GetPixelColor(uint32_t x, uint32_t y) const;
+
         void SetTotalWork(uint32_t totalWork);
         void AddDoneWork();
 
@@ -41,9 +43,13 @@ namespace Common
         uint32_t GetTotalWork() const;
         uint32_t GetDoneWork() const;
 
-        void Flush(Vulkan::CommandList* cmdList);
+        bool NeedsFlush() const;
+        void Flush(Vulkan::CommandList* cmdList, bool forceFlush = false);
 
         Vulkan::Image* GetImage() const;
+
+        Vulkan::Buffer const* const GetBuffer() const;
+        Vulkan::Buffer* GetBuffer();
 
     private:
         std::unique_ptr<Vulkan::Buffer> mBuffer;
@@ -53,6 +59,8 @@ namespace Common
 
         uint32_t mTotalWork;
         std::atomic<uint32_t> mDoneWork = 0;
+
+        std::atomic<bool> mNeedsFlush = false;
     };
 
 }

@@ -239,6 +239,16 @@ Vulkan::Buffer const* Scene::GetIndexBuffer() const
     return mIndexBuffer.get();
 }
 
+std::vector<Common::VertexPositionNormal> const& Common::Scene::GetVertices() const
+{
+    return mVertices;
+}
+
+std::vector<uint32_t> const& Common::Scene::GetIndices() const
+{
+    return mIndices;
+}
+
 std::vector<Entity*>& Scene::GetRootEntities()
 {
     return mRootEntities;
@@ -251,7 +261,7 @@ std::vector<std::unique_ptr<Entity>>& Scene::GetEntities()
 
 std::optional<HitPoint> Scene::GetClosestHit(Ray& r) const
 {
-    return Systems::Intersection::Get()->IntersectRay(r, mRegistry);
+    return Systems::Intersection::Get()->IntersectRay(r, mRegistry, this);
 }
 
 uint32_t Scene::GetNumberOfObjects() const
@@ -407,7 +417,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                     mesh.indices = GetMeshIndices("Sphere");
                 }
                 entity->AddComponent(mesh);
-                entity->AddComponent(Components::Sphere{.radius = p.radius});
+                entity->AddComponent(Components::Sphere{.radius = p.radius, .material = material});
 
                 break;
             }

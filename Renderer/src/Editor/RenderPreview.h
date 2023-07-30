@@ -7,6 +7,7 @@
 
 namespace RayTracing
 {
+    class Renderer;
     class PathTracing;
     class SimpleRayTracing;
 }
@@ -29,6 +30,8 @@ namespace Vulkan
 
 namespace Editor
 {
+    class PixelInspector;
+
     class RenderPreview : public ImguiWindow
     {
     public:
@@ -37,7 +40,7 @@ namespace Editor
             Vulkan::CommandList* cmdList = nullptr;
         };
     public:
-        RenderPreview(Common::Scene* scene, Vulkan::CommandList* cmdList, uint32_t cmdBufIndex = 0);
+        RenderPreview(Common::Scene* scene, PixelInspector* pixelInspector);
         ~RenderPreview();
 
         void SetRenderingContext(RenderingContext const& ctx);
@@ -45,24 +48,31 @@ namespace Editor
         virtual void OnRender() override;
 
     private:
+        void OnResize(float newWidth, float newHeight);
+
         void StartRendering();
 
         void ShowProgress();
+
+        void UpdateActive();
 
     private:
         void RenderSimplePathTracing();
         void RenderSimpleRayTracing();
 
     private:
+        float mWidth = 0.0f;
+        float mHeight = 0.0f;
+
         Common::Scene* mScene;
+        PixelInspector* mPixelInspector;
 
         RenderingContext mActiveRenderingContext{};
 
         std::unique_ptr<Common::BufferDumper> mBufferDumper;
         std::unique_ptr<Common::BufferDumper> mLastBufferDumper;
 
-        std::unique_ptr<RayTracing::PathTracing> mPathTracing;
-        std::unique_ptr<RayTracing::SimpleRayTracing> mSimpleRayTracing;
+        std::unique_ptr<RayTracing::Renderer> mRenderer;
 
         int32_t mRendererType = 0;
         std::vector<std::string> mRendererTypes;

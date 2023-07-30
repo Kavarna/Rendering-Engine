@@ -7,6 +7,19 @@
 
 namespace Jnrlib
 {
+    enum class Axis
+    {
+        X = 0,
+        Y = 1,
+        Z = 2,
+        COUNT = 3
+    };
+
+    inline Axis operator+(Axis lhs, Axis rhs)
+    {
+        return Axis(((uint32_t)lhs + (uint32_t)rhs) % (uint32_t)Axis::COUNT);
+    }
+
     // Normalize a value in the range [min - max]
     template<typename T, typename U>
     inline T NormalizeRange(U x, U min, U max)
@@ -124,5 +137,39 @@ namespace Jnrlib
             if (*t1 > *t2) std::swap(*t1, *t2);
         }
         return true;
+    }
+   
+    inline Axis GetMaximumAxis(glm::vec2 v)
+    {
+        return v.x > v.y ? Axis::X : Axis::Y;
+    }
+
+    inline Axis GetMaximumAxis(glm::vec3 v)
+    {
+        return (v.x > v.y) ? ((v.x > v.z) ? Axis::X : Axis::Z) : ((v.y > v.z) ? Axis::Y : Axis::Z);
+    }
+
+    inline glm::vec2 Permute(glm::vec2 p, Axis x, Axis y)
+    {
+        return glm::vec2(p[(uint32_t)x], p[(uint32_t)y]);
+    }
+
+    inline glm::vec3 Permute(glm::vec3 p, Axis x, Axis y, Axis z)
+    {
+        return glm::vec3(p[(uint32_t)x], p[(uint32_t)y], p[(uint32_t)z]);
+    }
+
+    template <typename T>
+    inline T RemapValueFromIntervalToInterval(T value, T from_start, T from_end, T to_start, T to_end)
+    {
+        CHECK(from_start < from_end);
+        CHECK(to_start < to_end);
+
+        value = std::max(from_start, std::min(from_end, value));
+
+        // Calculate the remapped value
+        double oldRange = from_end - from_start;
+        double newRange = to_end - to_start;
+        return T((value - from_start) / oldRange * newRange + to_start);
     }
 }

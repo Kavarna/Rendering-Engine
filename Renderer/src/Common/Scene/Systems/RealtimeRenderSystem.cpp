@@ -203,6 +203,11 @@ void RealtimeRender::OnResize(uint32_t width, uint32_t height)
     InitPipelines(width, height);
 }
 
+void RealtimeRender::AddOneTimeVertex(glm::vec3 const& position, glm::vec4 const& color)
+{
+    mBatchRenderer.Vertex(position, color);
+}
+
 void RealtimeRender::AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds)
 {
     mBatchRenderer.PersistentVertex(position, color, timeInSeconds);

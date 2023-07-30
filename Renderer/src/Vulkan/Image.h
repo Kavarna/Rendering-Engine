@@ -77,6 +77,7 @@ namespace Vulkan
         ImageView GetImageView(VkImageAspectFlags aspectMask);
         VkExtent2D GetExtent2D() const;
         VkImageLayout GetLayout() const;
+        VkImageUsageFlags GetUsage() const;
 
         ImTextureID GetTextureID();
 

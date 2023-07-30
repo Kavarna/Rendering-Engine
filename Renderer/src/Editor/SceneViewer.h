@@ -16,10 +16,10 @@ namespace Common
     class Camera;
 }
 
-
 namespace Editor
 {
     class SceneHierarchy;
+    class PixelInspector;
 
     class SceneViewer : public ImguiWindow
     {
@@ -41,6 +41,7 @@ namespace Editor
         void ClearSelection();
 
         void SetSceneHierarchy(SceneHierarchy* hierarchy);
+        void SetPixelInspector(PixelInspector* pixelInspector);
 
     private:
         void OnResize(float newWidth, float newHeight);
@@ -65,7 +66,8 @@ namespace Editor
         float mHeight = 0.0f;
        
         Common::Scene* mScene;
-        SceneHierarchy* mSceneHierarchy;
+        SceneHierarchy* mSceneHierarchy = nullptr;
+        PixelInspector* mPixelInspector = nullptr;
 
         RenderingContext mActiveRenderingContext{};
 

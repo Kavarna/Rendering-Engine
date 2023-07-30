@@ -7,12 +7,14 @@ namespace Common
 {
     class Ray;
     class HitPoint;
+    class Scene;
 }
 
 namespace Common::Components
 {
     struct Base;
     struct Sphere;
+    struct Mesh;
 }
 
 namespace Common::Systems
@@ -25,7 +27,8 @@ namespace Common::Systems
         ~Intersection();
 
     public:
-        std::optional<HitPoint> IntersectRay(Ray&, entt::registry &);
+        /* TODO: Make this system as part of the scene */
+        std::optional<HitPoint> IntersectRay(Ray&, entt::registry &, Common::Scene const* scene);
 
     };
 }

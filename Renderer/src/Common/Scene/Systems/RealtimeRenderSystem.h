@@ -51,6 +51,7 @@ namespace Common::Systems
 
         void OnResize(uint32_t width, uint32_t height);
 
+        void AddOneTimeVertex(glm::vec3 const& position, glm::vec4 const& color);
         void AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds);
 
     public:

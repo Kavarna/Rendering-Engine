@@ -16,6 +16,8 @@ namespace Editor
     class SceneHierarchy;
     class ObjectInspector;
     class RenderPreview;
+    class PixelInspector;
+
     class Editor : public Jnrlib::ISingletone<Editor>
     {
         MAKE_SINGLETONE_CAPABLE(Editor);
@@ -33,6 +35,7 @@ namespace Editor
         bool IsMousePressed(int keyCode);
 
         void SetMouseInputMode(bool enable);
+        bool IsMouseEnabled();
 
         glm::vec2 GetMousePosition();
         glm::vec2 GetWindowDimensions();
@@ -80,6 +83,7 @@ namespace Editor
         SceneHierarchy* mSceneHierarchy;
         ObjectInspector* mObjectInspector;
         RenderPreview* mRenderPreview;
+        PixelInspector* mPixelInspector;
  
         bool mShouldClose = false;
         bool mMinimized = false;

@@ -1,5 +1,6 @@
 #include "SceneViewer.h"
 #include "SceneHierarchy.h"
+#include "PixelInspector.h"
 #include "Editor.h"
 
 #include "imgui.h"
@@ -38,7 +39,10 @@ void Editor::SceneViewer::SetRenderingContext(RenderingContext const& ctx)
 
 void Editor::SceneViewer::OnRender()
 {    
-    ImGui::Begin("Scene viewer", nullptr, ImGuiWindowFlags_NoScrollbar);
+    if (!ImGui::Begin("Scene viewer", nullptr, ImGuiWindowFlags_NoScrollbar))
+    {
+        
+    }
 
     auto frameHeight = ImGui::GetFrameHeight();
     float width, height;
@@ -89,6 +93,11 @@ void Editor::SceneViewer::SetSceneHierarchy(SceneHierarchy* hierarchy)
     mSceneHierarchy = hierarchy;
 }
 
+void Editor::SceneViewer::SetPixelInspector(PixelInspector* pixelInspector)
+{
+    mPixelInspector = pixelInspector;
+}
+
 void Editor::SceneViewer::RenderScene()
 {
     if (mActiveRenderingContext.cmdList == nullptr)
@@ -97,12 +106,18 @@ void Editor::SceneViewer::RenderScene()
     auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
     auto& cmdList = mActiveRenderingContext.cmdList;
     
+    if (mPixelInspector)
+    {
+        mPixelInspector->RenderRays(*mRenderSystem);
+    }
+
     mRenderSystem->SetRenderTarget(currentFrameResources.renderTarget.get());
     mRenderSystem->RenderScene(cmdList);
     cmdList->TransitionImageToImguiLayout(currentFrameResources.renderTarget.get());
 
-    mScene->PerformUpdate();
     mCamera->PerformUpdate();
+    /* TODO: Give user the ability not to perform update on the scene */
+    mScene->PerformUpdate();
 }
 
 void Editor::SceneViewer::AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time)

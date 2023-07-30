@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "nlohmann/json.hpp"
+#include "TypeHelpers.h"
 
 namespace Jnrlib
 {

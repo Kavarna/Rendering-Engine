@@ -17,6 +17,19 @@ namespace Common
             return origin + direction * t;
         }
 
+        ~Ray()
+        {
+            if (mSaveRays)
+            {
+                /* Save the ray for possible replay */
+                mPositions.push_back(origin);
+                mPositions.push_back(origin + direction * maxT);
+            }
+        }
+
+        static bool mSaveRays;
+        static std::vector<Jnrlib::Position> mPositions;
+
     public:
         Jnrlib::Position origin = Jnrlib::Position(0.0f);
         Jnrlib::Direction direction= Jnrlib::Direction(0.0f);

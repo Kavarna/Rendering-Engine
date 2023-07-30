@@ -40,11 +40,30 @@ void SimpleRayTracing::Render()
     threadPool->WaitForAll();
 }
 
+void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
+{
+    auto& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
+    Jnrlib::Color color = Jnrlib::Blue * (Jnrlib::Float)0.2f;
+    auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
+    auto hp = mScene.GetClosestHit(ray);
+
+    if (hp.has_value())
+    {
+        auto material = hp->GetMaterial();
+
+        std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp);
+        if (scatterInfo.has_value())
+            color = scatterInfo->attenuation;
+    }
+
+    mDumper.SetPixelColor(x, y, color);
+    mDumper.AddDoneWork();
+}
+
 void SimpleRayTracing::RenderTile(uint32_t _x, uint32_t _y, uint32_t tileId)
 {
     auto width = mDumper.GetWidth();
     auto height = mDumper.GetHeight();
-    auto& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
 
     uint32_t actualWidth = std::min(_x + TILE_SIZE, width);
     uint32_t actualHeight = std::min(_y + TILE_SIZE, height);
@@ -52,21 +71,7 @@ void SimpleRayTracing::RenderTile(uint32_t _x, uint32_t _y, uint32_t tileId)
     {
         for (uint32_t x = _x; x < actualWidth; ++x)
         {
-            Jnrlib::Color color = Jnrlib::Black;
-            auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
-            auto hp = mScene.GetClosestHit(ray);
-            
-            if (hp.has_value())
-            {
-                auto material = hp->GetMaterial();
-
-                std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp);
-                if (scatterInfo.has_value())
-                    color = scatterInfo->attenuation;
-            }
-
-            mDumper.SetPixelColor(x, y, color);
-            mDumper.AddDoneWork();
+            TracePixel(x, y);
         }
     }
 }

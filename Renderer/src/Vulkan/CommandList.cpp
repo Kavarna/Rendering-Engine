@@ -309,7 +309,7 @@ void CommandList::CopyWholeBufferToImage(Image* image, Buffer* buffer)
     VkExtent3D imageExtent{.width = image->mExtent2D.width, .height = image->mExtent2D.height, .depth = 1};
     VkBufferImageCopy region{};
     {
-        region.bufferImageHeight = image->mExtent2D.width;
+        region.bufferImageHeight = image->mExtent2D.height;
         region.bufferOffset = 0;
         region.bufferRowLength = image->mExtent2D.width;
         region.imageExtent = imageExtent;

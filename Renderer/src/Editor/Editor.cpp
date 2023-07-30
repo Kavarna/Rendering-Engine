@@ -6,6 +6,7 @@
 #include "SceneHierarchy.h"
 #include "ObjectInspector.h"
 #include "RenderPreview.h"
+#include "PixelInspector.h"
 
 #include "imgui.h"
 
@@ -125,6 +126,11 @@ void Editor::Editor::SetMouseInputMode(bool enable)
         if (glfwRawMouseMotionSupported())
             glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
     }
+}
+
+bool Editor::Editor::IsMouseEnabled()
+{
+    return glfwGetInputMode(mWindow, GLFW_CURSOR) == GLFW_CURSOR_NORMAL;
 }
 
 glm::vec2 Editor::Editor::GetMousePosition()
@@ -250,7 +256,10 @@ void Editor::Editor::ShowDockingSpace()
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("DockSpace", nullptr, window_flags);
+    if (!ImGui::Begin("DockSpace", nullptr, window_flags))
+    {
+        // return;
+    }
     ImGui::PopStyleVar();
 
     ImGui::PopStyleVar(2);
@@ -289,7 +298,8 @@ void Editor::Editor::ShowDockingSpace()
         }
         if (ImGui::BeginMenu("Render"))
         {
-            mRenderPreview&& ImGui::MenuItem("Render preview", nullptr, &mRenderPreview->mIsOpen);
+            mRenderPreview && ImGui::MenuItem("Render preview", nullptr, &mRenderPreview->mIsOpen);
+            mPixelInspector && ImGui::MenuItem("Pixel inspector", nullptr, &mPixelInspector->mIsOpen);
 
             ImGui::EndMenu();
         }
@@ -311,9 +321,11 @@ void Editor::Editor::ShowDockingSpace()
     if (showDebugWindow)
     {
         auto& io = ImGui::GetIO();
-        ImGui::Begin("Debug");
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        ImGui::End();
+        if (ImGui::Begin("Debug"))
+        {
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
+        }
     }
     if (showDemoWindow)
     {
@@ -378,8 +390,15 @@ void Editor::Editor::InitImguiWindows()
         mSceneViewer->SetSceneHierarchy(mSceneHierarchy);
     }
     {
+        /* Pixel inspector */
+        auto pixelInspector = std::make_unique<PixelInspector>();
+        mPixelInspector = pixelInspector.get();
+        mImguiWindows.emplace_back(std::move(pixelInspector));
+        mSceneViewer->SetPixelInspector(mPixelInspector);
+    }
+    {
         /* Render preview */
-        auto renderPreview = std::make_unique<RenderPreview>(mActiveScene.get(), mInitializationCmdList.get());
+        auto renderPreview = std::make_unique<RenderPreview>(mActiveScene.get(), mPixelInspector);
         mRenderPreview = renderPreview.get();
         mImguiWindows.emplace_back(std::move(renderPreview));
     }
