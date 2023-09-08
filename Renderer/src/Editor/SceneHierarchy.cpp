@@ -2,7 +2,7 @@
 #include "SceneViewer.h"
 #include "ObjectInspector.h"
 
-#include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/Base.h"
 
 #include "imgui.h"
 

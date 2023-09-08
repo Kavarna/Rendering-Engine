@@ -10,8 +10,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Scene/Components/BaseComponent.h"
-#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/Base.h"
+#include "Scene/Components/Camera.h"
 #include "EditorCamera.h"
 #include "CameraUtils.h"
 

@@ -2,9 +2,10 @@
 
 #include "Ray.h"
 #include "HitPoint.h"
-#include "Scene/Components/BaseComponent.h"
-#include "Scene/Components/SphereComponent.h"
-#include "Scene/Components/MeshComponent.h"
+#include "Scene/Components/Base.h"
+#include "Scene/Components/Sphere.h"
+#include "Scene/Components/Mesh.h"
+#include "Scene/Components/AccelerationStructure.h"
 #include "Scene/Scene.h"
 
 #include "Material/Lambertian.h"
@@ -20,7 +21,7 @@ inline Float gamma(int n)
     return (n * EPSILON) / (1 - n * EPSILON);
 }
 
-std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, Sphere const& s)
+static std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, Sphere const& s)
 {
     /* sphere = (x-pos.x)^2 + (y-pos.y)^2 + (z-pos.z)^2 - radius^2 = 0
      * ray = o + t * d
@@ -93,7 +94,7 @@ std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, Sphere c
     return hp;
 }
 
-bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = nullptr, Float* hitt1 = nullptr)
+static bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = nullptr, Float* hitt1 = nullptr)
 {
     /* Check intersection with the 6 planes that define the AABB
      * Important note: the intersection has to be always between t0 and t1 (eg. planes Y t1 and t2 should be between t1 and t2 for the plane X)
@@ -145,7 +146,7 @@ bool RayAABBIntersectionSlow(Ray const& r, BoundingBox const& b, Float* hitt0 = 
     return true;
 }
 
-bool RayAABBIntersectionFast(Ray const& r, BoundingBox const& b, const Direction& invDir, int const dirIsNeg[3])
+static bool RayAABBIntersectionFast(Ray const& r, BoundingBox const& b, const Direction& invDir, int const dirIsNeg[3])
 {
     // Check for ray intersection against x and y slabs
     Float tMin = (b[dirIsNeg[0]].x - r.origin.x) * invDir.x;
@@ -172,7 +173,7 @@ bool RayAABBIntersectionFast(Ray const& r, BoundingBox const& b, const Direction
     return (tMin < r.maxT) && (tMax > 0);
 }
 
-bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, float* t, float barycentrics[3])
+static bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, float* t, float barycentrics[3])
 {
     // Translate vertices based on ray origin
     auto p0t = p0 - r.origin;
@@ -245,11 +246,12 @@ bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, glm::vec3
     return true;
 }
 
-std::optional<HitPoint> RayMeshIntersectionSlow(Ray& r, Base const& base, Mesh const& mesh, Scene const* scene)
+static std::optional<HitPoint> RayMeshIntersectionSlow(Ray& r, Base const& base, Mesh const& mesh, Scene const* scene)
 {
     auto const& indices = scene->GetIndices();
     auto const& vertices = scene->GetVertices();
     float t = -1.0f;
+    glm::vec3 normal(Zero);
 
     uint32_t triangleCount = mesh.indices.indexCount / 3;
     for (uint32_t i = 0; i < triangleCount; ++i)
@@ -266,6 +268,9 @@ std::optional<HitPoint> RayMeshIntersectionSlow(Ray& r, Base const& base, Mesh c
         if (RayTriangleIntersection(r, p0, p1, p2, &t, barycentrics))
         {
             r.maxT = t;
+            normal = vertices[mesh.indices.firstVertex + index0].normal * barycentrics[0] +
+                vertices[mesh.indices.firstVertex + index1].normal * barycentrics[1] +
+                vertices[mesh.indices.firstVertex + index2].normal * barycentrics[2];
         }
     }
     
@@ -276,20 +281,114 @@ std::optional<HitPoint> RayMeshIntersectionSlow(Ray& r, Base const& base, Mesh c
     hp.SetEntity(base.entityPtr);
     hp.SetIntersectionPoint(t);
     hp.SetMaterial(mesh.material);
-    /*if (glm::dot(normal, r.direction) < 0)*/
+    if (glm::dot(normal, r.direction) < 0)
     {
         /* We're hitting the sphere in the front */
-        hp.SetNormal(Up);
+        hp.SetNormal(normal);
         hp.SetFrontFace(true);
     }
-    //else
-    //{
-    //    /* We're hitting the sphere in the back, so the normal has to be reversed */
-    //    hp.SetNormal(-normal);
-    //    hp.SetFrontFace(false);
-    //}
+    else
+    {
+        /* We're hitting the sphere in the back, so the normal has to be reversed */
+        hp.SetNormal(-normal);
+        hp.SetFrontFace(false);
+    }
 
     return hp;
+}
+
+static std::optional<HitPoint> RayMeshIntersectionFast(Ray &r, Base const& base, Mesh const& mesh, AccelerationStructure const& accelStructure, Scene const* scene)
+{
+    if (accelStructure.nodes.empty())
+        return std::nullopt;
+
+    bool hit = false;
+    Direction invDir = One / r.direction;
+    int isDirNeg[3] = {r.direction.x < 0, r.direction.y < 0, r.direction.z < 0};
+
+    int toVisitOffset = 0;
+    int currentNodeIndex = 0;
+    int nodesToVisit[64] = {};
+    while (true)
+    {
+        const Common::Components::LinearBVHNode* node = &accelStructure.nodes[currentNodeIndex];
+        auto bounds = node->bounds;
+        bounds.pMin += base.position;
+        bounds.pMax += base.position;
+        // if (RayAABBIntersectionFast(r, node->bounds, invDir, isDirNeg))
+        if (RayAABBIntersectionSlow(r, bounds))
+        {
+            if (node->primitiveCount)
+            {
+                /* Should check against each primitive */
+                for (uint32_t i = 0; i < node->primitiveCount; ++i)
+                {
+                    auto const& indices = scene->GetIndices();
+                    auto const& vertices = scene->GetVertices();
+                    float t = FLT_MAX;
+
+                    auto index0 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 0;
+                    auto index1 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 1;
+                    auto index2 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 2;
+
+                    glm::vec3 p0 = vertices[mesh.indices.firstVertex + indices[index0]].position + base.position;
+                    glm::vec3 p1 = vertices[mesh.indices.firstVertex + indices[index1]].position + base.position;
+                    glm::vec3 p2 = vertices[mesh.indices.firstVertex + indices[index2]].position + base.position;
+
+                    float barycentrics[3];
+                    if (RayTriangleIntersection(r, p0, p1, p2, &t, barycentrics))
+                    {
+                        r.maxT = t;
+                        hit = true;
+                    }
+                }
+                if (toVisitOffset == 0)
+                    break;
+                currentNodeIndex = nodesToVisit[--toVisitOffset];
+            }
+            else
+            {
+                if (isDirNeg[static_cast<uint32_t>(node->axis)])
+                {
+                    nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex = node->secondChildOffset;
+                }
+                else
+                {
+                    nodesToVisit[toVisitOffset++] = node->secondChildOffset;
+                    currentNodeIndex = currentNodeIndex + 1;
+                }
+            }
+        }
+        else
+        {
+            if (toVisitOffset == 0)
+                break;
+            currentNodeIndex = nodesToVisit[--toVisitOffset];
+        }
+    }
+
+    if (hit)
+    {
+        HitPoint hp{};
+        hp.SetEntity(base.entityPtr);
+        hp.SetIntersectionPoint(r.maxT);
+        hp.SetMaterial(mesh.material);
+        // if (glm::dot(normal, r.direction) < 0)
+        {
+            /* We're hitting the sphere in the front */
+            hp.SetNormal(Up);
+            hp.SetFrontFace(true);
+        }
+        //else
+        //{
+        //    /* We're hitting the sphere in the back, so the normal has to be reversed */
+        //    hp.SetNormal(-normal);
+        //    hp.SetFrontFace(false);
+        //}
+        return hp;
+    }
+    return std::nullopt;
 }
 
 Intersection::Intersection()
@@ -323,13 +422,13 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
 
     {
         /* Perform ray-mesh intersections */
-        auto view = objects.view<const Base, const Mesh>();
-        for (auto const& [entity, base, mesh] : view.each())
+        auto view = objects.view<const Base, const Mesh, const AccelerationStructure>();
+        for (auto const& [entity, base, mesh, accel] : view.each())
         {
             if (auto ptr = base.entityPtr->TryGetComponent<Sphere>(); ptr != nullptr)
                 continue;
 
-            std::optional<HitPoint> hp = RayMeshIntersectionSlow(r, base, mesh, scene);
+            std::optional<HitPoint> hp = RayMeshIntersectionFast(r, base, mesh, accel, scene);
 
             if (!hp.has_value())
                 continue;

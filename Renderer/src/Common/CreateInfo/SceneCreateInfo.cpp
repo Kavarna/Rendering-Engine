@@ -58,6 +58,71 @@ namespace CreateInfo
         return std::string(magic_enum::enum_name(primitiveType));
     }
 
+    AccelerationType GetAccelerationTypeFromString(std::string const& str)
+    {
+        auto type = magic_enum::enum_cast<AccelerationType>(str);
+        if (type.has_value())
+        {
+            return *type;
+        }
+        else
+        {
+            return AccelerationType::None;
+        }
+    }
+
+    std::string GetStringFromAccelerationType(AccelerationType accelerationType)
+    {
+        return std::string(magic_enum::enum_name(accelerationType));
+    }
+
+    void to_json(nlohmann::json& j, const AccelerationStructure& a)
+    {
+        j["type"] = GetStringFromAccelerationType(a.accelerationType);
+        if (a.accelerationType == AccelerationType::BVH)
+        {
+            j["split-type"] = magic_enum::enum_name(a.splitType);
+        }
+        else if (a.accelerationType == AccelerationType::KdTree)
+        {
+
+        }
+    }
+
+    void from_json(const nlohmann::json& j, AccelerationStructure& a)
+    {
+        if (j.contains("type"))
+        {
+            std::string typeString;
+            j.at("type").get_to(typeString);
+            AccelerationType type = GetAccelerationTypeFromString(typeString);
+            a.accelerationType = type;
+            switch (type)
+            {
+                case CreateInfo::AccelerationType::BVH:
+                {
+                    std::string splitTypeString;
+                    if (j.contains("split-type"))
+                    {
+                        std::string splitTypeString;
+                        j.at("split-type").get_to(splitTypeString);
+                        auto splitTypeOptional = magic_enum::enum_cast<Common::Accelerators::BVH::SplitType>(splitTypeString);
+                        if (splitTypeOptional.has_value())
+                        {
+                            a.splitType = *splitTypeOptional;
+                        }
+                    }
+                    break;
+                }
+                case CreateInfo::AccelerationType::KdTree:
+                    break;
+                case CreateInfo::AccelerationType::None:
+                default:
+                    break;
+            }
+        }
+    }
+
     void to_json(nlohmann::json& j, const Primitive& p)
     {
         j["type"] = GetStringFromPrimitiveType(p.primitiveType);
@@ -73,6 +138,11 @@ namespace CreateInfo
         if (p.primitiveType == PrimitiveType::Sphere)
         {
             j["radius"] = p.radius;
+        }
+
+        if (p.accelerationInfo.accelerationType != AccelerationType::None)
+        {
+            to_json(j["acceleration-strucutre"], p.accelerationInfo);
         }
     }
 
@@ -100,6 +170,11 @@ namespace CreateInfo
         else if (p.primitiveType == PrimitiveType::Mesh)
         {
             j.at("path").get_to(p.path);
+        }
+
+        if (j.contains("acceleration-structure"))
+        {
+            from_json(j["acceleration-structure"], p.accelerationInfo);
         }
     }
 

@@ -9,6 +9,7 @@ namespace Common::Components
     struct Sphere;
     struct Camera;
     struct Mesh;
+    struct AccelerationStructure;
 }
 
 namespace Editor
@@ -31,6 +32,7 @@ namespace Editor
         void RenderSphere(Common::Components::Sphere& s, bool isUpdatable);
         void RenderCamera(Common::Components::Camera& c, bool isUpdatable);
         void RenderMesh(Common::Components::Mesh& c, bool isUpdatable);
+        void RenderAccelerationStructure(Common::Components::AccelerationStructure& c, bool isUpdatable);
 
     private:
         Common::Entity* mActiveEntity;

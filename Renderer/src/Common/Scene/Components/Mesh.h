@@ -17,6 +17,8 @@ namespace Common::Components
 
         Indices indices;
 
+        bool hidden = false;
+
         std::shared_ptr<Common::IMaterial> material = nullptr;
     };
 }

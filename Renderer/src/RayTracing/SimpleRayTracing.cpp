@@ -1,8 +1,8 @@
 #include "Jnrlib.h"
 #include "SimpleRayTracing.h"
 
-#include "Scene/Components/CameraComponent.h"
-#include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/Camera.h"
+#include "Scene/Components/Base.h"
 #include "CameraUtils.h"
 #include "SimpleRayTracing.h"
 

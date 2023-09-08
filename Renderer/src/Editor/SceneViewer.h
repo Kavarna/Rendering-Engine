@@ -50,6 +50,8 @@ namespace Editor
         void UpdateActive();
         void RenderScene();
 
+        void RenderAccelerationStructures();
+
         void AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time);
 
         void SelectObject();

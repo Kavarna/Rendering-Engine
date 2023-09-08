@@ -20,7 +20,9 @@ namespace Common
 
 namespace Common::Components
 {
+    struct Base;
     struct Camera;
+    struct AccelerationStructure;
 }
 
 namespace Common::Systems
@@ -65,6 +67,8 @@ namespace Common::Systems
         void InitPipelines(uint32_t width, uint32_t height);
 
     private:
+        void DrawAccelerationStructure(Common::Components::Base const&, Common::Components::AccelerationStructure const& accelerationStructure);
+        void DrawAccelerationStructures();
         void DrawCameraEntities();
         void DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected);
 

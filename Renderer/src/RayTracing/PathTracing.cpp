@@ -1,8 +1,8 @@
 #include "Jnrlib.h"
 #include "PathTracing.h"
 
-#include "Scene/Components/CameraComponent.h"
-#include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/Camera.h"
+#include "Scene/Components/Base.h"
 
 using namespace RayTracing;
 using namespace Common;

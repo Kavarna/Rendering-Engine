@@ -19,9 +19,12 @@ namespace Common
 
     public:
         void Vertex(float x, float y, float z, float r, float g, float b, float a = 1.0f);
-        void Vertex(glm::vec3 const& position, glm::vec4 const& color);
+        void Vertex(glm::vec3 const& position, Jnrlib::Color const& color);
         void PersistentVertex(float x, float y, float z, float r, float g, float b, float a = 1.0f, float time = FLT_MAX);
-        void PersistentVertex(glm::vec3 const& position, glm::vec4 const& color, float time = FLT_MAX);
+        void PersistentVertex(glm::vec3 const& position, Jnrlib::Color const& color, float time = FLT_MAX);
+
+        void WireframeBoundingBox(Jnrlib::BoundingBox const& bb, float r, float g, float b, float a = 1.0f);
+        void WireframeBoundingBox(Jnrlib::BoundingBox const& bb, Jnrlib::Color const& color);
 
         void Update(float dt);
 
