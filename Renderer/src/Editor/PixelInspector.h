@@ -1,52 +1,54 @@
 #pragma once
 
-#include "ImguiWindow.h"
 #include "Common/Scene/Scene.h"
+#include "ImguiWindow.h"
 
 namespace Common
 {
-    class BufferDumper;
-    namespace Systems
-    {
-        class RealtimeRender;
-    }
+class BufferDumper;
+namespace Systems
+{
+class RealtimeRender;
 }
+} // namespace Common
 namespace Vulkan
 {
-    class CommandList;
+class CommandList;
 }
 namespace RayTracing
 {
-    class Renderer;
+class Renderer;
 }
 
 namespace Editor
 {
-    class SceneViewer;
+class SceneViewer;
 
-    class PixelInspector : public ImguiWindow
-    {
-        static constexpr const uint32_t PREVIEW_WIDTH = 10;
-        static constexpr const uint32_t PREVIEW_HEIGHT = 10;
-    public:
-        PixelInspector();
-        ~PixelInspector() = default;
+class PixelInspector : public ImguiWindow
+{
+    static constexpr const uint32_t PREVIEW_WIDTH = 10;
+    static constexpr const uint32_t PREVIEW_HEIGHT = 10;
 
-    public:
-        void CopySelectedRegion(uint32_t x, uint32_t y, Common::BufferDumper* buffer, RayTracing::Renderer* renderer, Vulkan::CommandList* cmdList);
-        void RenderRays(Common::Systems::RealtimeRender& render);
+public:
+    PixelInspector();
+    ~PixelInspector();
 
-        virtual void OnRender() override;
+public:
+    void CopySelectedRegion(uint32_t x, uint32_t y, Common::BufferDumper *buffer, RayTracing::Renderer *renderer,
+                            Vulkan::CommandList *cmdList);
+    void RenderRays(Common::Systems::RealtimeRender &render);
 
-    private:
-        RayTracing::Renderer* mRenderer;
+    virtual void OnRender() override;
 
-        uint32_t mSelectedX;
-        uint32_t mSelectedY;
+private:
+    RayTracing::Renderer *mRenderer;
 
-        std::vector<Jnrlib::Position> mRays;
+    uint32_t mSelectedX;
+    uint32_t mSelectedY;
 
-        std::unique_ptr<Common::BufferDumper> mPreviewImage;
-        std::unique_ptr<Common::BufferDumper> mLastPreviewImage;
-    };
-}
+    std::vector<Jnrlib::Position> mRays;
+
+    std::unique_ptr<Common::BufferDumper> mPreviewImage;
+    std::unique_ptr<Common::BufferDumper> mLastPreviewImage;
+};
+} // namespace Editor

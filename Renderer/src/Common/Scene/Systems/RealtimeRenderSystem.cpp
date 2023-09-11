@@ -1,11 +1,11 @@
 #include "RealtimeRenderSystem.h"
 
+#include "EditorCamera.h"
 #include "Scene/Components/BaseComponent.h"
+#include "Scene/Components/CameraComponent.h"
 #include "Scene/Components/MeshComponent.h"
 #include "Scene/Components/SphereComponent.h"
 #include "Scene/Components/UpdateComponent.h"
-#include "Scene/Components/CameraComponent.h"
-#include "EditorCamera.h"
 
 #include "CameraUtils.h"
 
@@ -18,8 +18,7 @@ using namespace Systems;
 using namespace Vulkan;
 using namespace Components;
 
-RealtimeRender::RealtimeRender(Scene* scene, CommandList* cmdList) :
-    mScene(scene)
+RealtimeRender::RealtimeRender(Scene *scene, CommandList *cmdList) : mScene(scene)
 {
     InitRootSignatures();
     InitPerObjectBuffer();
@@ -32,22 +31,23 @@ RealtimeRender::~RealtimeRender()
 {
 }
 
-void RealtimeRender::RenderScene(CommandList* cmdList)
+void RealtimeRender::RenderScene(CommandList *cmdList)
 {
     auto vertexBuffer = mScene->GetVertexBuffer();
     auto indexBuffer = mScene->GetIndexBuffer();
     cmdList->BindVertexBuffer(vertexBuffer, 0);
     cmdList->BindIndexBuffer(indexBuffer);
 
-    auto const& updatables = mScene->GetRegistry().group<const Base, const Components::Update, const Mesh>();
+    auto const &updatables = mScene->GetRegistry().group<const Base, const Components::Update, const Mesh>();
     /* Build rendering buffers */
     {
-        /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed */
-        for (auto const& [entity, base, update, mesh] : updatables.each())
+        /* TODO: instead of iterating over all entities, build an observer and only iterate over entities that changed
+         */
+        for (auto const &[entity, base, update, mesh] : updatables.each())
         {
             if (update.dirtyFrames > 0)
             {
-                PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
+                PerObjectInfo *objectInfo = (PerObjectInfo *)mPerObjectBuffer->GetElement(update.bufferIndex);
 
                 objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
                 objectInfo->materialIndex = mesh.material->GetMaterialIndex();
@@ -60,7 +60,7 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
 
         {
-            UniformBuffer* uniformBuffer = (UniformBuffer*)mUniformBuffer->GetElement();
+            UniformBuffer *uniformBuffer = (UniformBuffer *)mUniformBuffer->GetElement();
             if (mCamera)
             {
                 if (mCamera->GetDirtyFrames() > 0)
@@ -75,7 +75,6 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
     }
 
-
     {
         static Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
         static Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Quarter, Jnrlib::Quarter, Jnrlib::One, 1.0f);
@@ -87,9 +86,9 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
 
     /* Render */
     {
-        for (auto const& [entity, base, update, mesh] : updatables.each())
+        for (auto const &[entity, base, update, mesh] : updatables.each())
         {
-             if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
+            if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
                 continue;
 
             /* TODO: pass this as instance */
@@ -102,36 +101,38 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     if (mSelectedEntities.size())
     {
         cmdList->BindPipeline(mSelectedObjectsPipeline.get());
-        
+
         /* Render selected objects */
-        for (const auto& entity : mSelectedEntities)
+        for (const auto &entity : mSelectedEntities)
         {
-            auto* update = entity->TryGetComponent<Components::Update>();
-            auto* mesh = entity->TryGetComponent<Mesh>();
+            auto *update = entity->TryGetComponent<Components::Update>();
+            auto *mesh = entity->TryGetComponent<Mesh>();
             if (mesh == nullptr || update == nullptr)
                 continue;
 
             uint32_t index = update->bufferIndex;
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex, mesh->indices.firstVertex);
+            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex,
+                                          mesh->indices.firstVertex);
         }
 
         cmdList->BindPipeline(mOutlinePipeline.get());
         cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mOutlineRootSignature.get());
         /* Render the outlines */
-        for (const auto& entity : mSelectedEntities)
+        for (const auto &entity : mSelectedEntities)
         {
-            auto* update = entity->TryGetComponent<Components::Update>();
-            auto* mesh = entity->TryGetComponent<Mesh>();
+            auto *update = entity->TryGetComponent<Components::Update>();
+            auto *mesh = entity->TryGetComponent<Mesh>();
             if (mesh == nullptr || update == nullptr)
                 continue;
 
             uint32_t index = update->bufferIndex;
 
             OutlineVertPushConstants outlineVertPushConstants{.objectIndex = index, .lineWidth = 0.025f};
-            cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1, &outlineVertPushConstants,
-                                                             VK_SHADER_STAGE_VERTEX_BIT);
-            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex, mesh->indices.firstVertex);
+            cmdList->BindPushRange<OutlineVertPushConstants>(mOutlineRootSignature.get(), 0, 1,
+                                                             &outlineVertPushConstants, VK_SHADER_STAGE_VERTEX_BIT);
+            cmdList->DrawIndexedInstanced(mesh->indices.indexCount, mesh->indices.firstIndex,
+                                          mesh->indices.firstVertex);
         }
     }
 
@@ -146,34 +147,34 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
     mBatchRenderer.Begin();
 }
 
-RootSignature* RealtimeRender::GetRootSiganture() const
+RootSignature *RealtimeRender::GetRootSiganture() const
 {
     return mDefaultRootSignature.get();
 }
 
-void RealtimeRender::SetDepthImage(Vulkan::Image* depthImage)
+void RealtimeRender::SetDepthImage(Vulkan::Image *depthImage)
 {
     mDepthImage = depthImage;
 }
 
-void RealtimeRender::SetRenderTarget(Vulkan::Image * renderTarget)
+void RealtimeRender::SetRenderTarget(Vulkan::Image *renderTarget)
 {
     mRenderTarget = renderTarget;
 }
 
-void RealtimeRender::SetCamera(EditorCamera const* camera)
+void RealtimeRender::SetCamera(EditorCamera const *camera)
 {
     mCamera = camera;
 }
 
-void RealtimeRender::SetLight(DirectionalLight const& light)
+void RealtimeRender::SetLight(DirectionalLight const &light)
 {
     auto memory = mLightBuffer->GetElement();
     memcpy(memory, &light, sizeof(DirectionalLight));
-    ((DirectionalLight*)memory)->direction = glm::normalize(((DirectionalLight*)memory)->direction);
+    ((DirectionalLight *)memory)->direction = glm::normalize(((DirectionalLight *)memory)->direction);
 }
 
-void RealtimeRender::SelectEntities(std::unordered_set<Entity*> const& selectedIndices)
+void RealtimeRender::SelectEntities(std::unordered_set<Entity *> const &selectedIndices)
 {
     mSelectedEntities = selectedIndices;
 }
@@ -203,17 +204,17 @@ void RealtimeRender::OnResize(uint32_t width, uint32_t height)
     InitPipelines(width, height);
 }
 
-void RealtimeRender::AddOneTimeVertex(glm::vec3 const& position, glm::vec4 const& color)
+void RealtimeRender::AddOneTimeVertex(glm::vec3 const &position, glm::vec4 const &color)
 {
     mBatchRenderer.Vertex(position, color);
 }
 
-void RealtimeRender::AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds)
+void RealtimeRender::AddVertex(glm::vec3 const &position, glm::vec4 const &color, float timeInSeconds)
 {
     mBatchRenderer.PersistentVertex(position, color, timeInSeconds);
 }
 
-Pipeline* RealtimeRender::GetDefaultPipeline()
+Pipeline *RealtimeRender::GetDefaultPipeline()
 {
     return mDefaultPipeline.get();
 }
@@ -250,32 +251,32 @@ void RealtimeRender::InitPerObjectBuffer()
 {
     /* Might make this not host-accessible and just copy in it whenever needed */
     mPerObjectBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(PerObjectInfo), sizeof(glm::vec4)),
-        mScene->GetNumberOfObjects(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+                                                mScene->GetNumberOfObjects(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
     mDefaultDescriptorSets->BindStorageBuffer(mPerObjectBuffer.get(), 0, 0, 0);
 }
 
 void RealtimeRender::InitUniformBuffer()
 {
-    mUniformBuffer = std::make_unique<Buffer>(sizeof(UniformBuffer), 1,
-                                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
+    mUniformBuffer = std::make_unique<Buffer>(sizeof(UniformBuffer), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                              VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
     mDefaultDescriptorSets->BindInputBuffer(mUniformBuffer.get(), 1, 0, 0);
 }
 
-void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
+void RealtimeRender::InitMaterialsBuffer(CommandList *cmdList)
 {
     auto materialManager = MaterialManager::Get();
     auto materials = materialManager->GetShaderMaterials();
 
     {
-        auto localMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)),
-                                                                     materials.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                                                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        auto localMaterialsBuffer = std::make_unique<Buffer>(
+            Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         localMaterialsBuffer->Copy(materials.data());
 
-
-
-        mMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
-                                                            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+        mMaterialsBuffer = std::make_unique<Buffer>(
+            Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
 
         cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
         cmdList->AddLocalBuffer(std::move(localMaterialsBuffer));
@@ -285,9 +286,10 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
 
     {
         mLightBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(DirectionalLight), sizeof(glm::vec4)), 1,
-                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
-        SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.5f, 0.5f, -1.0f)});
+                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
+        SetLight(
+            DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.5f, 0.5f, -1.0f)});
     }
     mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
 }
@@ -303,24 +305,28 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
     }
     VkViewport vp{};
     VkRect2D sc{};
-    auto& viewport = mDefaultPipeline->GetViewportStateCreateInfo();
+    auto &viewport = mDefaultPipeline->GetViewportStateCreateInfo();
     {
-        vp.width = (FLOAT)width; vp.minDepth = 0.0f; vp.x = 0;
-        vp.height = (FLOAT)height; vp.maxDepth = 1.0f; vp.y = 0;
-        sc.offset = {.x = 0, .y = 0}; sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
+        vp.width = (float)width;
+        vp.minDepth = 0.0f;
+        vp.x = 0;
+        vp.height = (float)height;
+        vp.maxDepth = 1.0f;
+        vp.y = 0;
+        sc.offset = {.x = 0, .y = 0};
+        sc.extent = {.width = (uint32_t)width, .height = (uint32_t)height};
         viewport.viewportCount = 1;
         viewport.pViewports = &vp;
         viewport.scissorCount = 1;
         viewport.pScissors = &sc;
     }
 
-
     auto vertexPositionNormalAttributeDescription = Common::VertexPositionNormal::GetInputAttributeDescription();
     auto vertexPositionNormalBindingDescription = Common::VertexPositionNormal::GetInputBindingDescription();
     auto vertexPositionColorAttributeDescription = VertexPositionColor::GetInputAttributeDescription();
     auto vertexPositionColorBindingDescription = VertexPositionColor::GetInputBindingDescription();
     {
-        auto& vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
+        auto &vertexInput = mDefaultPipeline->GetVertexInputStateCreateInfo();
         vertexInput.vertexAttributeDescriptionCount = (uint32_t)vertexPositionNormalAttributeDescription.size();
         vertexInput.pVertexAttributeDescriptions = vertexPositionNormalAttributeDescription.data();
         vertexInput.vertexBindingDescriptionCount = (uint32_t)vertexPositionNormalBindingDescription.size();
@@ -329,24 +335,23 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
 
     VkPipelineColorBlendAttachmentState attachmentInfo{};
     {
-        auto& blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
+        auto &blendState = mDefaultPipeline->GetColorBlendStateCreateInfo();
         attachmentInfo.blendEnable = VK_FALSE;
         attachmentInfo.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
         blendState.attachmentCount = 1;
         blendState.pAttachments = &attachmentInfo;
     }
 
     {
-        auto& rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
+        auto &rasterizerState = mDefaultPipeline->GetRasterizationStateCreateInfo();
         // rasterizerState.cullMode = VK_CULL_MODE_NONE;
         // rasterizerState.polygonMode = VK_POLYGON_MODE_LINE;
     }
 
     {
-        auto& depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
+        auto &depthState = mDefaultPipeline->GetDepthStencilStateCreateInfo();
         depthState.depthTestEnable = VK_TRUE;
         depthState.depthWriteEnable = VK_TRUE;
         depthState.depthBoundsTestEnable = VK_TRUE;
@@ -368,7 +373,7 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         mSelectedObjectsPipeline->AddShader("Shaders/basic.frag.spv");
     }
     {
-        auto& depthStencil = mSelectedObjectsPipeline->GetDepthStencilStateCreateInfo();
+        auto &depthStencil = mSelectedObjectsPipeline->GetDepthStencilStateCreateInfo();
         depthStencil.stencilTestEnable = VK_TRUE;
         depthStencil.front.reference = 1;
         depthStencil.front.writeMask = 0xFF;
@@ -388,7 +393,7 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         mOutlinePipeline->AddShader("Shaders/yellow.frag.spv");
     }
     {
-        auto& depthStencil = mOutlinePipeline->GetDepthStencilStateCreateInfo();
+        auto &depthStencil = mOutlinePipeline->GetDepthStencilStateCreateInfo();
         depthStencil.depthTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable = VK_TRUE;
         depthStencil.front.reference = 1;
@@ -410,19 +415,20 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
         mDebugPipeline->AddShader("Shaders/color.frag.spv");
     }
     {
-        auto& vertexStateCreateInfo = mDebugPipeline->GetVertexInputStateCreateInfo();
+        auto &vertexStateCreateInfo = mDebugPipeline->GetVertexInputStateCreateInfo();
 
-        vertexStateCreateInfo.vertexAttributeDescriptionCount = (uint32_t)vertexPositionColorAttributeDescription.size();
+        vertexStateCreateInfo.vertexAttributeDescriptionCount =
+            (uint32_t)vertexPositionColorAttributeDescription.size();
         vertexStateCreateInfo.pVertexAttributeDescriptions = vertexPositionColorAttributeDescription.data();
         vertexStateCreateInfo.vertexBindingDescriptionCount = (uint32_t)vertexPositionColorBindingDescription.size();
         vertexStateCreateInfo.pVertexBindingDescriptions = vertexPositionColorBindingDescription.data();
     }
     {
-        auto& inputAssembly = mDebugPipeline->GetInputAssemblyStateCreateInfo();
+        auto &inputAssembly = mDebugPipeline->GetInputAssemblyStateCreateInfo();
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
     }
     {
-        auto& rasterizerInfo = mDebugPipeline->GetRasterizationStateCreateInfo();
+        auto &rasterizerInfo = mDebugPipeline->GetRasterizationStateCreateInfo();
         rasterizerInfo.lineWidth = 2.0f;
         rasterizerInfo.cullMode = VK_CULL_MODE_NONE;
     }
@@ -432,9 +438,9 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
 
 void RealtimeRender::DrawCameraEntities()
 {
-    auto* cameraEntity = mScene->GetCameraEntity();
-    auto& cameraComponent = cameraEntity->GetComponent<Camera>();
-    if (mSelectedEntities.find(const_cast<Entity*>(cameraEntity)) != mSelectedEntities.end())
+    auto *cameraEntity = mScene->GetCameraEntity();
+    auto &cameraComponent = cameraEntity->GetComponent<Camera>();
+    if (mSelectedEntities.find(const_cast<Entity *>(cameraEntity)) != mSelectedEntities.end())
     {
         DrawCameraEntity(cameraComponent, true);
     }
@@ -444,22 +450,16 @@ void RealtimeRender::DrawCameraEntities()
     }
 }
 
-void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected)
+void RealtimeRender::DrawCameraEntity(Common::Components::Camera const &cameraComponent, bool isSelected)
 {
     std::function<void(glm::vec3)> vertex;
     if (isSelected)
     {
-        vertex = [&](glm::vec3 pos)
-        {
-            mBatchRenderer.Vertex(pos, Jnrlib::Yellow);
-        };
+        vertex = [&](glm::vec3 pos) { mBatchRenderer.Vertex(pos, Jnrlib::Yellow); };
     }
     else
     {
-        vertex = [&](glm::vec3 pos)
-        {
-            mBatchRenderer.Vertex(pos, Jnrlib::Grey);
-        };
+        vertex = [&](glm::vec3 pos) { mBatchRenderer.Vertex(pos, Jnrlib::Grey); };
     }
 
     glm::vec2 coordinates[] = {
@@ -471,7 +471,8 @@ void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraCo
     glm::vec3 corners[8];
     for (uint32_t i = 0; i < sizeof(coordinates) / sizeof(coordinates[0]); ++i)
     {
-        auto currentRay = CameraUtils::GetRayForPixel(&cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
+        auto currentRay =
+            CameraUtils::GetRayForPixel(&cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
         corners[i] = currentRay.origin + currentRay.direction * cameraComponent.focalDistance;
         corners[i + 4] = currentRay.origin + currentRay.direction * 10.0f;
     }

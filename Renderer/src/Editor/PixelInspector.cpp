@@ -1,8 +1,8 @@
 #include "PixelInspector.h"
 #include "BufferDumper.h"
-#include "Vulkan/Image.h"
-#include "Vulkan/CommandList.h"
 #include "RayTracing/Renderer.h"
+#include "Vulkan/CommandList.h"
+#include "Vulkan/Image.h"
 
 #include "Scene/Systems/RealtimeRenderSystem.h"
 
@@ -16,10 +16,14 @@ using namespace Common;
 
 PixelInspector::PixelInspector()
 {
-
 }
 
-void PixelInspector::CopySelectedRegion(uint32_t srcX, uint32_t srcY, Common::BufferDumper* buffer, RayTracing::Renderer* renderer, Vulkan::CommandList* cmdList)
+PixelInspector::~PixelInspector()
+{
+}
+
+void PixelInspector::CopySelectedRegion(uint32_t srcX, uint32_t srcY, Common::BufferDumper *buffer,
+                                        RayTracing::Renderer *renderer, Vulkan::CommandList *cmdList)
 {
     if (buffer == nullptr || renderer == nullptr)
     {
@@ -42,17 +46,17 @@ void PixelInspector::CopySelectedRegion(uint32_t srcX, uint32_t srcY, Common::Bu
         uint32_t y = row + srcY;
         uint32_t sourceIndex = y * buffer->GetWidth() + srcX - PREVIEW_WIDTH / 2;
 
-        void const* src = srcBuffer->GetElement(sourceIndex);
-        void* dst = dstBuffer->GetElement(row * PREVIEW_WIDTH);
+        void const *src = srcBuffer->GetElement(sourceIndex);
+        void *dst = dstBuffer->GetElement(row * PREVIEW_WIDTH);
         memcpy(dst, src, sizeof(Jnrlib::Color) * PREVIEW_WIDTH);
     }
     mPreviewImage->Flush(cmdList, true);
     cmdList->TransitionImageToImguiLayout(mPreviewImage->GetImage());
 }
 
-void PixelInspector::RenderRays(Common::Systems::RealtimeRender& render)
+void PixelInspector::RenderRays(Common::Systems::RealtimeRender &render)
 {
-    for (auto const& pos : mRays)
+    for (auto const &pos : mRays)
     {
         render.AddOneTimeVertex(pos, Jnrlib::Yellow);
     }
@@ -76,10 +80,7 @@ void PixelInspector::OnRender()
         {
             Common::Ray::mPositions.clear();
             Common::Ray::mSaveRays = true;
-            Jnrlib::DefferCall call([]()
-            {
-                Common::Ray::mSaveRays = false;
-            });
+            Jnrlib::DefferCall call([]() { Common::Ray::mSaveRays = false; });
             mRenderer->TracePixel(mSelectedX, mSelectedY);
             mRays = std::move(Common::Ray::mPositions);
         }

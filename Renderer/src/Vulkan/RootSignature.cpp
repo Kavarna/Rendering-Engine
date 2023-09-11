@@ -1,12 +1,13 @@
 #include "RootSignature.h"
 #include "Image.h"
-#include "VulkanLoader.h"
 #include "Renderer.h"
+#include "VulkanLoader.h"
 
 using namespace Vulkan;
 
 RootSignature::RootSignature()
-{ }
+{
+}
 
 RootSignature::~RootSignature()
 {
@@ -17,7 +18,7 @@ RootSignature::~RootSignature()
     }
 }
 
-void RootSignature::AddDescriptorSet(DescriptorSet* descriptorSet)
+void RootSignature::AddDescriptorSet(DescriptorSet *descriptorSet)
 {
     mDescriptorSetLayouts.push_back(descriptorSet);
 }
@@ -27,7 +28,7 @@ void RootSignature::Bake()
     auto device = Renderer::Get()->GetDevice();
 
     std::vector<VkDescriptorSetLayout> descriptorSets;
-    for (const auto& descriptorSet : mDescriptorSetLayouts)
+    for (const auto &descriptorSet : mDescriptorSetLayouts)
     {
         descriptorSets.push_back(descriptorSet->mLayout);
     }
@@ -40,10 +41,8 @@ void RootSignature::Bake()
         layoutInfo.setLayoutCount = (uint32_t)descriptorSets.size();
         layoutInfo.pSetLayouts = descriptorSets.data();
     }
-    
-    ThrowIfFailed(
-        jnrCreatePipelineLayout(device, &layoutInfo, nullptr, &mPipelineLayout)
-    );
+
+    ThrowIfFailed(jnrCreatePipelineLayout(device, &layoutInfo, nullptr, &mPipelineLayout));
 }
 
 DescriptorSet::DescriptorSet()
@@ -63,7 +62,7 @@ DescriptorSet::~DescriptorSet()
     }
 }
 
-void DescriptorSet::AddSampler(uint32_t binding, std::vector<VkSampler> const& samplers, VkShaderStageFlags stages)
+void DescriptorSet::AddSampler(uint32_t binding, std::vector<VkSampler> const &samplers, VkShaderStageFlags stages)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
     {
@@ -79,7 +78,7 @@ void DescriptorSet::AddSampler(uint32_t binding, std::vector<VkSampler> const& s
     mSamplerCount++;
 }
 
-void DescriptorSet::AddCombinedImageSampler(uint32_t binding, VkSampler* sampler, VkShaderStageFlags stages)
+void DescriptorSet::AddCombinedImageSampler(uint32_t binding, VkSampler *sampler, VkShaderStageFlags stages)
 {
     VkDescriptorSetLayoutBinding layoutBinding{};
     {
@@ -95,14 +94,16 @@ void DescriptorSet::AddCombinedImageSampler(uint32_t binding, VkSampler* sampler
     mCombinedImageSamplerCount++;
 }
 
-void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::Image* image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance)
+void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::Image *image, VkImageAspectFlags aspectFlags,
+                                             VkSampler sampler, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     auto imageView = image->GetImageView(aspectFlags);
     BindCombinedImageSampler(binding, imageView, aspectFlags, sampler, instance);
 }
 
-void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::ImageView image, VkImageAspectFlags aspectFlags, VkSampler sampler, uint32_t instance)
+void DescriptorSet::BindCombinedImageSampler(uint32_t binding, Vulkan::ImageView image, VkImageAspectFlags aspectFlags,
+                                             VkSampler sampler, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     VkDescriptorImageInfo imageInfo{};
@@ -140,7 +141,8 @@ void DescriptorSet::AddStorageBuffer(uint32_t binding, uint32_t descriptorCount,
     mStorageBufferCount++;
 }
 
-void DescriptorSet::BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+void DescriptorSet::BindStorageBuffer(Vulkan::Buffer *buffer, uint32_t binding, uint32_t elementIndex,
+                                      uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
@@ -148,7 +150,8 @@ void DescriptorSet::BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, 
     {
         bufferInfo.buffer = buffer->mBuffer;
         bufferInfo.offset = buffer->GetElementSize() * dstArrayElement;
-        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
+        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element
+                                             from the buffer */
     }
     VkWriteDescriptorSet writeDescriptorSet{};
     {
@@ -180,7 +183,7 @@ void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, V
     mInputBufferCount++;
 }
 
-void DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+void DescriptorSet::BindInputBuffer(Vulkan::Buffer *buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;
@@ -188,7 +191,8 @@ void DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, ui
     {
         bufferInfo.buffer = buffer->mBuffer;
         bufferInfo.offset = buffer->GetElementSize() * dstArrayElement;
-        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element from the buffer */
+        bufferInfo.range = VK_WHOLE_SIZE; /* TODO: This might give weird results, when trying to bind only an element
+                                             from the buffer */
     }
     VkWriteDescriptorSet writeDescriptorSet{};
     {
@@ -204,7 +208,6 @@ void DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, ui
     jnrUpdateDescriptorSets(device, 1, &writeDescriptorSet, 0, nullptr);
 }
 
-
 void DescriptorSet::BakeLayout()
 {
     auto device = Renderer::Get()->GetDevice();
@@ -216,9 +219,7 @@ void DescriptorSet::BakeLayout()
         layoutInfo.bindingCount = (uint32_t)mBindings.size();
         layoutInfo.flags = 0;
     }
-    ThrowIfFailed(
-        jnrCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mLayout)
-    );
+    ThrowIfFailed(jnrCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mLayout));
 }
 
 void DescriptorSet::Bake(uint32_t instances)
@@ -231,7 +232,7 @@ void DescriptorSet::Bake(uint32_t instances)
     std::vector<VkDescriptorPoolSize> sizes = {};
     if (mInputBufferCount != 0)
     {
-        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        VkDescriptorPoolSize &inputBufferSize = sizes.emplace_back();
         {
             inputBufferSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             inputBufferSize.descriptorCount = mInputBufferCount;
@@ -239,7 +240,7 @@ void DescriptorSet::Bake(uint32_t instances)
     }
     if (mStorageBufferCount != 0)
     {
-        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        VkDescriptorPoolSize &inputBufferSize = sizes.emplace_back();
         {
             inputBufferSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             inputBufferSize.descriptorCount = mStorageBufferCount;
@@ -247,7 +248,7 @@ void DescriptorSet::Bake(uint32_t instances)
     }
     if (mSamplerCount != 0)
     {
-        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        VkDescriptorPoolSize &inputBufferSize = sizes.emplace_back();
         {
             inputBufferSize.type = VK_DESCRIPTOR_TYPE_SAMPLER;
             inputBufferSize.descriptorCount = mSamplerCount;
@@ -255,25 +256,23 @@ void DescriptorSet::Bake(uint32_t instances)
     }
     if (mCombinedImageSamplerCount != 0)
     {
-        VkDescriptorPoolSize& inputBufferSize = sizes.emplace_back();
+        VkDescriptorPoolSize &inputBufferSize = sizes.emplace_back();
         {
             inputBufferSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             inputBufferSize.descriptorCount = mCombinedImageSamplerCount;
         }
     }
-    VkDescriptorPoolCreateInfo& poolInfo = mPoolInfo;
+    VkDescriptorPoolCreateInfo &poolInfo = mPoolInfo;
     {
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.flags = 0;
-        poolInfo.maxSets = (uint32_t)mBindings.size() * instances;
+        poolInfo.maxSets = instances;
         poolInfo.poolSizeCount = (uint32_t)sizes.size();
         poolInfo.pPoolSizes = sizes.data();
     }
-    ThrowIfFailed(
-        jnrCreateDescriptorPool(device, &poolInfo, nullptr, &mDescriptorPool)
-    );
+    ThrowIfFailed(jnrCreateDescriptorPool(device, &poolInfo, nullptr, &mDescriptorPool));
 
-    mDescriptorSets.resize(mPoolInfo.maxSets); /* Make space for descriptor sets */
+    mDescriptorSets.resize(mPoolInfo.maxSets);                              /* Make space for descriptor sets */
     std::vector<VkDescriptorSetLayout> layouts(mPoolInfo.maxSets, mLayout); /* Have enought layouts */
     VkDescriptorSetAllocateInfo allocInfo{};
     {

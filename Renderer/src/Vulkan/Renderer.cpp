@@ -1,46 +1,44 @@
 #include "Renderer.h"
-#include "VulkanLoader.h"
-#include <unordered_set>
-#include <boost/algorithm/string.hpp>
-#include <FileHelpers.h>
 #include "CommandList.h"
 #include "ImGuiImplementation.h"
+#include "VulkanLoader.h"
+#include <FileHelpers.h>
+#include <boost/algorithm/string.hpp>
+#include <unordered_set>
 
 using namespace Vulkan;
 
-static constexpr const uint32_t API_VERSION = VK_API_VERSION_1_3;
+static constexpr const uint32_t API_VERSION = VK_API_VERSION_1_2;
 
 #define PIPELINES_CACHE_FILE "pipelines.cache"
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData)
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                    void *pUserData)
 {
     switch (messageSeverity)
     {
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            LOG(INFO) << "Validation layer: " << pCallbackData->pMessage;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            LOG(INFO) << "Validation layer: " << pCallbackData->pMessage;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            LOG(WARNING) << "Validation layer: " << pCallbackData->pMessage;
-            break;
-        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            LOG(ERROR) << "Validation layer: " << pCallbackData->pMessage;
-            break;
-        default:
-            LOG(FATAL) << "How did you trigger this type of validation message?";
-
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        LOG(INFO) << "Validation layer: " << pCallbackData->pMessage;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        LOG(INFO) << "Validation layer: " << pCallbackData->pMessage;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        LOG(WARNING) << "Validation layer: " << pCallbackData->pMessage;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        LOG(ERROR) << "Validation layer: " << pCallbackData->pMessage;
+        break;
+    default:
+        LOG(FATAL) << "How did you trigger this type of validation message?";
     }
 
     return VK_FALSE;
 }
 
-Renderer::Renderer(CreateInfo::VulkanRenderer const& info)
+Renderer::Renderer(CreateInfo::VulkanRenderer const &info)
 {
     LOG(INFO) << "Attempting to initialize vulkan renderer with info" << info;
 
@@ -74,7 +72,7 @@ Renderer::~Renderer()
     if (mPipelineCache != VK_NULL_HANDLE)
     {
         size_t size;
-        
+
         if (jnrGetPipelineCacheData(mDevice, mPipelineCache, &size, nullptr) == VK_SUCCESS)
         {
             std::vector<unsigned char> bytes(size);
@@ -86,7 +84,7 @@ Renderer::~Renderer()
 
         jnrDestroyPipelineCache(mDevice, mPipelineCache, nullptr);
     }
-    for (auto const& view : mSwapchainImageViews)
+    for (auto const &view : mSwapchainImageViews)
     {
         jnrDestroyImageView(mDevice, view, nullptr);
     }
@@ -94,7 +92,7 @@ Renderer::~Renderer()
     jnrDestroySurfaceKHR(mInstance, mRenderingSurface, nullptr);
 
     vmaDestroyAllocator(mAllocator);
-    
+
     jnrDestroyDevice(mDevice, nullptr);
     if (mInstanceExtensions.debugUtils.has_value())
     {
@@ -120,7 +118,7 @@ VkDevice Renderer::GetDevice()
     return mDevice;
 }
 
-void Renderer::InitInstance(CreateInfo::VulkanRenderer const& info)
+void Renderer::InitInstance(CreateInfo::VulkanRenderer const &info)
 {
     VkApplicationInfo appInfo = {};
     {
@@ -150,7 +148,6 @@ void Renderer::InitInstance(CreateInfo::VulkanRenderer const& info)
         {
             instanceInfo.pNext = &(*mInstanceExtensions.debugUtils);
         }
-
     }
     ThrowIfFailed(jnrCreateInstance(&instanceInfo, nullptr, &mInstance));
 
@@ -159,12 +156,9 @@ void Renderer::InitInstance(CreateInfo::VulkanRenderer const& info)
     /* Also create the validation debug utils messenger */
     if (mInstanceExtensions.debugUtils.has_value())
     {
-        ThrowIfFailed(
-            jnrCreateDebugUtilsMessengerEXT(
-                mInstance, &(*mInstanceExtensions.debugUtils), nullptr, &mDebugUtilsMessenger)
-        );
+        ThrowIfFailed(jnrCreateDebugUtilsMessengerEXT(mInstance, &(*mInstanceExtensions.debugUtils), nullptr,
+                                                      &mDebugUtilsMessenger));
     }
-    
 }
 
 void Renderer::PickPhysicalDevice()
@@ -178,7 +172,7 @@ void Renderer::PickPhysicalDevice()
     ThrowIfFailed(jnrEnumeratePhysicalDevices(mInstance, &count, devices.data()));
 
     bool found = false, foundIntegrated = false;
-    for (auto const& device : devices)
+    for (auto const &device : devices)
     {
         VkPhysicalDeviceProperties properties = {};
         VkPhysicalDeviceFeatures features = {};
@@ -228,9 +222,7 @@ void Renderer::PickQueueFamilyIndices()
         }
 
         VkBool32 presentSupport = VK_FALSE;
-        ThrowIfFailed(
-            jnrGetPhysicalDeviceSurfaceSupportKHR(mPhysicalDevice, i, mRenderingSurface, &presentSupport)
-        );
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceSupportKHR(mPhysicalDevice, i, mRenderingSurface, &presentSupport));
 
         if (presentSupport)
         {
@@ -244,14 +236,14 @@ void Renderer::PickQueueFamilyIndices()
     CHECK(!mQueueIndices.IsEmpty()) << "There should be at least one queue";
 }
 
-void Renderer::InitDevice(CreateInfo::VulkanRenderer const& info)
+void Renderer::InitDevice(CreateInfo::VulkanRenderer const &info)
 {
     auto uniqueQueueIndices = mQueueIndices.GetUniqueFamilyIndices();
 
     float priorities[] = {1.0f};
-    std::vector< VkDeviceQueueCreateInfo> queues = {};
+    std::vector<VkDeviceQueueCreateInfo> queues = {};
     queues.reserve(uniqueQueueIndices.size());
-    for (auto const& index : uniqueQueueIndices)
+    for (auto const &index : uniqueQueueIndices)
     {
         VkDeviceQueueCreateInfo queueInfo = {};
         {
@@ -285,9 +277,7 @@ void Renderer::InitDevice(CreateInfo::VulkanRenderer const& info)
         }
     }
 
-    ThrowIfFailed(
-        jnrCreateDevice(mPhysicalDevice, &deviceInfo, nullptr, &mDevice)
-    );
+    ThrowIfFailed(jnrCreateDevice(mPhysicalDevice, &deviceInfo, nullptr, &mDevice));
 
     if (mQueueIndices.graphicsFamily.has_value())
     {
@@ -322,20 +312,19 @@ void Renderer::InitSwapchain()
     }
     else
     {
-        imageCount = glm::clamp(mSwapchainDetails.capabilities.minImageCount + 1,
-                                mSwapchainDetails.capabilities.minImageCount, mSwapchainDetails.capabilities.maxImageCount);
+        imageCount =
+            glm::clamp(mSwapchainDetails.capabilities.minImageCount + 1, mSwapchainDetails.capabilities.minImageCount,
+                       mSwapchainDetails.capabilities.maxImageCount);
     }
-    CHECK(imageCount != 0) << "For some reason, the vulkan driver specified that 0 images can be used for the swapchain";
+    CHECK(imageCount != 0)
+        << "For some reason, the vulkan driver specified that 0 images can be used for the swapchain";
 
-    std::vector<uint32_t> familiesUsingBackbuffer = {
-        *mQueueIndices.graphicsFamily,
-        *mQueueIndices.presentFamily
-    };
+    std::vector<uint32_t> familiesUsingBackbuffer = {*mQueueIndices.graphicsFamily, *mQueueIndices.presentFamily};
     std::sort(familiesUsingBackbuffer.begin(), familiesUsingBackbuffer.end());
-    familiesUsingBackbuffer.erase(
-        std::unique(familiesUsingBackbuffer.begin(), familiesUsingBackbuffer.end()),
-        familiesUsingBackbuffer.end());
-    CHECK(familiesUsingBackbuffer.size() != 0) << "Something weird happened and I don't have any families to use with the backbuffer";
+    familiesUsingBackbuffer.erase(std::unique(familiesUsingBackbuffer.begin(), familiesUsingBackbuffer.end()),
+                                  familiesUsingBackbuffer.end());
+    CHECK(familiesUsingBackbuffer.size() != 0)
+        << "Something weird happened and I don't have any families to use with the backbuffer";
 
     VkSwapchainCreateInfoKHR swapchainInfo = {};
     {
@@ -352,12 +341,13 @@ void Renderer::InitSwapchain()
         swapchainInfo.presentMode = presentMode;
         swapchainInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
         swapchainInfo.imageExtent = extent;
-        
-        swapchainInfo.imageSharingMode = familiesUsingBackbuffer.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+
+        swapchainInfo.imageSharingMode =
+            familiesUsingBackbuffer.size() > 1 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
         swapchainInfo.queueFamilyIndexCount = (uint32_t)familiesUsingBackbuffer.size();
         swapchainInfo.pQueueFamilyIndices = familiesUsingBackbuffer.data();
     }
-    
+
     ThrowIfFailed(jnrCreateSwapchainKHR(mDevice, &swapchainInfo, nullptr, &mSwapchain));
 
     /* Save some swapchain info */
@@ -384,21 +374,21 @@ void Renderer::InitSwapchain()
 
     {
         /* Destroy the old images */
-        for (auto const& view : mSwapchainImageViews)
+        for (auto const &view : mSwapchainImageViews)
         {
             jnrDestroyImageView(mDevice, view, nullptr);
         }
         /* Create views for images */
         mSwapchainImageViews.resize(mSwapchainImages.size());
-        
+
         for (uint32_t i = 0; i < mSwapchainImages.size(); ++i)
         {
             VkImageViewCreateInfo viewInfo = {};
             {
                 viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
                 viewInfo.flags = 0;
-                viewInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G,
-                    VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+                viewInfo.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B,
+                                       VK_COMPONENT_SWIZZLE_A};
                 viewInfo.format = surfaceFormat.format;
                 viewInfo.image = mSwapchainImages[i];
                 viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -411,9 +401,7 @@ void Renderer::InitSwapchain()
 
             ThrowIfFailed(jnrCreateImageView(mDevice, &viewInfo, nullptr, &mSwapchainImageViews[i]));
         }
-
     }
-
 }
 
 void Renderer::InitAllocator()
@@ -429,7 +417,6 @@ void Renderer::InitAllocator()
     allocatorCreateInfo.instance = mInstance;
     allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-
     ThrowIfFailed(vmaCreateAllocator(&allocatorCreateInfo, &mAllocator));
 }
 
@@ -437,9 +424,10 @@ void Renderer::InitDearImGui()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     /* If this is ever needed, a vulkan backend should be rewritten as other windows are creating a separate
     * command buffer which doesn't communicate with VulkanHelpers::CommandList and thus a lot of error might appear
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
@@ -450,7 +438,7 @@ void Renderer::InitDearImGui()
 
     ImGui::StyleColorsClassic();
 
-    ImGuiStyle& style = ImGui::GetStyle();
+    ImGuiStyle &style = ImGui::GetStyle();
     style.WindowMinSize = ImVec2(64, 64);
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
@@ -476,27 +464,31 @@ Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()
 
         result.capabilities = std::move(capabilities);
     }
-    
+
     {
         uint32_t surfaceFormatCount = 0;
-        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount, nullptr));
+        ThrowIfFailed(
+            jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount, nullptr));
         CHECK(surfaceFormatCount != 0) << "The physical device has 0 surface formats. How is this possible?";
 
         std::vector<VkSurfaceFormatKHR> surfaceFormats;
         surfaceFormats.resize(surfaceFormatCount);
-        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount, surfaceFormats.data()));
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice, mRenderingSurface, &surfaceFormatCount,
+                                                            surfaceFormats.data()));
 
         result.formats = std::move(surfaceFormats);
     }
 
     {
         uint32_t presentCount = 0;
-        ThrowIfFailed(jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount, nullptr));
+        ThrowIfFailed(
+            jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount, nullptr));
         CHECK(presentCount != 0) << "The physical device has 0 present modes. How is this possible?";
 
         std::vector<VkPresentModeKHR> presentModes;
         presentModes.resize(presentCount);
-        ThrowIfFailed(jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount, presentModes.data()));
+        ThrowIfFailed(jnrGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice, mRenderingSurface, &presentCount,
+                                                                 presentModes.data()));
 
         result.presentModes = std::move(presentModes);
     }
@@ -504,9 +496,9 @@ Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()
     return result;
 }
 
-VkPresentModeKHR Renderer::SelectBestPresentMode(std::vector<VkPresentModeKHR> const& presentModes)
+VkPresentModeKHR Renderer::SelectBestPresentMode(std::vector<VkPresentModeKHR> const &presentModes)
 {
-    for (auto const& presentMode : presentModes)
+    for (auto const &presentMode : presentModes)
     {
         if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
             return presentMode;
@@ -516,9 +508,9 @@ VkPresentModeKHR Renderer::SelectBestPresentMode(std::vector<VkPresentModeKHR> c
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkSurfaceFormatKHR Renderer::SelectBestSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& formats)
+VkSurfaceFormatKHR Renderer::SelectBestSurfaceFormat(std::vector<VkSurfaceFormatKHR> const &formats)
 {
-    for (auto const& format : formats)
+    for (auto const &format : formats)
     {
         if (format.format == VK_FORMAT_R8G8B8A8_SRGB && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
@@ -529,7 +521,7 @@ VkSurfaceFormatKHR Renderer::SelectBestSurfaceFormat(std::vector<VkSurfaceFormat
     return formats[0];
 }
 
-VkExtent2D Renderer::SelectSwapchainExtent(VkSurfaceCapabilitiesKHR const& capabilities)
+VkExtent2D Renderer::SelectSwapchainExtent(VkSurfaceCapabilitiesKHR const &capabilities)
 {
 #undef max
     VkExtent2D extent = {};
@@ -542,60 +534,59 @@ VkExtent2D Renderer::SelectSwapchainExtent(VkSurfaceCapabilitiesKHR const& capab
         int width, height;
         glfwGetFramebufferSize(mWindow, &width, &height);
 
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
+        VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
-        actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+        actualExtent.width =
+            std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+        actualExtent.height =
+            std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
         return actualExtent;
     }
 }
 
-std::vector<const char*> Renderer::GetEnabledInstanceLayers(decltype(CreateInfo::VulkanRenderer::instanceLayers) const& expectedLayers)
+std::vector<const char *> Renderer::GetEnabledInstanceLayers(decltype(CreateInfo::VulkanRenderer::instanceLayers)
+                                                                 const &expectedLayers)
 {
     uint32_t numLayers = 0;
     std::vector<VkLayerProperties> layers;
     ThrowIfFailed(jnrEnumerateInstanceLayerProperties(&numLayers, nullptr));
 
     layers.resize(numLayers);
-    ThrowIfFailed(
-        jnrEnumerateInstanceLayerProperties(&numLayers, &layers[0])
-    );
+    ThrowIfFailed(jnrEnumerateInstanceLayerProperties(&numLayers, &layers[0]));
 
-    std::vector<const char*> enabledLayers;
+    std::vector<const char *> enabledLayers;
     enabledLayers.reserve(expectedLayers.size());
-    for (auto const& expectedLayer : expectedLayers)
+    for (auto const &expectedLayer : expectedLayers)
     {
         bool found = false;
 
-        for (auto const& layer : layers)
+        for (auto const &layer : layers)
         {
-            if (boost::iequals(layer.layerName, expectedLayer.c_str()))
+            if (boost::iequals(layer.layerName, expectedLayer.name.c_str()))
             {
-                enabledLayers.push_back(expectedLayer.c_str());
+                enabledLayers.push_back(expectedLayer.name.c_str());
                 found = true;
                 break;
             }
         }
 
-        CHECK(found) << "Unable to find extension " << expectedLayer;
-
+        CHECK((expectedLayer.mandatory && found) || !expectedLayer.mandatory)
+            << "Unable to find extension " << expectedLayer.name;
     }
-    
+
     return enabledLayers;
 }
 
-Renderer::ExtensionsOutput Renderer::HandleEnabledInstanceExtensions(decltype(CreateInfo::VulkanRenderer::instanceExtensions) const& expectedExtensions)
+Renderer::ExtensionsOutput Renderer::HandleEnabledInstanceExtensions(
+    decltype(CreateInfo::VulkanRenderer::instanceExtensions) const &expectedExtensions)
 {
     ExtensionsOutput extensions;
 
-    std::vector<const char*> enabledLayers = mInstanceLayers; // Copy the existing layers
-    enabledLayers.push_back(nullptr); // and prepend the nullptr, to get layer-less extensions
+    std::vector<const char *> enabledLayers = mInstanceLayers; // Copy the existing layers
+    enabledLayers.push_back(nullptr);                          // and prepend the nullptr, to get layer-less extensions
     std::vector<VkExtensionProperties> properties;
-    for (auto const& layer : enabledLayers)
+    for (auto const &layer : enabledLayers)
     {
         uint32_t count = 0;
         jnrEnumerateInstanceExtensionProperties(layer, &count, nullptr);
@@ -606,76 +597,76 @@ Renderer::ExtensionsOutput Renderer::HandleEnabledInstanceExtensions(decltype(Cr
         std::move(layerProperties.begin(), layerProperties.end(), std::back_inserter(properties));
     }
 
-    for (const auto& it : expectedExtensions)
+    for (const auto &it : expectedExtensions)
     {
-        bool found = std::find_if(properties.begin(), properties.end(),
-                                  [&](VkExtensionProperties const& properties)
-                                  {
-                                      return boost::iequals(it.c_str(), properties.extensionName);
-                                  }) != properties.end();
+        bool found = std::find_if(properties.begin(), properties.end(), [&](VkExtensionProperties const &properties) {
+                         return boost::iequals(it.name.c_str(), properties.extensionName);
+                     }) != properties.end();
 
-        CHECK(found) << "Unable to find extension " << it;
+        CHECK((it.mandatory && found) || !it.mandatory) << "Unable to find extension " << it.name;
 
-        if (strcmp(it.c_str(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+        if (strcmp(it.name.c_str(), VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
         {
             VkDebugUtilsMessengerCreateInfoEXT debugUtils = {};
             debugUtils.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
             debugUtils.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-            debugUtils.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+                                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            debugUtils.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                     VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                     VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
             debugUtils.pfnUserCallback = debugCallback;
 
             extensions.debugUtils = debugUtils;
-
         }
-        
-        extensions.extensionNames.push_back(it.c_str());
+
+        extensions.extensionNames.push_back(it.name.c_str());
     }
     return extensions;
 }
 
-std::vector<const char*> Renderer::GetEnabledDeviceLayers(decltype(CreateInfo::VulkanRenderer::instanceLayers) const& expectedLayers)
+std::vector<const char *> Renderer::GetEnabledDeviceLayers(decltype(CreateInfo::VulkanRenderer::instanceLayers)
+                                                               const &expectedLayers)
 {
     uint32_t numLayers = 0;
     std::vector<VkLayerProperties> layers;
-    ThrowIfFailed(jnrEnumerateDeviceLayerProperties(mPhysicalDevice , &numLayers, nullptr));
+    ThrowIfFailed(jnrEnumerateDeviceLayerProperties(mPhysicalDevice, &numLayers, nullptr));
 
     layers.resize(numLayers);
-    ThrowIfFailed(
-        jnrEnumerateDeviceLayerProperties(mPhysicalDevice, &numLayers, &layers[0])
-    );
+    ThrowIfFailed(jnrEnumerateDeviceLayerProperties(mPhysicalDevice, &numLayers, &layers[0]));
 
-    std::vector<const char*> enabledLayers;
+    std::vector<const char *> enabledLayers;
     enabledLayers.reserve(expectedLayers.size());
-    for (auto const& expectedLayer : expectedLayers)
+    for (auto const &expectedLayer : expectedLayers)
     {
         bool found = false;
 
-        for (auto const& layer : layers)
+        for (auto const &layer : layers)
         {
-            if (boost::iequals(layer.layerName, expectedLayer.c_str()))
+            if (boost::iequals(layer.layerName, expectedLayer.name.c_str()))
             {
-                enabledLayers.push_back(expectedLayer.c_str());
+                enabledLayers.push_back(expectedLayer.name.c_str());
                 found = true;
                 break;
             }
         }
 
-        CHECK(found) << "Unable to find extension " << expectedLayer;
+        CHECK((expectedLayer.mandatory && found) || !expectedLayer.mandatory)
+            << "Unable to find extension " << expectedLayer.name;
     }
 
     return enabledLayers;
 }
 
-Renderer::ExtensionsOutput Renderer::HandleEnabledDeviceExtensions(decltype(CreateInfo::VulkanRenderer::instanceExtensions) const& expectedExtensions)
+Renderer::ExtensionsOutput Renderer::HandleEnabledDeviceExtensions(
+    decltype(CreateInfo::VulkanRenderer::instanceExtensions) const &expectedExtensions)
 {
     ExtensionsOutput extensions;
 
-    std::vector<const char*> enabledLayers = mDeviceLayers; // Copy the existing layers
-    enabledLayers.push_back(nullptr); // and prepend the nullptr, to get layer-less extensions
+    std::vector<const char *> enabledLayers = mDeviceLayers; // Copy the existing layers
+    enabledLayers.push_back(nullptr);                        // and prepend the nullptr, to get layer-less extensions
     std::vector<VkExtensionProperties> properties;
-    for (auto const& layer : enabledLayers)
+    for (auto const &layer : enabledLayers)
     {
         uint32_t count = 0;
         jnrEnumerateDeviceExtensionProperties(mPhysicalDevice, layer, &count, nullptr);
@@ -686,26 +677,28 @@ Renderer::ExtensionsOutput Renderer::HandleEnabledDeviceExtensions(decltype(Crea
         std::move(layerProperties.begin(), layerProperties.end(), std::back_inserter(properties));
     }
 
-    for (const auto& it : expectedExtensions)
+    for (const auto &it : expectedExtensions)
     {
-        bool found = std::find_if(properties.begin(), properties.end(),
-                                  [&](VkExtensionProperties const& properties)
-                                  {
-                                      return boost::iequals(it.c_str(), properties.extensionName);
-                                  }) != properties.end();
+        bool found = std::find_if(properties.begin(), properties.end(), [&](VkExtensionProperties const &properties) {
+                         return boost::iequals(it.name.c_str(), properties.extensionName);
+                     }) != properties.end();
 
-        CHECK(found) << "Unable to find extension " << it;
+        CHECK((it.mandatory && found) || !it.mandatory) << "Unable to find extension " << it.name;
 
-        if (strcmp(it.c_str(), VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
+        if (found && strcmp(it.name.c_str(), VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) == 0)
         {
             VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{};
             dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
             dynamicRendering.dynamicRendering = VK_TRUE;
 
             extensions.dynamicRendering = dynamicRendering;
+            mSupportsDynamicRendering = true;
         }
 
-        extensions.extensionNames.push_back(it.c_str());
+        if (found)
+        {
+            extensions.extensionNames.push_back(it.name.c_str());
+        }
     }
 
     return extensions;
@@ -724,9 +717,7 @@ VkPipelineLayout Renderer::GetEmptyPipelineLayout()
         layoutInfo.flags = 0;
     }
 
-    ThrowIfFailed(
-        jnrCreatePipelineLayout(mDevice, &layoutInfo, nullptr, &mEmptyPipelineLayout)
-    );
+    ThrowIfFailed(jnrCreatePipelineLayout(mDevice, &layoutInfo, nullptr, &mEmptyPipelineLayout));
 
     return mEmptyPipelineLayout;
 }
@@ -753,9 +744,7 @@ VkSampler Renderer::GetPointSampler()
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
         samplerInfo.unnormalizedCoordinates = VK_TRUE;
     }
-    ThrowIfFailed(
-        jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mPointSampler)
-    );
+    ThrowIfFailed(jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mPointSampler));
 
     return mPointSampler;
 }
@@ -780,9 +769,7 @@ VkSampler Renderer::GetFontSampler()
         samplerInfo.maxAnisotropy = 1.f;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     }
-    ThrowIfFailed(
-        jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mFontSampler)
-    );
+    ThrowIfFailed(jnrCreateSampler(mDevice, &samplerInfo, nullptr, &mFontSampler));
 
     return mFontSampler;
 }
@@ -791,7 +778,6 @@ VkPipelineCache Vulkan::Renderer::GetPipelineCache()
 {
     if (mPipelineCache != VK_NULL_HANDLE)
         return mPipelineCache;
-
 
     /* Read the pipeline cache */
     auto bytes = Jnrlib::ReadWholeFile(PIPELINES_CACHE_FILE, false);
@@ -809,9 +795,7 @@ VkPipelineCache Vulkan::Renderer::GetPipelineCache()
         cacheInfo.pInitialData = bytes.data();
     }
 
-    ThrowIfFailed(
-        jnrCreatePipelineCache(mDevice, &cacheInfo, nullptr, &mPipelineCache)
-    );
+    ThrowIfFailed(jnrCreatePipelineCache(mDevice, &cacheInfo, nullptr, &mPipelineCache));
 
     return mPipelineCache;
 }
@@ -841,12 +825,11 @@ VkExtent2D Renderer::GetBackbufferExtent()
     return mSwapchainExtent;
 }
 
-uint32_t Renderer::AcquireNextImage(GPUSynchronizationObject* syncObject)
+uint32_t Renderer::AcquireNextImage(GPUSynchronizationObject *syncObject)
 {
     uint32_t imageIndex = 0;
-    ThrowIfFailed(
-        jnrAcquireNextImageKHR(mDevice, mSwapchain, UINT64_MAX, syncObject->GetSemaphore(), VK_NULL_HANDLE, &imageIndex)
-    );
+    ThrowIfFailed(jnrAcquireNextImageKHR(mDevice, mSwapchain, UINT64_MAX, syncObject->GetSemaphore(), VK_NULL_HANDLE,
+                                         &imageIndex));
     return imageIndex;
 }
 

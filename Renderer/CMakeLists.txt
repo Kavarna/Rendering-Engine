@@ -19,7 +19,7 @@ add_executable("Renderer" ${SOURCES})
 
 set(VULKAN_SDK "$ENV{VULKAN_SDK}")
 
-include_directories("${VULKAN_SDK}/Include/vma/")
+include_directories("${VULKAN_SDK}/include")
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
 target_link_libraries("Renderer" Vulkan::Vulkan)

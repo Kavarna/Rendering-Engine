@@ -77,6 +77,8 @@ extern JNR_FN(FreeMemory);
 extern JNR_FN(GetBufferMemoryRequirements);
 extern JNR_FN(GetImageMemoryRequirements);
 extern JNR_FN(GetPhysicalDeviceMemoryProperties);
+extern JNR_FN(CreateRenderPass);
+extern JNR_FN(DestroyRenderPass);
 
 // Instance
 extern JNR_FN(DestroyInstance);
@@ -104,17 +106,16 @@ extern JNR_FN(GetInstanceProcAddr);
 extern JNR_FN(EnumerateInstanceLayerProperties);
 extern JNR_FN(EnumerateInstanceExtensionProperties);
 
-
 namespace Vulkan
 {
-    void LoadFunctions();
-    void LoadFunctionsInstance(VkInstance);
-    void LoadFunctionsDevice(VkDevice);
+void LoadFunctions();
+void LoadFunctionsInstance(VkInstance);
+void LoadFunctionsDevice(VkDevice);
 
-    struct DeviceInstance
-    {
-        VkDevice device;
-        VkInstance instance;
-    };
-    PFN_vkVoidFunction GetFunctionByName(char const* name, void* userData);
-}
+struct DeviceInstance
+{
+    VkDevice device;
+    VkInstance instance;
+};
+PFN_vkVoidFunction GetFunctionByName(char const *name, void *userData);
+} // namespace Vulkan

@@ -12,14 +12,15 @@ BatchRenderer::BatchRenderer(uint32_t initialSize)
 }
 
 BatchRenderer::~BatchRenderer()
-{ }
+{
+}
 
 void BatchRenderer::Vertex(float x, float y, float z, float r, float g, float b, float a)
 {
     Vertex(glm::vec3(x, y, z), glm::vec4(r, g, b, a));
 }
 
-void BatchRenderer::Vertex(glm::vec3 const& position, glm::vec4 const& color)
+void BatchRenderer::Vertex(glm::vec3 const &position, glm::vec4 const &color)
 {
     if (mCurrentVertex >= mCurrentSize)
     {
@@ -27,7 +28,7 @@ void BatchRenderer::Vertex(glm::vec3 const& position, glm::vec4 const& color)
         return;
     }
 
-    auto vertex = (VertexPositionColor*)mVertexBuffer->GetElement(mCurrentVertex);
+    auto vertex = (VertexPositionColor *)mVertexBuffer->GetElement(mCurrentVertex);
     vertex->position = position;
     vertex->color = color;
 
@@ -39,7 +40,7 @@ void BatchRenderer::PersistentVertex(float x, float y, float z, float r, float g
     PersistentVertex(glm::vec3(x, y, z), glm::vec4(r, g, b, a), time);
 }
 
-void BatchRenderer::PersistentVertex(glm::vec3 const& position, glm::vec4 const& color, float time)
+void BatchRenderer::PersistentVertex(glm::vec3 const &position, glm::vec4 const &color, float time)
 {
     Vertex(position, color);
 
@@ -49,7 +50,8 @@ void BatchRenderer::PersistentVertex(glm::vec3 const& position, glm::vec4 const&
 
 void BatchRenderer::Update(float dt)
 {
-    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size()) << "Persistent vertices and persistent vertices times should be the same";
+    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size())
+        << "Persistent vertices and persistent vertices times should be the same";
 
     for (uint32_t i = 0; i < mPersistentVerticesTimes.size(); ++i)
     {
@@ -65,24 +67,27 @@ void BatchRenderer::Update(float dt)
 
 void BatchRenderer::Begin()
 {
-    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size()) << "Persistent vertices and persistent vertices times should be the same";
+    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size())
+        << "Persistent vertices and persistent vertices times should be the same";
 
     if (mOverflowVertices.size() > 0)
     {
         Resize(mCurrentSize + (uint32_t)mOverflowVertices.size());
-        memcpy_s((VertexPositionColor*)mVertexBuffer->GetData() + mCurrentVertex, mVertexBuffer->GetSize(),
-                 mOverflowVertices.data(), mOverflowVertices.size() * sizeof(decltype(mOverflowVertices)::value_type));
+        memcpy((VertexPositionColor *)mVertexBuffer->GetData() + mCurrentVertex, mOverflowVertices.data(),
+               mOverflowVertices.size() * sizeof(decltype(mOverflowVertices)::value_type));
         mCurrentSize = (uint32_t)mVertexBuffer->GetCount();
     }
 
     // Copy over the persistent vertices
-    memcpy_s(mVertexBuffer->GetData(), mVertexBuffer->GetSize(), mPersistentVertices.data(), mPersistentVertices.size() * sizeof(decltype(mPersistentVertices)::value_type));
+    memcpy(mVertexBuffer->GetData(), mPersistentVertices.data(),
+           mPersistentVertices.size() * sizeof(decltype(mPersistentVertices)::value_type));
     mCurrentVertex = (uint32_t)mPersistentVertices.size();
 }
 
-void BatchRenderer::End(CommandList* cmdList)
+void BatchRenderer::End(CommandList *cmdList)
 {
-    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size()) << "Persistent vertices and persistent vertices times should be the same";
+    CHECK(mPersistentVertices.size() == mPersistentVerticesTimes.size())
+        << "Persistent vertices and persistent vertices times should be the same";
 
     if (mCurrentVertex > 0)
     {
@@ -100,7 +105,7 @@ void BatchRenderer::Resize(uint32_t size)
                                 VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
     if (mVertexBuffer != nullptr)
     {
-        memcpy_s(newBuffer->GetData(), newBuffer->GetSize(), mVertexBuffer->GetData(), mVertexBuffer->GetSize());
+        memcpy(newBuffer->GetData(), mVertexBuffer->GetData(), mVertexBuffer->GetSize());
     }
 
     mVertexBuffer.reset(newBuffer);

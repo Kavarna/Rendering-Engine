@@ -1,45 +1,48 @@
 #include "Editor.h"
-#include "Vulkan/Renderer.h"
+#include "CreateInfo/MaterialCreateInfo.h"
+#include "CreateInfo/SceneCreateInfo.h"
 #include "FileHelpers.h"
+#include "MaterialManager.h"
+#include "TypeHelpers.h"
+#include "Vulkan/Renderer.h"
 
-#include "SceneViewer.h"
-#include "SceneHierarchy.h"
 #include "ObjectInspector.h"
-#include "RenderPreview.h"
 #include "PixelInspector.h"
+#include "RenderPreview.h"
+#include "SceneHierarchy.h"
+#include "SceneViewer.h"
 
 #include "imgui.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <iterator>
 
 using namespace Vulkan;
 
 constexpr const uint32_t DEFAULT_WINDOW_WIDTH = 800;
 constexpr const uint32_t DEFAULT_WINDOW_HEIGHT = 600;
 
-
 /* Redirects for callbacks */
-void OnResizeCallback(GLFWwindow* window, int width, int height)
+void OnResizeCallback(GLFWwindow *window, int width, int height)
 {
     Editor::Editor::Get()->OnResize(width, height);
 }
 
-void OnMaximizeCallback(GLFWwindow* window, int maximized)
+void OnMaximizeCallback(GLFWwindow *window, int maximized)
 {
     Editor::Editor::Get()->OnMaximize(maximized);
 }
 
-Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const& scenes) : 
-    mWidth(DEFAULT_WINDOW_WIDTH), mHeight(DEFAULT_WINDOW_HEIGHT)
+Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::SceneParser::ParsedScene> const &scenes)
+    : mWidth(DEFAULT_WINDOW_WIDTH), mHeight(DEFAULT_WINDOW_HEIGHT)
 {
-    CHECK(scenes.size() <= 1) << "Unable to edit multiple scenes at once";
     try
     {
         DeserializeStructures();
         InitWindow();
         Renderer::Get(CreateRendererInfo(enableValidationLayers));
         InitCommandLists();
-        InitScene(&scenes[0]);
+        InitScene(scenes);
         InitImguiWindows();
         Renderer::Get()->InitDearImGui();
         OnResize(mWidth, mHeight);
@@ -49,9 +52,10 @@ Editor::Editor::Editor(bool enableValidationLayers, std::vector<Common::ScenePar
         mInitializationCmdList->SubmitAndWait();
         mInitializationCmdList.reset();
     }
-    catch (std::exception const& e)
+    catch (std::exception const &e)
     {
         LOG(ERROR) << "Error occured when initializing editor " << e.what();
+        exit(1);
     }
 }
 
@@ -65,11 +69,11 @@ Editor::Editor::~Editor()
     SerializeWindows();
 
     mActiveScene.reset();
-    
+
     mImguiWindows.clear();
 
     Renderer::Get()->DestroyDearImGui();
-    for (auto& perResourceFrames : mPerFrameResources)
+    for (auto &perResourceFrames : mPerFrameResources)
     {
         perResourceFrames.commandList.reset();
         perResourceFrames.commandListIsDone.reset();
@@ -155,7 +159,7 @@ void Editor::Editor::DeserializeStructures()
         auto currentStructure = mWindowsDeserializer->GetStructure(i);
         if (currentStructure.index() == 1)
         {
-            auto& windowInfo = std::get<Jnrlib::InfoMainWindowV1>(currentStructure);
+            auto &windowInfo = std::get<Jnrlib::InfoMainWindowV1>(currentStructure);
             mWidth = windowInfo.width;
             mHeight = windowInfo.height;
             int maximized = windowInfo.maximized;
@@ -170,11 +174,7 @@ void Editor::Editor::InitWindow()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-
-    mWindow = glfwCreateWindow(
-        mWidth, mHeight,
-        "JNReditor", nullptr, nullptr
-    );
+    mWindow = glfwCreateWindow(mWidth, mHeight, "JNReditor", nullptr, nullptr);
     CHECK(mWindow != nullptr) << "Unable to create window";
 
     if (mMaximized)
@@ -194,26 +194,24 @@ CreateInfo::VulkanRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
     CreateInfo::VulkanRenderer info = {};
     {
         info.window = mWindow;
-        info.deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-        info.deviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        info.deviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        info.deviceExtensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, false);
     }
 
     {
         uint32_t count;
-        const char** extensions = glfwGetRequiredInstanceExtensions(&count);
+        const char **extensions = glfwGetRequiredInstanceExtensions(&count);
 
         for (uint32_t i = 0; i < count; ++i)
         {
-            info.instanceExtensions.push_back(extensions[i]);
+            info.instanceExtensions.emplace_back(extensions[i]);
         }
     }
 
     if (enableValidationLayers)
     {
         LOG(INFO) << "Enabling vulkan validation layers";
-        info.instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
-        info.instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        info.instanceLayers.push_back("VK_LAYER_LUNARG_api_dump");
+        info.instanceLayers.emplace_back("VK_LAYER_KHRONOS_validation");
     }
 
     return info;
@@ -246,13 +244,14 @@ void Editor::Editor::ShowDockingSpace()
     // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
     // because it would be confusing to have two docking targets within each others.
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    const ImGuiViewport *viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::SetNextWindowViewport(viewport->ID);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |=
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -290,16 +289,16 @@ void Editor::Editor::ShowDockingSpace()
 
         if (ImGui::BeginMenu("Edit"))
         {
-            mSceneViewer && ImGui::MenuItem("Scene viewer", nullptr, &mSceneViewer->mIsOpen);
-            mSceneHierarchy && ImGui::MenuItem("Scene hierarchy", nullptr, &mSceneHierarchy->mIsOpen);
-            mObjectInspector && ImGui::MenuItem("Object inspector", nullptr, &mObjectInspector->mIsOpen);
+            mSceneViewer &&ImGui::MenuItem("Scene viewer", nullptr, &mSceneViewer->mIsOpen);
+            mSceneHierarchy &&ImGui::MenuItem("Scene hierarchy", nullptr, &mSceneHierarchy->mIsOpen);
+            mObjectInspector &&ImGui::MenuItem("Object inspector", nullptr, &mObjectInspector->mIsOpen);
 
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Render"))
         {
-            mRenderPreview && ImGui::MenuItem("Render preview", nullptr, &mRenderPreview->mIsOpen);
-            mPixelInspector && ImGui::MenuItem("Pixel inspector", nullptr, &mPixelInspector->mIsOpen);
+            mRenderPreview &&ImGui::MenuItem("Render preview", nullptr, &mRenderPreview->mIsOpen);
+            mPixelInspector &&ImGui::MenuItem("Pixel inspector", nullptr, &mPixelInspector->mIsOpen);
 
             ImGui::EndMenu();
         }
@@ -309,7 +308,7 @@ void Editor::Editor::ShowDockingSpace()
         {
             ImGui::MenuItem("Show debug window", 0, &showDebugWindow);
             ImGui::MenuItem("Show demo window", 0, &showDemoWindow);
-            
+
             ImGui::EndMenu();
         }
 #endif
@@ -320,7 +319,7 @@ void Editor::Editor::ShowDockingSpace()
 #if DEBUG
     if (showDebugWindow)
     {
-        auto& io = ImGui::GetIO();
+        auto &io = ImGui::GetIO();
         if (ImGui::Begin("Debug"))
         {
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
@@ -333,7 +332,7 @@ void Editor::Editor::ShowDockingSpace()
     }
 #endif
 
-    for (auto& imguiWindow : mImguiWindows)
+    for (auto &imguiWindow : mImguiWindows)
     {
         imguiWindow->OnImguiRender();
     }
@@ -343,7 +342,7 @@ void Editor::Editor::ShowDockingSpace()
 
 void Editor::Editor::InitCommandLists()
 {
-    for (auto& frameResources : mPerFrameResources)
+    for (auto &frameResources : mPerFrameResources)
     {
         frameResources.commandList = std::make_unique<CommandList>(CommandListType::Graphics);
         frameResources.commandList->Init();
@@ -356,16 +355,54 @@ void Editor::Editor::InitCommandLists()
     mInitializationCmdList->Begin();
 }
 
-void Editor::Editor::InitScene(Common::SceneParser::ParsedScene const* parsedScene)
+void Editor::Editor::InitScene(std::vector<Common::SceneParser::ParsedScene> const &parsedScenes)
 {
-    if (parsedScene == nullptr)
-    {
-        mActiveScene = nullptr;
-        return;
-    }
+    CHECK(parsedScenes.size() <= 1) << "Unable to edit multiple scenes at once";
 
-    mActiveScene = std::make_unique<Common::Scene>(parsedScene->sceneInfo);
-    mActiveScene->InitializeGraphics(mInitializationCmdList.get(), 0);
+    if (parsedScenes.empty())
+    {
+        Common::SceneParser::ParsedScene emptyScene{};
+
+        {
+            emptyScene.rendererInfo.maxDepth = 1;
+            emptyScene.rendererInfo.numSamples = 10;
+            emptyScene.rendererInfo.rendererType = CreateInfo::RayTracingType::SimpleRayTracing;
+        }
+        {
+            emptyScene.sceneInfo.imageInfo.width = 512;
+            emptyScene.sceneInfo.imageInfo.height = 512;
+            emptyScene.sceneInfo.alsoBuildForRealTimeRendering = true;
+            emptyScene.sceneInfo.outputFile = "output.txt";
+            emptyScene.sceneInfo.cameraInfo.RecalculateViewport(512, 512);
+
+            CreateInfo::Material greenMaterial;
+            {
+                greenMaterial.name = "Green";
+                greenMaterial.mask = CreateInfo::Material::Attenuation;
+                greenMaterial.attenuation = Jnrlib::Green;
+                greenMaterial.type = CreateInfo::MaterialType::Lambertian;
+            }
+            Common::MaterialManager::Get()->AddMaterial(greenMaterial);
+
+            CreateInfo::Primitive earth;
+            {
+                earth.name = "Earth";
+                earth.radius = 1000.0f;
+                earth.position = Jnrlib::Position(0.0f, -earth.radius - 1.0f, 0.0f);
+                earth.primitiveType = CreateInfo::PrimitiveType::Sphere;
+                earth.materialName = "Green";
+            }
+            emptyScene.sceneInfo.primitives.push_back(earth);
+        }
+
+        mActiveScene = std::make_unique<Common::Scene>(emptyScene.sceneInfo);
+        mActiveScene->InitializeGraphics(mInitializationCmdList.get(), 0);
+    }
+    else
+    {
+        mActiveScene = std::make_unique<Common::Scene>(parsedScenes[0].sceneInfo);
+        mActiveScene->InitializeGraphics(mInitializationCmdList.get(), 0);
+    }
 }
 
 void Editor::Editor::InitImguiWindows()
@@ -402,14 +439,14 @@ void Editor::Editor::InitImguiWindows()
         mRenderPreview = renderPreview.get();
         mImguiWindows.emplace_back(std::move(renderPreview));
     }
-    
+
     {
         for (uint32_t j = 0; j < mWindowsDeserializer->GetNumStructures(); ++j)
         {
             auto currentStructure = mWindowsDeserializer->GetStructure(j);
             if (currentStructure.index() == 0)
             {
-                auto& windowsInfo = std::get<Jnrlib::InfoWindowsV1>(currentStructure);
+                auto &windowsInfo = std::get<Jnrlib::InfoWindowsV1>(currentStructure);
                 for (uint32_t i = 0; i < windowsInfo.windows.size(); ++i)
                 {
                     mImguiWindows[i]->mIsOpen = windowsInfo.windows[i].isOpen;
@@ -429,7 +466,7 @@ void Editor::Editor::Run()
             glfwPollEvents();
         }
     }
-    catch (std::exception const& e)
+    catch (std::exception const &e)
     {
         LOG(ERROR) << "Error occured when running: " << e.what();
     }
@@ -441,8 +478,8 @@ void Editor::Editor::Frame()
     if (mMinimized)
         return;
 
-    auto& cmdList = mPerFrameResources[mCurrentFrame].commandList;
-    auto& isCmdListDone = mPerFrameResources[mCurrentFrame].commandListIsDone;
+    auto &cmdList = mPerFrameResources[mCurrentFrame].commandList;
+    auto &isCmdListDone = mPerFrameResources[mCurrentFrame].commandListIsDone;
 
     {
         /* Prepare for rendering */
@@ -467,7 +504,7 @@ void Editor::Editor::Frame()
 
     cmdList->Begin();
     {
-       
+
         cmdList->UINewFrame();
         ShowDockingSpace();
 

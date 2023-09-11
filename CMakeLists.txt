@@ -44,6 +44,8 @@ endmacro()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/JMC) # Just My Code
     add_compile_options(/MP)  # Multiprocess compilation
+else()
+
 endif()
 
 # Start building
@@ -62,8 +64,13 @@ set(CURRENT_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_definitions(-DAPPLICATION_VERSION="0.0.0")
-add_definitions(-DNOMINMAX)
-add_definitions(-DWIN32_LEAN_AND_MEAN)
+if (WIN32)
+    add_definitions(-DNOMINMAX)
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
+    add_definitions(-DOS_WINDOWS)
+else()
+    add_definitions(-DOS_LINUX)
+endif()
 
 
 # External projects

@@ -4,15 +4,14 @@
 #include "Renderer.h"
 #include "VulkanLoader.h"
 
-#include "RootSignature.h"
 #include "Image.h"
+#include "RootSignature.h"
 
 #include <boost/algorithm/string.hpp>
 
 using namespace Vulkan;
 
-Pipeline::Pipeline(std::string const& name) :
-    mName(name)
+Pipeline::Pipeline(std::string const &name) : mName(name)
 {
     InitDefaultPipelineState();
 }
@@ -21,7 +20,7 @@ Pipeline::~Pipeline()
 {
     VkDevice device = Renderer::Get()->GetDevice();
 
-    for (auto const& shader : mShaderModules)
+    for (auto const &shader : mShaderModules)
     {
         jnrDestroyShaderModule(device, shader.module, nullptr);
     }
@@ -36,7 +35,7 @@ void Pipeline::AddBackbufferColorOutput()
     mColorOutputs.push_back(format);
 }
 
-void Pipeline::AddImageColorOutput(Image const* img)
+void Pipeline::AddImageColorOutput(Image const *img)
 {
     mColorOutputs.push_back(img->GetFormat());
 }
@@ -52,18 +51,18 @@ void Pipeline::SetBackbufferDepthStencilOutput()
     mStencilFormat = Renderer::Get()->GetDefaultStencilFormat();
 }
 
-void Pipeline::SetDepthImage(Image const* img)
+void Pipeline::SetDepthImage(Image const *img)
 {
     mDepthFormat = img->GetFormat();
 }
 
-void Vulkan::Pipeline::SetDepthStencilImage(Image const* img)
+void Vulkan::Pipeline::SetDepthStencilImage(Image const *img)
 {
     mDepthFormat = img->GetFormat();
     mStencilFormat = img->GetFormat();
 }
 
-void Vulkan::Pipeline::InitFrom(Pipeline& p)
+void Vulkan::Pipeline::InitFrom(Pipeline &p)
 {
     mRootSignature = p.mRootSignature;
     mColorOutputs = p.mColorOutputs;
@@ -79,14 +78,13 @@ void Vulkan::Pipeline::InitFrom(Pipeline& p)
     mTesselationState = p.mTesselationState;
     mVertexInputState = p.mVertexInputState;
     mViewportState = p.mViewportState;
-
 }
 
 void Pipeline::InitDefaultPipelineState()
 {
     {
         /* Blend State*/
-        mBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;        
+        mBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         mBlendState.logicOpEnable = VK_FALSE;
         mBlendState.attachmentCount = 1;
     }
@@ -151,7 +149,6 @@ void Pipeline::InitDefaultPipelineState()
 
     mPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     mPipelineInfo.flags = 0;
-    mPipelineInfo.layout;
 
     mPipelineInfo.pColorBlendState = &mBlendState;
     mPipelineInfo.pDepthStencilState = &mDepthStencilState;
@@ -159,7 +156,7 @@ void Pipeline::InitDefaultPipelineState()
     mPipelineInfo.pInputAssemblyState = &mInputAssemblyState;
     mPipelineInfo.pMultisampleState = &mMultisampleState;
     mPipelineInfo.pRasterizationState = &mRasterizationState;
-    // mPipelineInfo.pTessellationState = &mTesselationState;
+    mPipelineInfo.pTessellationState = &mTesselationState;
     mPipelineInfo.pVertexInputState = &mVertexInputState;
     mPipelineInfo.pViewportState = &mViewportState;
 }
@@ -169,15 +166,15 @@ void Vulkan::Pipeline::ClearShaders()
     mShaderModules.clear();
 }
 
-void Pipeline::AddShader(std::string const& path)
+void Pipeline::AddShader(std::string const &path)
 {
     VkShaderStageFlagBits shaderStage = (VkShaderStageFlagBits)0;
     if (boost::contains(path, ".vert."))
         shaderStage = VK_SHADER_STAGE_VERTEX_BIT;
     else if (boost::contains(path, ".frag."))
         shaderStage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    
-    for (auto const& shader : mShaderModules)
+
+    for (auto const &shader : mShaderModules)
     {
         CHECK(shader.stage != shaderStage) << "A pipeline can have only a single shader of a certain type";
     }
@@ -188,19 +185,17 @@ void Pipeline::AddShader(std::string const& path)
     AddShader(shaderContent, shaderStage);
 }
 
-void Pipeline::AddShader(std::vector<char> const& shaderContent, VkShaderStageFlags shaderStage)
+void Pipeline::AddShader(std::vector<char> const &shaderContent, VkShaderStageFlags shaderStage)
 {
     VkDevice device = Renderer::Get()->GetDevice();
 
     VkShaderModuleCreateInfo shaderInfo = {};
     shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderInfo.pCode = reinterpret_cast<const uint32_t*>(shaderContent.data());
+    shaderInfo.pCode = reinterpret_cast<const uint32_t *>(shaderContent.data());
     shaderInfo.codeSize = (uint32_t)shaderContent.size();
 
     VkShaderModule shaderModule;
-    ThrowIfFailed(
-        jnrCreateShaderModule(device, &shaderInfo, nullptr, &shaderModule)
-    );
+    ThrowIfFailed(jnrCreateShaderModule(device, &shaderInfo, nullptr, &shaderModule));
 
     VkPipelineShaderStageCreateInfo pipelineStageInfo = {};
     {
@@ -214,7 +209,7 @@ void Pipeline::AddShader(std::vector<char> const& shaderContent, VkShaderStageFl
     mShaderModules.push_back(pipelineStageInfo);
 }
 
-void Pipeline::SetRootSignature(RootSignature const* rootSignature)
+void Pipeline::SetRootSignature(RootSignature const *rootSignature)
 {
     mRootSignature = rootSignature;
 }
@@ -230,7 +225,7 @@ void Pipeline::Bake()
     {
         layout = Renderer::Get()->GetEmptyPipelineLayout();
     }
-    
+
     auto device = Renderer::Get()->GetDevice();
 
     {
@@ -250,10 +245,7 @@ void Pipeline::Bake()
 
     auto cache = Renderer::Get()->GetPipelineCache();
 
-    ThrowIfFailed(
-        jnrCreateGraphicsPipelines(device, cache,
-                1, &mPipelineInfo, nullptr, &mPipeline);
-    );
+    ThrowIfFailed(jnrCreateGraphicsPipelines(device, cache, 1, &mPipelineInfo, nullptr, &mPipeline););
 
     LOG(INFO) << "Successfully baked pipeline " << mName;
 }

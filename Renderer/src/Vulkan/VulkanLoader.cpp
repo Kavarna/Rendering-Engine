@@ -1,38 +1,38 @@
 #include "VulkanLoader.h"
 #include <GLFW/glfw3.h>
 
-#define STRINGIFY_INT(a)                  #a
-#define STRINGIFY(a)                      STRINGIFY_INT(a)
-#define PFN(fn)                           PFN_vk##fn
-#define GET_INST_FN_INT(pf, vk, in, inst) \
-{ \
-    in = reinterpret_cast<pf>(jnrGetInstanceProcAddr(inst, STRINGIFY(vk))); \
-    CHECK(in != nullptr) << "Unable to get a pointer to " #vk; \
-}
-#define GET_INST_FN(fn, inst)             GET_INST_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
+#define STRINGIFY_INT(a) #a
+#define STRINGIFY(a) STRINGIFY_INT(a)
+#define PFN(fn) PFN_vk##fn
+#define GET_INST_FN_INT(pf, vk, in, inst)                                                                              \
+    {                                                                                                                  \
+        in = reinterpret_cast<pf>(jnrGetInstanceProcAddr(inst, STRINGIFY(vk)));                                        \
+        CHECK(in != nullptr) << "Unable to get a pointer to " #vk;                                                     \
+    }
+#define GET_INST_FN(fn, inst) GET_INST_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
 
-#define GET_INST_FN_INT_OPT(pf, vk, in, inst) \
-{ \
-    in = reinterpret_cast<pf>(jnrGetInstanceProcAddr(inst, STRINGIFY(vk))); \
-    if (in == nullptr) \
-        LOG(WARNING) << "Unable to get a pointer to " #vk; \
-}
-#define GET_INST_FN_OPT(fn, inst)             GET_INST_FN_INT_OPT(PFN(fn), vk##fn, jnr##fn, inst)
+#define GET_INST_FN_INT_OPT(pf, vk, in, inst)                                                                          \
+    {                                                                                                                  \
+        in = reinterpret_cast<pf>(jnrGetInstanceProcAddr(inst, STRINGIFY(vk)));                                        \
+        if (in == nullptr)                                                                                             \
+            LOG(WARNING) << "Unable to get a pointer to " #vk;                                                         \
+    }
+#define GET_INST_FN_OPT(fn, inst) GET_INST_FN_INT_OPT(PFN(fn), vk##fn, jnr##fn, inst)
 
-#define GET_DEV_FN_INT(pf, vk, in, dev) \
-{ \
-    in = reinterpret_cast<pf>(jnrGetDeviceProcAddr(dev, STRINGIFY(vk))); \
-    CHECK(in != nullptr) << "Unable to get a pointer to " #vk; \
-}
-#define GET_DEV_FN(fn, inst)             GET_DEV_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
+#define GET_DEV_FN_INT(pf, vk, in, dev)                                                                                \
+    {                                                                                                                  \
+        in = reinterpret_cast<pf>(jnrGetDeviceProcAddr(dev, STRINGIFY(vk)));                                           \
+        CHECK(in != nullptr) << "Unable to get a pointer to " #vk;                                                     \
+    }
+#define GET_DEV_FN(fn, inst) GET_DEV_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
 
-#define GET_DEV_FN_INT_OPT(pf, vk, in, dev) \
-{ \
-    in = reinterpret_cast<pf>(jnrGetDeviceProcAddr(dev, STRINGIFY(vk))); \
-    if (in == nullptr) \
-        LOG(WARNING) << "Unable to get a pointer to " #vk; \
-}
-#define GET_DEV_FN_OPT(fn, inst)             GET_DEV_FN_INT(PFN(fn), vk##fn, jnr##fn, inst)
+#define GET_DEV_FN_INT_OPT(pf, vk, in, dev)                                                                            \
+    {                                                                                                                  \
+        in = reinterpret_cast<pf>(jnrGetDeviceProcAddr(dev, STRINGIFY(vk)));                                           \
+        if (in == nullptr)                                                                                             \
+            LOG(WARNING) << "Unable to get a pointer to " #vk;                                                         \
+    }
+#define GET_DEV_FN_OPT(fn, inst) GET_DEV_FN_INT_OPT(PFN(fn), vk##fn, jnr##fn, inst)
 
 // Device
 JNR_FN(CreateSwapchainKHR);
@@ -104,6 +104,8 @@ JNR_FN(FreeMemory);
 JNR_FN(GetBufferMemoryRequirements);
 JNR_FN(GetImageMemoryRequirements);
 JNR_FN(GetPhysicalDeviceMemoryProperties);
+JNR_FN(CreateRenderPass);
+JNR_FN(DestroyRenderPass);
 
 // Instance
 JNR_FN(DestroyInstance);
@@ -133,7 +135,8 @@ JNR_FN(EnumerateInstanceLayerProperties);
 
 void Vulkan::LoadFunctions()
 {
-    jnrGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(glfwGetInstanceProcAddress(NULL, "vkGetInstanceProcAddr"));
+    jnrGetInstanceProcAddr =
+        reinterpret_cast<PFN_vkGetInstanceProcAddr>(glfwGetInstanceProcAddress(NULL, "vkGetInstanceProcAddr"));
     CHECK(jnrGetInstanceProcAddr != nullptr) << "Unable to get a pointer to vkGetInstanceProcAddr";
 
     GET_INST_FN(CreateInstance, nullptr);
@@ -184,8 +187,8 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(ResetCommandPool, device);
     GET_DEV_FN(BeginCommandBuffer, device);
     GET_DEV_FN(EndCommandBuffer, device);
-    GET_DEV_FN(CmdBeginRendering, device);
-    GET_DEV_FN(CmdEndRendering, device);
+    GET_DEV_FN_OPT(CmdBeginRendering, device);
+    GET_DEV_FN_OPT(CmdEndRendering, device);
     GET_DEV_FN(AcquireNextImageKHR, device);
     GET_DEV_FN(CreateFence, device);
     GET_DEV_FN(DestroyFence, device);
@@ -236,11 +239,13 @@ void Vulkan::LoadFunctionsDevice(VkDevice device)
     GET_DEV_FN(GetBufferMemoryRequirements, device);
     GET_DEV_FN(GetImageMemoryRequirements, device);
     GET_DEV_FN(CmdCopyBufferToImage, device);
+    GET_DEV_FN(CreateRenderPass, device);
+    GET_DEV_FN(DestroyRenderPass, device);
 }
 
-PFN_vkVoidFunction Vulkan::GetFunctionByName(char const* name, void* userData)
+PFN_vkVoidFunction Vulkan::GetFunctionByName(char const *name, void *userData)
 {
-    DeviceInstance* deviceInstance = (DeviceInstance*)userData;
+    DeviceInstance *deviceInstance = (DeviceInstance *)userData;
     PFN_vkVoidFunction returnValue = jnrGetDeviceProcAddr(deviceInstance->device, name);
     if (returnValue)
     {

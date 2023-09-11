@@ -1,31 +1,39 @@
-#pragma once 
+#pragma once
 
 #include <Jnrlib.h>
-
+#include <string_view>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <nlohmann/json.hpp>
 
-
 namespace CreateInfo
 {
 
-    struct VulkanRenderer
+struct VulkanRenderer
+{
+    struct LayerInfo
     {
-        std::vector<std::string> instanceLayers;
-        std::vector<std::string> instanceExtensions;
-
-        std::vector<std::string> deviceLayers;
-        std::vector<std::string> deviceExtensions;
-
-        GLFWwindow *window;
-
-        friend std::ostream& operator << (std::ostream& stream, VulkanRenderer const& info);
-        friend std::istream& operator >> (std::istream& stream, VulkanRenderer& info);
+        LayerInfo(std::string const &name, bool mandatory = true) : name(name), mandatory(mandatory)
+        {
+        }
+        std::string name;
+        bool mandatory = true;
     };
 
-    void to_json(nlohmann::json& j, const VulkanRenderer& p);
-    void from_json(const nlohmann::json& j, VulkanRenderer& p);
-}
+    std::vector<LayerInfo> instanceLayers;
+    std::vector<LayerInfo> instanceExtensions;
+
+    std::vector<LayerInfo> deviceLayers;
+    std::vector<LayerInfo> deviceExtensions;
+
+    GLFWwindow *window;
+
+    friend std::ostream &operator<<(std::ostream &stream, VulkanRenderer const &info);
+    friend std::istream &operator>>(std::ostream &stream, VulkanRenderer const &info);
+};
+
+void to_json(nlohmann::json &j, const VulkanRenderer &p);
+void from_json(const nlohmann::json &j, VulkanRenderer &p);
+} // namespace CreateInfo
