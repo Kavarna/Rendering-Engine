@@ -31,8 +31,8 @@ namespace Common
             struct Output
             {
                 Common::Components::AccelerationStructure accelerationStructure;
-                std::vector<uint32_t> indices;
-                std::vector<Common::VertexPositionNormal> vertices;
+                std::vector<uint32_t> new_indices;
+                /* TODO: Might reorder the vertices to improve cache accesses if requested */
             };
 
             Output Generate(Input const& input);

@@ -51,8 +51,8 @@
             "parent": "Earth",
             "acceleration-structure": {
                 "type": "BVH",
-                "split-type": "Middle",
-                "max-prims-in-node": 50
+                "split-type": "sah",
+                "max-prims-in-node": 10
             }
         }
     ]

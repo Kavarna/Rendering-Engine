@@ -45,16 +45,15 @@ void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
     auto& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
     Jnrlib::Color color = Jnrlib::Blue * (Jnrlib::Float)0.2f;
     auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
-    auto hp = mScene.GetClosestHit(ray);
 
-    if (hp.has_value())
+    if (auto hp = mScene.GetClosestHit(ray); hp.has_value())
     {
         auto material = hp->GetMaterial();
 
-        std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp);
-        if (scatterInfo.has_value())
+        if (std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp); scatterInfo.has_value())
             color = scatterInfo->attenuation;
-        Jnrlib::Float attenuation = glm::dot(hp->GetNormal(), Jnrlib::Direction(0.5f, 0.5f, -1.0f));
+
+        Jnrlib::Float attenuation = glm::dot(hp->GetNormal(), glm::normalize(Jnrlib::Direction(0.5f, 0.5f, -1.0f)));
         color *= attenuation;
     }
 

@@ -119,14 +119,14 @@ if (!mSuccess)\
             /* Create acceleration structure */
             Accelerators::BVH::Input bvhAcceleration{};
             bvhAcceleration.splitType = accelerationInfo.splitType;
-            bvhAcceleration.maxPrimsInNode = 100; /* TODO: replace this */
+            bvhAcceleration.maxPrimsInNode = accelerationInfo.maxPrimsInNode;
             bvhAcceleration.indices = context.indices;
             bvhAcceleration.vertices = context.vertices;
             if (auto output = Accelerators::BVH::Generate(bvhAcceleration); !output.accelerationStructure.nodes.empty())
             {
+                /* Use the new indices */
+                context.indices = std::move(output.new_indices);
                 /* Created a valid acceleration structure */
-                context.indices = std::move(output.indices);
-                context.vertices = std::move(output.vertices);
                 ent->AddComponent(output.accelerationStructure);
             }
 
