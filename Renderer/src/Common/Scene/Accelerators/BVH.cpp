@@ -69,9 +69,9 @@ static std::shared_ptr<BVHBuildNode> RecursiveBuild(Context& ctx, uint32_t start
     for (uint32_t i = start; i < end; ++i)
     {
         /* Compute bounding box for current face */
-        uint32_t index0 = ctx.input.indices[i * 3 + 0];
-        uint32_t index1 = ctx.input.indices[i * 3 + 1];
-        uint32_t index2 = ctx.input.indices[i * 3 + 2];
+        uint32_t index0 = ctx.input.indices[ctx.primitives[i].index * 3 + 0];
+        uint32_t index1 = ctx.input.indices[ctx.primitives[i].index * 3 + 1];
+        uint32_t index2 = ctx.input.indices[ctx.primitives[i].index * 3 + 2];
 
         BoundingBox box(ctx.input.vertices[index0].position);
         box = Union(box, ctx.input.vertices[index1].position);
@@ -182,53 +182,19 @@ static uint32_t FlattenBVHTree(std::shared_ptr<BVHBuildNode> node, uint32_t* off
 
 static void ReorderPrimitives(Context& ctx, std::vector<uint32_t>& indices, std::vector<Common::VertexPositionNormal>& vertices)
 {
-    std::unordered_map<uint32_t, uint32_t> remapIndices;
-    vertices.reserve(ctx.input.vertices.size());
-    for (uint32_t i = 0; i < ctx.orderedPrimitives.size(); ++i)
-    {
-        uint32_t primitiveIndex = (uint32_t)ctx.orderedPrimitives[i];
-        uint32_t index0 = primitiveIndex * 3 + 0;
-        uint32_t index1 = primitiveIndex * 3 + 1;
-        uint32_t index2 = primitiveIndex * 3 + 2;
-
-        auto remapIndex = [&](uint32_t index)
-        {
-            if (remapIndices.contains(index))
-            {
-                /* Index already preset, vertex should be already added => nothing to do */
-                return;
-            }
-
-            /* index becomes the size of the vertices and push the vertex in the new vertex buffer */
-            remapIndices.insert({index, (uint32_t)vertices.size()});
-            vertices.push_back(ctx.input.vertices[index]);
-        };
-
-        remapIndex(ctx.input.indices[index0]);
-        remapIndex(ctx.input.indices[index1]);
-        remapIndex(ctx.input.indices[index2]);
-    }
-    // CHECK_EQ(remapIndices.size(), ctx.input.indices.size()) << "Remap indices should have the same length as the original indices";
-
-    indices.reserve(ctx.input.indices.size());
+    vertices = std::move(ctx.input.vertices);
+    
+    indices.resize(ctx.input.indices.size());
     for (size_t i = 0; i < ctx.orderedPrimitives.size(); ++i)
     {
-        uint32_t primitiveIndex = (uint32_t)ctx.orderedPrimitives[i];
-        uint32_t index0 = primitiveIndex * 3 + 0;
-        uint32_t index1 = primitiveIndex * 3 + 1;
-        uint32_t index2 = primitiveIndex * 3 + 2;
+        auto currentPrimitive = ctx.orderedPrimitives[i];
+        auto index0 = ctx.input.indices[currentPrimitive * 3 + 0];
+        auto index1 = ctx.input.indices[currentPrimitive * 3 + 1];
+        auto index2 = ctx.input.indices[currentPrimitive * 3 + 2];
 
-        auto convertIndex = [&](uint32_t index) -> uint32_t
-        {
-            auto it = remapIndices.find(index);
-            CHECK(it != remapIndices.end()) << "Couldn't find a index to remap";
-
-            return it->second;
-        };
-
-        indices.push_back(convertIndex(ctx.input.indices[index0]));
-        indices.push_back(convertIndex(ctx.input.indices[index1]));
-        indices.push_back(convertIndex(ctx.input.indices[index2]));
+        indices[i * 3 + 0] = index0;
+        indices[i * 3 + 1] = index1;
+        indices[i * 3 + 2] = index2;
     }
 }
 
@@ -262,6 +228,7 @@ Output Common::Accelerators::BVH::Generate(Input const& input)
     /* Build the output */
     Output output{};
     ReorderPrimitives(ctx, output.indices, output.vertices);
+
     /* Flatten BVH tree to be used */
     output.accelerationStructure.nodes.resize(ctx.totalNodes);
     uint32_t offset = 0;

@@ -39,13 +39,18 @@ void PixelInspector::CopySelectedRegion(uint32_t srcX, uint32_t srcY, Common::Bu
     auto dstBuffer = mPreviewImage->GetBuffer();
     for (uint32_t row = 0; row < PREVIEW_HEIGHT; ++row)
     {
-        uint32_t y = row + srcY;
+        uint32_t y = row + srcY - PREVIEW_HEIGHT / 2;
         uint32_t sourceIndex = y * buffer->GetWidth() + srcX - PREVIEW_WIDTH / 2;
 
         void const* src = srcBuffer->GetElement(sourceIndex);
         void* dst = dstBuffer->GetElement(row * PREVIEW_WIDTH);
         memcpy(dst, src, sizeof(Jnrlib::Color) * PREVIEW_WIDTH);
     }
+
+    auto originalPixel = mPreviewImage->GetPixelColor(PREVIEW_WIDTH / 2, PREVIEW_HEIGHT / 2);
+    originalPixel += Jnrlib::Color(0.3f, 0.3f, 0.0f, 1.0f);
+    mPreviewImage->SetPixelColor(PREVIEW_WIDTH / 2, PREVIEW_HEIGHT / 2, originalPixel);
+
     mPreviewImage->Flush(cmdList, true);
     cmdList->TransitionImageToImguiLayout(mPreviewImage->GetImage());
 }

@@ -45,6 +45,7 @@ namespace CreateInfo
         AccelerationType accelerationType = AccelerationType::None;
         /* BVH */
         Common::Accelerators::BVH::SplitType splitType = Common::Accelerators::BVH::SplitType::SAH;
+        uint32_t maxPrimsInNode = 5;
 
         /* Kd Tree */
     };

@@ -44,14 +44,15 @@
         },
         {
             "type": "Mesh",
-            "name": "Red-Icosphere",
-            "path": "Scenes\\Models\\Icosphere.obj",
-            "position": "(-1.0, 1.0, 5.0)",
+            "name": "Beaver",
+            "path": "Scenes\\Models\\Beaver.obj",
+            "position": "(-1.0, 0.0, 7.0)",
             "material": "red",
             "parent": "Earth",
             "acceleration-structure": {
                 "type": "BVH",
-                "split-type": "Middle"
+                "split-type": "Middle",
+                "max-prims-in-node": 50
             }
         }
     ]

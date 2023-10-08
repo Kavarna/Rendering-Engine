@@ -173,7 +173,7 @@ static bool RayAABBIntersectionFast(Ray const& r, BoundingBox const& b, const Di
     return (tMin < r.maxT) && (tMax > 0);
 }
 
-static bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, float* t, float barycentrics[3])
+static bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, float* t, Float barycentrics[3])
 {
     // Translate vertices based on ray origin
     auto p0t = p0 - r.origin;
@@ -238,9 +238,9 @@ static bool RayTriangleIntersection(Ray const& r, glm::vec3 p0, glm::vec3 p1, gl
 
     // Compute barycentric coordinates and $t$ value for triangle intersection
     Float invDet = 1 / det;
-    Float b0 = e0 * invDet;
-    Float b1 = e1 * invDet;
-    Float b2 = e2 * invDet;
+    barycentrics[0] = e0 * invDet;
+    barycentrics[1] = e1 * invDet;
+    barycentrics[2] = e2 * invDet;
     *t = tScaled * invDet;
 
     return true;
@@ -302,44 +302,47 @@ static std::optional<HitPoint> RayMeshIntersectionFast(Ray &r, Base const& base,
     if (accelStructure.nodes.empty())
         return std::nullopt;
 
-    bool hit = false;
+    auto const& indices = scene->GetIndices();
+    auto const& vertices = scene->GetVertices();
+
     Direction invDir = One / r.direction;
     int isDirNeg[3] = {r.direction.x < 0, r.direction.y < 0, r.direction.z < 0};
 
     int toVisitOffset = 0;
     int currentNodeIndex = 0;
     int nodesToVisit[64] = {};
+    const Common::Components::LinearBVHNode* hitNode = nullptr;
+    uint32_t hitPrimitve = -1;
+    Float hitBarycentrics[3]{};
     while (true)
     {
         const Common::Components::LinearBVHNode* node = &accelStructure.nodes[currentNodeIndex];
         auto bounds = node->bounds;
         bounds.pMin += base.position;
         bounds.pMax += base.position;
-        // if (RayAABBIntersectionFast(r, node->bounds, invDir, isDirNeg))
-        if (RayAABBIntersectionSlow(r, bounds))
+        if (RayAABBIntersectionFast(r, bounds, invDir, isDirNeg))
         {
             if (node->primitiveCount)
             {
                 /* Should check against each primitive */
                 for (uint32_t i = 0; i < node->primitiveCount; ++i)
                 {
-                    auto const& indices = scene->GetIndices();
-                    auto const& vertices = scene->GetVertices();
-                    float t = FLT_MAX;
-
-                    auto index0 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 0;
-                    auto index1 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 1;
-                    auto index2 = mesh.indices.firstIndex + node->primitiveOffset * 3 + 2;
+                    auto index0 = mesh.indices.firstIndex + (node->primitiveOffset + i) * 3 + 0;
+                    auto index1 = mesh.indices.firstIndex + (node->primitiveOffset + i) * 3 + 1;
+                    auto index2 = mesh.indices.firstIndex + (node->primitiveOffset + i) * 3 + 2;
 
                     glm::vec3 p0 = vertices[mesh.indices.firstVertex + indices[index0]].position + base.position;
                     glm::vec3 p1 = vertices[mesh.indices.firstVertex + indices[index1]].position + base.position;
                     glm::vec3 p2 = vertices[mesh.indices.firstVertex + indices[index2]].position + base.position;
 
-                    float barycentrics[3];
+                    Float barycentrics[3]{};
+                    float t;
                     if (RayTriangleIntersection(r, p0, p1, p2, &t, barycentrics))
                     {
                         r.maxT = t;
-                        hit = true;
+                        hitNode = node;
+                        hitPrimitve = i;
+                        memcpy_s(hitBarycentrics, sizeof(hitBarycentrics), barycentrics, sizeof(barycentrics));
                     }
                 }
                 if (toVisitOffset == 0)
@@ -368,24 +371,28 @@ static std::optional<HitPoint> RayMeshIntersectionFast(Ray &r, Base const& base,
         }
     }
 
-    if (hit)
+    if (hitNode)
     {
         HitPoint hp{};
         hp.SetEntity(base.entityPtr);
         hp.SetIntersectionPoint(r.maxT);
         hp.SetMaterial(mesh.material);
-        // if (glm::dot(normal, r.direction) < 0)
+
+        auto index0 = mesh.indices.firstIndex + (hitNode->primitiveOffset + hitPrimitve) * 3 + 0;
+        auto index1 = mesh.indices.firstIndex + (hitNode->primitiveOffset + hitPrimitve) * 3 + 1;
+        auto index2 = mesh.indices.firstIndex + (hitNode->primitiveOffset + hitPrimitve) * 3 + 2;
+
+        auto& v0 = vertices[mesh.indices.firstVertex + indices[index0]];
+        auto& v1 = vertices[mesh.indices.firstVertex + indices[index1]];
+        auto& v2 = vertices[mesh.indices.firstVertex + indices[index2]];
+
+
+        auto normal = v0.normal * hitBarycentrics[0] + v1.normal * hitBarycentrics[1] + v2.normal * hitBarycentrics[2];
         {
             /* We're hitting the sphere in the front */
-            hp.SetNormal(Up);
+            hp.SetNormal(normal);
             hp.SetFrontFace(true);
         }
-        //else
-        //{
-        //    /* We're hitting the sphere in the back, so the normal has to be reversed */
-        //    hp.SetNormal(-normal);
-        //    hp.SetFrontFace(false);
-        //}
         return hp;
     }
     return std::nullopt;

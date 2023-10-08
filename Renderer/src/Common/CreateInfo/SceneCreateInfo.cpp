@@ -82,6 +82,7 @@ namespace CreateInfo
         if (a.accelerationType == AccelerationType::BVH)
         {
             j["split-type"] = magic_enum::enum_name(a.splitType);
+            j["max-prims-in-node"] = a.maxPrimsInNode;
         }
         else if (a.accelerationType == AccelerationType::KdTree)
         {
@@ -111,6 +112,10 @@ namespace CreateInfo
                         {
                             a.splitType = *splitTypeOptional;
                         }
+                    }
+                    if (j.contains("max-prims-in-node"))
+                    {
+                        j.at("max-prims-in-node").get_to(a.maxPrimsInNode);
                     }
                     break;
                 }

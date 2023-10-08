@@ -54,6 +54,8 @@ void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
         std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp);
         if (scatterInfo.has_value())
             color = scatterInfo->attenuation;
+        Jnrlib::Float attenuation = glm::dot(hp->GetNormal(), Jnrlib::Direction(0.5f, 0.5f, -1.0f));
+        color *= attenuation;
     }
 
     mDumper.SetPixelColor(x, y, color);

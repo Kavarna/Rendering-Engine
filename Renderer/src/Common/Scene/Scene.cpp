@@ -119,7 +119,7 @@ if (!mSuccess)\
             /* Create acceleration structure */
             Accelerators::BVH::Input bvhAcceleration{};
             bvhAcceleration.splitType = accelerationInfo.splitType;
-            bvhAcceleration.maxPrimsInNode = 1; /* TODO: replace this */
+            bvhAcceleration.maxPrimsInNode = 100; /* TODO: replace this */
             bvhAcceleration.indices = context.indices;
             bvhAcceleration.vertices = context.vertices;
             if (auto output = Accelerators::BVH::Generate(bvhAcceleration); !output.accelerationStructure.nodes.empty())
@@ -176,6 +176,8 @@ if (!mSuccess)\
                 VertexPositionNormal vertex{};
                 vertex.position = glm::vec3{mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
                 vertex.normal = glm::vec3{mesh->mNormals[i].z, mesh->mNormals[i].y, mesh->mNormals[i].z};
+
+                CHECK(!(vertex.normal.x == Jnrlib::Zero && vertex.normal.y == Jnrlib::Zero && vertex.normal.z == Jnrlib::Zero)) << "Normal cannot be (0, 0, 0)";
 
                 ctx.vertices.push_back(vertex);
             }
