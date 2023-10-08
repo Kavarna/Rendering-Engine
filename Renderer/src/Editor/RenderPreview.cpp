@@ -84,7 +84,8 @@ void Editor::RenderPreview::OnRender()
 {
     if (!ImGui::Begin("Render Preview"))
     {
-        // return;
+        ImGui::End();
+        return;
     }
 
     auto frameHeight = ImGui::GetFrameHeight();

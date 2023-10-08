@@ -20,7 +20,8 @@ void ObjectInspector::OnRender()
 {
     if (!ImGui::Begin("Object inspector"))
     {
-        // return;
+        ImGui::End();
+        return;
     }
 
     if (mActiveEntity == nullptr)

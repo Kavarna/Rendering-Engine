@@ -41,7 +41,8 @@ void Editor::SceneViewer::OnRender()
 {    
     if (!ImGui::Begin("Scene viewer", nullptr, ImGuiWindowFlags_NoScrollbar))
     {
-        
+        ImGui::End();
+        return;
     }
 
     auto frameHeight = ImGui::GetFrameHeight();

@@ -258,7 +258,8 @@ void Editor::Editor::ShowDockingSpace()
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     if (!ImGui::Begin("DockSpace", nullptr, window_flags))
     {
-        // return;
+        ImGui::End();
+        return;
     }
     ImGui::PopStyleVar();
 
@@ -321,7 +322,11 @@ void Editor::Editor::ShowDockingSpace()
     if (showDebugWindow)
     {
         auto& io = ImGui::GetIO();
-        if (ImGui::Begin("Debug"))
+        if (!ImGui::Begin("Debug"))
+        {
+            ImGui::End();
+        }
+        else
         {
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();

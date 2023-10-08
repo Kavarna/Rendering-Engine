@@ -67,7 +67,8 @@ void PixelInspector::OnRender()
 {
     if (!ImGui::Begin("Pixel inspector"))
     {
-        // return;
+        ImGui::End();
+        return;
     }
 
     if (mPreviewImage != nullptr)

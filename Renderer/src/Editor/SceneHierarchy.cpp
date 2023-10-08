@@ -61,7 +61,8 @@ void SceneHierarchy::OnRender()
     auto& entities = mScene->GetRootEntities();
     if (!ImGui::Begin("Scene hierarchy"))
     {
-        // return;
+        ImGui::End();
+        return;
     }
     
     Common::Entity* selectedEntity = nullptr; 
