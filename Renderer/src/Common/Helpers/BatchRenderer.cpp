@@ -19,7 +19,7 @@ void BatchRenderer::Vertex(float x, float y, float z, float r, float g, float b,
     Vertex(glm::vec3(x, y, z), glm::vec4(r, g, b, a));
 }
 
-void BatchRenderer::Vertex(glm::vec3 const& position, glm::vec4 const& color)
+void BatchRenderer::Vertex(glm::vec3 const& position, Jnrlib::Color const& color)
 {
     if (mCurrentVertex >= mCurrentSize)
     {
@@ -39,12 +39,70 @@ void BatchRenderer::PersistentVertex(float x, float y, float z, float r, float g
     PersistentVertex(glm::vec3(x, y, z), glm::vec4(r, g, b, a), time);
 }
 
-void BatchRenderer::PersistentVertex(glm::vec3 const& position, glm::vec4 const& color, float time)
+void BatchRenderer::PersistentVertex(glm::vec3 const& position, Jnrlib::Color const& color, float time)
 {
     Vertex(position, color);
 
     mPersistentVertices.emplace_back(position, color);
     mPersistentVerticesTimes.emplace_back(time);
+}
+
+void BatchRenderer::WireframeBoundingBox(Jnrlib::BoundingBox const& bb, float r, float g, float b, float a)
+{
+    WireframeBoundingBox(bb, glm::vec4(r, g, b, a));
+}
+
+void BatchRenderer::WireframeBoundingBox(Jnrlib::BoundingBox const& bb, Jnrlib::Color const& color)
+{
+    glm::vec3 lowerLeftNearCorner = bb.pMin;
+    glm::vec3 lowerRightNearCorner = glm::vec3(bb.pMax.x, bb.pMin.y, bb.pMin.z);
+    glm::vec3 upperLeftNearCorner = glm::vec3(bb.pMin.x, bb.pMax.y, bb.pMin.z);
+    glm::vec3 upperRightNearCorner = glm::vec3(bb.pMax.x, bb.pMax.y, bb.pMin.z);
+
+    glm::vec3 lowerLeftFarCorner = glm::vec3(bb.pMin.x, bb.pMin.y, bb.pMax.z);
+    glm::vec3 lowerRightFarCorner = glm::vec3(bb.pMax.x, bb.pMin.y, bb.pMax.z);
+    glm::vec3 upperLeftFarCorner = glm::vec3(bb.pMin.x, bb.pMax.y, bb.pMax.z);
+    glm::vec3 upperRightFarCorner = bb.pMax;
+
+    /* Bottom face */
+    Vertex(lowerLeftNearCorner, color);
+    Vertex(lowerRightNearCorner, color);
+
+    Vertex(lowerRightNearCorner, color);
+    Vertex(lowerRightFarCorner, color);
+
+    Vertex(lowerRightFarCorner, color);
+    Vertex(lowerLeftFarCorner, color);
+
+    Vertex(lowerLeftFarCorner, color);
+    Vertex(lowerLeftNearCorner, color);
+
+    /* Top face */
+    Vertex(upperLeftNearCorner, color);
+    Vertex(upperRightNearCorner, color);
+
+    Vertex(upperRightNearCorner, color);
+    Vertex(upperRightFarCorner, color);
+
+    Vertex(upperRightFarCorner, color);
+    Vertex(upperLeftFarCorner, color);
+
+    Vertex(upperLeftFarCorner, color);
+    Vertex(upperLeftNearCorner, color);
+
+    /* Left face */
+    Vertex(upperLeftNearCorner, color);
+    Vertex(lowerLeftNearCorner, color);
+
+    Vertex(upperLeftFarCorner, color);
+    Vertex(lowerLeftFarCorner, color);
+
+    /* Right face */
+    Vertex(upperRightNearCorner, color);
+    Vertex(lowerRightNearCorner, color);
+
+    Vertex(upperRightFarCorner, color);
+    Vertex(lowerRightFarCorner, color);
 }
 
 void BatchRenderer::Update(float dt)
@@ -73,6 +131,7 @@ void BatchRenderer::Begin()
         memcpy_s((VertexPositionColor*)mVertexBuffer->GetData() + mCurrentVertex, mVertexBuffer->GetSize(),
                  mOverflowVertices.data(), mOverflowVertices.size() * sizeof(decltype(mOverflowVertices)::value_type));
         mCurrentSize = (uint32_t)mVertexBuffer->GetCount();
+        mOverflowVertices.clear();
     }
 
     // Copy over the persistent vertices

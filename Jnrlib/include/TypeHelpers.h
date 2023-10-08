@@ -10,6 +10,16 @@
 
 #include "effolkronium/random.hpp"
 
+#if defined(__GNUC__)
+#define ALIGN(align_val) __attribute__((aligned(align_val)))
+#elif defined(_MSC_VER)
+#define ALIGN(align_val) __declspec(align(align_val))
+#else
+#define ALIGN(align_val) alignas(align_val)
+#endif
+
+
+
 template <typename T>
 std::ostream& operator<<(std::ostream& stream, std::vector<T> const& vct)
 {

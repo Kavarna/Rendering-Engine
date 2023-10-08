@@ -5,6 +5,7 @@
 
 #include <nlohmann/json.hpp>
 #include "CameraCreateInfo.h"
+#include "Common/Scene/Accelerators/BVH.h"
 
 namespace CreateInfo
 {
@@ -30,6 +31,27 @@ namespace CreateInfo
     PrimitiveType GetPrimitiveTypeFromString(std::string const& str);
     std::string GetStringFromPrimitiveType(PrimitiveType primitiveType);
 
+    enum class AccelerationType
+    {
+        None = 0,
+        BVH,
+        KdTree,
+    };
+    AccelerationType GetAccelerationTypeFromString(std::string const& str);
+    std::string GetStringFromAccelerationType(AccelerationType accelerationType);
+
+    struct AccelerationStructure
+    {
+        AccelerationType accelerationType = AccelerationType::None;
+        /* BVH */
+        Common::Accelerators::BVH::SplitType splitType = Common::Accelerators::BVH::SplitType::SAH;
+        uint32_t maxPrimsInNode = 5;
+
+        /* Kd Tree */
+    };
+
+    void to_json(nlohmann::json& j, const AccelerationStructure& a);
+    void from_json(const nlohmann::json& j, AccelerationStructure& a);
 
     struct Primitive
     {
@@ -45,6 +67,9 @@ namespace CreateInfo
 
         /* Mesh info */
         std::string path;
+
+        /* Acceleration info */
+        AccelerationStructure accelerationInfo;
     };
 
     void to_json(nlohmann::json& j, const Primitive& p);

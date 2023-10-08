@@ -26,8 +26,8 @@ namespace Editor
 
     class PixelInspector : public ImguiWindow
     {
-        static constexpr const uint32_t PREVIEW_WIDTH = 10;
-        static constexpr const uint32_t PREVIEW_HEIGHT = 10;
+        static constexpr const uint32_t PREVIEW_WIDTH = 11;
+        static constexpr const uint32_t PREVIEW_HEIGHT = 11;
     public:
         PixelInspector();
         ~PixelInspector() = default;

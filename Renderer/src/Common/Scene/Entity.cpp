@@ -1,5 +1,5 @@
 #include "Entity.h"
-#include "Components/UpdateComponent.h"
+#include "Components/Update.h"
 #include "Constants.h"
 
 using namespace Common;

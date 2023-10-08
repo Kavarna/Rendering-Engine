@@ -41,8 +41,12 @@ void Editor::RenderPreview::SetRenderingContext(RenderingContext const& ctx)
     mActiveRenderingContext = ctx;
 }
 
-void Editor::RenderPreview::UpdateActive()
+void Editor::RenderPreview::HandleSelect()
 {
+    if (!ImGui::IsWindowFocused())
+    {
+        return;
+    }
     static bool leftMouseButtonPressed = false;
     if (Editor::Get()->IsMousePressed(GLFW_MOUSE_BUTTON_LEFT) && Editor::Get()->IsMouseEnabled())
     {
@@ -58,13 +62,13 @@ void Editor::RenderPreview::UpdateActive()
             {
                 return;
             }
-            
+
             /* Remap from windows space to image space */
             auto const& imageInfo = mScene->GetImageInfo();
             pos.x = Jnrlib::RemapValueFromIntervalToInterval(pos.x, 0.f, (float)mWidth, 0.f, (float)imageInfo.width);
             pos.y = Jnrlib::RemapValueFromIntervalToInterval(pos.y, 0.f, (float)mHeight, 0.f, (float)imageInfo.height);
 
-            if (mBufferDumper != nullptr && !mIsRenderingActive)
+            if (!mIsRenderingActive)
             {
                 mPixelInspector->CopySelectedRegion((uint32_t)pos.x, (uint32_t)pos.y, mBufferDumper.get(), mRenderer.get(), mActiveRenderingContext.cmdList);
             }
@@ -91,11 +95,6 @@ void Editor::RenderPreview::OnRender()
     if (width != mWidth || height != mHeight && height != 0)
     {
         OnResize(width, height);
-    }
-
-    if (ImGui::IsWindowFocused())
-    {
-        UpdateActive();
     }
 
     bool isRenderingActive = mIsRenderingActive;
@@ -160,11 +159,13 @@ void Editor::RenderPreview::ShowProgress()
 {
     if (mBufferDumper)
     {
-        float totalWork = (float)mBufferDumper->GetTotalWork();
-        float doneWork = (float)mBufferDumper->GetDoneWork();
+        auto totalWork = (float)mBufferDumper->GetTotalWork();
+        auto doneWork = (float)mBufferDumper->GetDoneWork();
         float progress = doneWork / totalWork;
         ImGui::SameLine();
         ImGui::ProgressBar(progress, ImVec2(-FLT_MIN, 0), "Rendering");
+
+        HandleSelect();
 
         auto frameHeight = ImGui::GetFrameHeight();
         float width, height;
@@ -189,7 +190,7 @@ void Editor::RenderPreview::RenderSimplePathTracing()
     mLastBufferDumper = std::move(mBufferDumper);
     mBufferDumper = std::make_unique<BufferDumper>((uint32_t)imageInfo.width, (uint32_t)imageInfo.height);
 
-    mRenderer = std::make_unique<RayTracing::PathTracing>(*(Common::IDumper*)mBufferDumper.get(), *mScene, 10, 50);
+    mRenderer = std::make_unique<RayTracing::PathTracing>(*(Common::IDumper*)mBufferDumper.get(), *mScene, 100, 50);
     std::thread th([&]()
     {
         mRenderer->Render();

@@ -2,10 +2,10 @@
 #include "GeometryHelpers.h"
 #include "Vulkan/CommandList.h"
 #include "Scene/Systems/IntersectionSystem.h"
-#include "Scene/Components/BaseComponent.h"
-#include "Scene/Components/SphereComponent.h"
-#include "Scene/Components/UpdateComponent.h"
-#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/Base.h"
+#include "Scene/Components/Sphere.h"
+#include "Scene/Components/Update.h"
+#include "Scene/Components/Camera.h"
 #include "Constants.h"
 #include "MaterialManager.h"
 
@@ -67,14 +67,14 @@ if (!mSuccess)\
             threadPool->WaitForAll();
         }
 
-        void LoadModel(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material)
+        void LoadModel(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material, CreateInfo::AccelerationStructure const& accelerationInfo)
         {
             RETURN_IF_FAILURE_FOUND;
 
             MarkMesh(path);
 
             auto threadPool = ThreadPool::Get();
-            threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent, material));
+            threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent, material, std::cref(accelerationInfo)));
         }
 
     private:
@@ -85,7 +85,7 @@ if (!mSuccess)\
             mScene->AddMeshIndices(name, indices);
         }
 
-        void HandleLoading(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material)
+        void HandleLoading(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material, CreateInfo::AccelerationStructure const& accelerationInfo)
         {
             auto threadPool = ThreadPool::Get();
             uint32_t id = threadPool->GetCurrentThreadId();
@@ -115,6 +115,20 @@ if (!mSuccess)\
 
             MeshProcessContext context;
             ProcessNode(scene, scene->mRootNode, context);
+
+            /* Create acceleration structure */
+            Accelerators::BVH::Input bvhAcceleration{};
+            bvhAcceleration.splitType = accelerationInfo.splitType;
+            bvhAcceleration.maxPrimsInNode = accelerationInfo.maxPrimsInNode;
+            bvhAcceleration.indices = context.indices;
+            bvhAcceleration.vertices = context.vertices;
+            if (auto output = Accelerators::BVH::Generate(bvhAcceleration); !output.accelerationStructure.nodes.empty())
+            {
+                /* Use the new indices */
+                context.indices = std::move(output.new_indices);
+                /* Created a valid acceleration structure */
+                ent->AddComponent(output.accelerationStructure);
+            }
 
             {
                 std::string name = GetMeshNameFromPath(path);
@@ -162,6 +176,8 @@ if (!mSuccess)\
                 VertexPositionNormal vertex{};
                 vertex.position = glm::vec3{mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
                 vertex.normal = glm::vec3{mesh->mNormals[i].z, mesh->mNormals[i].y, mesh->mNormals[i].z};
+
+                CHECK(!(vertex.normal.x == Jnrlib::Zero && vertex.normal.y == Jnrlib::Zero && vertex.normal.z == Jnrlib::Zero)) << "Normal cannot be (0, 0, 0)";
 
                 ctx.vertices.push_back(vertex);
             }
@@ -426,7 +442,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                 std::string name = Helpers::GetMeshNameFromPath(p.path);
                 if (mMeshIndices.find(name) == mMeshIndices.end())
                 {
-                    loader.LoadModel(p.path, entity.get(), material);
+                    loader.LoadModel(p.path, entity.get(), material, p.accelerationInfo);
                 }
                 else
                 {

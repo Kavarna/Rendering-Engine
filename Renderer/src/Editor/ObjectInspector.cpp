@@ -5,11 +5,12 @@
 
 #include "Constants.h"
 
-#include "Common/Scene/Components/BaseComponent.h"
-#include "Common/Scene/Components/UpdateComponent.h"
-#include "Common/Scene/Components/SphereComponent.h"
-#include "Common/Scene/Components/CameraComponent.h"
-#include "Common/Scene/Components/MeshComponent.h"
+#include "Common/Scene/Components/Base.h"
+#include "Common/Scene/Components/Update.h"
+#include "Common/Scene/Components/Sphere.h"
+#include "Common/Scene/Components/Camera.h"
+#include "Common/Scene/Components/Mesh.h"
+#include "Common/Scene/Components/AccelerationStructure.h"
 
 using namespace Editor;
 using namespace Common;
@@ -49,6 +50,11 @@ void ObjectInspector::OnRender()
     if (auto* m = mActiveEntity->TryGetComponent<Mesh>(); m != nullptr && ImGui::CollapsingHeader("Mesh"))
     {
         RenderMesh(*m, isUpdatable);
+    }
+
+    if (auto* m = mActiveEntity->TryGetComponent<AccelerationStructure>(); m != nullptr && ImGui::CollapsingHeader("Acceleration structure"))
+    {
+        RenderAccelerationStructure(*m, isUpdatable);
     }
 
     ImGui::End();
@@ -175,4 +181,25 @@ void ObjectInspector::RenderMesh(Mesh& m, bool isUpdatable)
 
     /* TODO: Create a combo box / drop down menu from which you can select the mesh */
     ImGui::Text("Mesh: %s", m.name.c_str());
+
+    bool hidden = m.hidden;
+    if (ImGui::Checkbox("Hidden", &hidden) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<Mesh>([&](Mesh& c)
+        {
+            c.hidden = hidden;
+        });
+    }
+}
+
+void ObjectInspector::RenderAccelerationStructure(Common::Components::AccelerationStructure& c, bool isUpdatable)
+{
+    bool shouldRender = c.shouldRender;
+    if (ImGui::Checkbox("Render", &shouldRender) && isUpdatable)
+    {
+        mActiveEntity->PatchComponent<AccelerationStructure>([&](AccelerationStructure& c)
+        {
+            c.shouldRender = shouldRender;
+        });
+    }
 }

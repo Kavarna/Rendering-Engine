@@ -54,7 +54,7 @@ namespace Editor
 
         void ShowProgress();
 
-        void UpdateActive();
+        void HandleSelect();
 
     private:
         void RenderSimplePathTracing();

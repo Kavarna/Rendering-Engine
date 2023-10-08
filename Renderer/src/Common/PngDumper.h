@@ -1,7 +1,5 @@
 #pragma once
 
-/* TODO: Try to remove this define */
-#undef max
 #include <png++/image.hpp>
 #include "Jnrlib.h"
 

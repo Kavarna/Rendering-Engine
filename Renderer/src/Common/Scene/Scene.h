@@ -9,7 +9,7 @@
 #include "HitPoint.h"
 #include "Vertex.h"
 #include "Vulkan/Buffer.h"
-#include "Scene/Components/MeshComponent.h"
+#include "Scene/Components/Mesh.h"
 #include "Entity.h"
 
 namespace Vulkan

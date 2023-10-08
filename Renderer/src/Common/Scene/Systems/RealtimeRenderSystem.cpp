@@ -1,10 +1,11 @@
 #include "RealtimeRenderSystem.h"
 
-#include "Scene/Components/BaseComponent.h"
-#include "Scene/Components/MeshComponent.h"
-#include "Scene/Components/SphereComponent.h"
-#include "Scene/Components/UpdateComponent.h"
-#include "Scene/Components/CameraComponent.h"
+#include "Scene/Components/Base.h"
+#include "Scene/Components/Mesh.h"
+#include "Scene/Components/Sphere.h"
+#include "Scene/Components/Update.h"
+#include "Scene/Components/Camera.h"
+#include "Scene/Components/AccelerationStructure.h"
 #include "EditorCamera.h"
 
 #include "CameraUtils.h"
@@ -30,6 +31,27 @@ RealtimeRender::RealtimeRender(Scene* scene, CommandList* cmdList) :
 
 RealtimeRender::~RealtimeRender()
 {
+}
+
+void RealtimeRender::DrawAccelerationStructure(Base const& base, AccelerationStructure const& accelerationStructure)
+{
+    for (auto const& node : accelerationStructure.nodes)
+    {
+        Jnrlib::BoundingBox bb = node.bounds;
+        bb.pMin += base.position;
+        bb.pMax += base.position;
+        mBatchRenderer.WireframeBoundingBox(bb, Jnrlib::Cyan);
+    }
+}
+
+void RealtimeRender::DrawAccelerationStructures()
+{
+    auto accelerationStructures = mScene->GetRegistry().view<const Base, const AccelerationStructure>();
+    for (auto const& [entity, base, accelStructure] : accelerationStructures.each())
+    {
+        if (accelStructure.shouldRender)
+            DrawAccelerationStructure(base, accelStructure);
+    }
 }
 
 void RealtimeRender::RenderScene(CommandList* cmdList)
@@ -91,6 +113,8 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         {
              if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
                 continue;
+             if (mesh.hidden)
+                continue;
 
             /* TODO: pass this as instance */
             uint32_t index = update.bufferIndex;
@@ -98,6 +122,8 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             cmdList->DrawIndexedInstanced(mesh.indices.indexCount, mesh.indices.firstIndex, mesh.indices.firstVertex);
         }
     }
+
+    DrawAccelerationStructures();
 
     if (mSelectedEntities.size())
     {

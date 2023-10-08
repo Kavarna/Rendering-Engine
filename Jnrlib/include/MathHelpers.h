@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <cmath>
 
+#include "glog/logging.h"
+
 #include "TypeHelpers.h"
 
 namespace Jnrlib
@@ -157,6 +159,38 @@ namespace Jnrlib
     inline glm::vec3 Permute(glm::vec3 p, Axis x, Axis y, Axis z)
     {
         return glm::vec3(p[(uint32_t)x], p[(uint32_t)y], p[(uint32_t)z]);
+    }
+
+    inline Float GetElementByAxis(glm::vec2 p, Axis whichElement)
+    {
+        switch (whichElement)
+        {
+            using enum Jnrlib::Axis;
+            case X:
+                return p.x;
+            case Y:
+                return p.y;
+            default:
+                CHECK(false) << "Invalid value passed to GetElement";
+                return NAN;
+        }
+    }
+
+    inline Float GetElementByAxis(glm::vec3 p, Axis whichElement)
+    {
+        switch (whichElement)
+        {
+            using enum Jnrlib::Axis;
+            case X:
+                return p.x;
+            case Y:
+                return p.y;
+            case Z:
+                return p.z;
+            default:
+                CHECK(false) << "Invalid value passed to GetElement";
+                return NAN;
+        }
     }
 
     template <typename T>

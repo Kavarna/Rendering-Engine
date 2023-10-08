@@ -1,8 +1,8 @@
-#include "CameraComponent.h"
+#include "Camera.h"
 
 #include "Constants.h"
 
-#include "BaseComponent.h"
+#include "Base.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>

@@ -10,7 +10,7 @@ namespace Jnrlib
     class BoundingBox
     {
     public:
-        BoundingBox()
+        inline BoundingBox()
         {
             constexpr Float minNum = std::numeric_limits<Float>::lowest();
             constexpr Float maxNum = std::numeric_limits<Float>::max();
@@ -19,31 +19,31 @@ namespace Jnrlib
             pMax = Position(minNum, minNum, minNum);
         };
 
-        explicit BoundingBox(Position const& pos) :
+        explicit inline BoundingBox(Position const& pos) :
             pMin(pos), pMax(pos)
         {
         }
 
-        explicit BoundingBox(Position const& min, Position const& max) :
+        explicit inline BoundingBox(Position const& min, Position const& max) :
             pMin(min), pMax(max)
         { }
 
-        bool operator == (BoundingBox const& rhs) const
+        inline bool operator == (BoundingBox const& rhs) const
         {
             return pMin == rhs.pMin && pMax == rhs.pMax;
         }
 
-        bool operator != (BoundingBox const& rhs) const
+        inline bool operator != (BoundingBox const& rhs) const
         {
             return pMin != rhs.pMin || pMax != rhs.pMax;
         }
 
-        Position Diagonal() const
+        inline Position Diagonal() const
         {
             return pMax - pMin;
         }
 
-        Axis MaximumExtent() const
+        inline Axis MaximumExtent() const
         {
             auto d = Diagonal();
             if (d.x > d.y && d.x > d.z)
@@ -54,9 +54,28 @@ namespace Jnrlib
                 return Axis::Z;
         }
 
-        Position const& operator [](int pos) const
+        inline Position Offset(Position const& p) const
         {
-            CHECK(pos == 0 || pos == 1) << "Position must be 0 or 1";
+            Position origin = p - pMin;
+            Position length = pMax - pMin;
+
+            /* There are cases in which the length can be 0 */
+            if (length.x > 0) origin.x /= length.x;
+            if (length.y > 0) origin.y /= length.y;
+            if (length.z > 0) origin.z /= length.z;
+
+            return origin;
+        }
+
+        inline Float SurfaceArea() const
+        {
+            auto d = Diagonal();
+            return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
+        }
+
+        inline Position const& operator [](int pos) const
+        {
+            CHECK(pos == 0 || pos == 1) << "Index for a bounding box must be 0 or 1";
             return pos == 0 ? pMin : pMax;
         }
 

@@ -506,11 +506,11 @@ Renderer::SwapchainSupportDetails Renderer::GetSwapchainCapabilities()
 
 VkPresentModeKHR Renderer::SelectBestPresentMode(std::vector<VkPresentModeKHR> const& presentModes)
 {
-    for (auto const& presentMode : presentModes)
+    /*for (auto const& presentMode : presentModes)
     {
         if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
             return presentMode;
-    }
+    }*/
 
     // This is guaranteed to be present
     return VK_PRESENT_MODE_FIFO_KHR;
