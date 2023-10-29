@@ -44,6 +44,7 @@ if (!mSuccess)\
         {
             auto threadPool = ThreadPool::Get();
             mImporters.resize(threadPool->GetNumberOfThreads());
+            mTasksToWaitFor.reserve(16); // Simple beginning case
         }
 
         ~ModelLoader()
@@ -64,7 +65,10 @@ if (!mSuccess)\
         void Wait()
         {
             auto threadPool = ThreadPool::Get();
-            threadPool->WaitForAll();
+            for (auto const& task : mTasksToWaitFor)
+            {
+                threadPool->Wait(task);
+            }
         }
 
         void LoadModel(std::string const& path, Entity* ent, std::shared_ptr<IMaterial> material, CreateInfo::AccelerationStructure const& accelerationInfo)
@@ -74,7 +78,7 @@ if (!mSuccess)\
             MarkMesh(path);
 
             auto threadPool = ThreadPool::Get();
-            threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent, material, std::cref(accelerationInfo)));
+            mTasksToWaitFor.emplace_back(threadPool->ExecuteDeffered(std::bind(&ModelLoader::HandleLoading, this, std::cref(path), ent, material, std::cref(accelerationInfo))));
         }
 
     private:
@@ -207,6 +211,7 @@ if (!mSuccess)\
         Scene* mScene;
 
         std::vector<std::unique_ptr<Assimp::Importer>> mImporters;
+        std::vector<std::shared_ptr<struct Jnrlib::Task>> mTasksToWaitFor;
 
         std::mutex mMessageMutex;
         bool mSuccess = true;

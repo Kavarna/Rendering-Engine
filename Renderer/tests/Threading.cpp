@@ -266,11 +266,12 @@ namespace
         uint32_t numbers[numbersCount];
 
         std::shared_ptr<struct Task> task =
-            threadPool->ExecuteDeffered([&numbers]()
-        {
-            numbers[0] = 1;
-            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
-        });
+            threadPool->ExecuteDeffered(
+                [&numbers]()
+                {
+                    numbers[0] = 1;
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+                });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::EXIT_ASAP);
 
@@ -290,16 +291,65 @@ namespace
         std::set<uint32_t> numbers;
 
         std::shared_ptr<struct Task> task =
-            threadPool->ExecuteDeffered([&numbersMutex, &numbers]()
-        {
-            std::unique_lock<std::mutex> lock(numbersMutex);
-            numbers.insert(0);
-            std::this_thread::sleep_for(std::chrono::nanoseconds(10));
-        });
+            threadPool->ExecuteDeffered(
+                [&numbersMutex, &numbers]()
+                {
+                    std::unique_lock<std::mutex> lock(numbersMutex);
+                    numbers.insert(0);
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+                });
 
         threadPool->Wait(task, ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT);
 
         EXPECT_NE(numbers.find(0), numbers.end());
+        threadPool->WaitForAll();
+    }
+
+    TEST_P(Threading, ThreadingForCompletenessExact)
+    {
+        EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
+
+        auto threadPool = ThreadPool::Get();
+        EXPECT_NE(threadPool, nullptr);
+
+        const unsigned int batchSize = 64;
+        const unsigned int numbersCount = 64 * batchSize;
+        std::mutex numbersMutex;
+        std::set<uint32_t> numbers;
+
+        threadPool->ExecuteParallelForImmediate(
+            [&numbersMutex, &numbers](uint32_t index)
+            {
+                std::unique_lock<std::mutex> lock(numbersMutex);
+                numbers.insert(index);
+                std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+            }, numbersCount, batchSize);
+
+        EXPECT_EQ(numbers.size(), numbersCount);
+        threadPool->WaitForAll();
+    }
+
+    TEST_P(Threading, ThreadingForCompletenessRemainder)
+    {
+        EXPECT_NO_THROW(auto threadPool = ThreadPool::Get());
+
+        auto threadPool = ThreadPool::Get();
+        EXPECT_NE(threadPool, nullptr);
+
+        const unsigned int batchSize = 64;
+        const unsigned int numbersCount = 64 * batchSize + 32;
+        std::mutex numbersMutex;
+        std::set<uint32_t> numbers;
+
+        threadPool->ExecuteParallelForImmediate(
+            [&numbersMutex, &numbers](uint32_t index)
+            {
+                std::unique_lock<std::mutex> lock(numbersMutex);
+                numbers.insert(index);
+                std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+            }, numbersCount, batchSize);
+
+        EXPECT_EQ(numbers.size(), numbersCount);
         threadPool->WaitForAll();
     }
 

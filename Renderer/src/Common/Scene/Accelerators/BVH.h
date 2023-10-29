@@ -18,6 +18,7 @@ namespace Common
                 SAH,
                 Middle,
                 EqualCount,
+                HLBVH,
             };
             struct Input
             {

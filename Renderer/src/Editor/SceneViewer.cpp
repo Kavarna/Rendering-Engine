@@ -46,9 +46,8 @@ void Editor::SceneViewer::OnRender()
     }
 
     auto frameHeight = ImGui::GetFrameHeight();
-    float width, height;
-    width = ImGui::GetWindowWidth() - 2; /* One pixel on the left, one pixel on the right */
-    height = ImGui::GetWindowHeight() - 2 * frameHeight;
+    float width = ImGui::GetWindowWidth() - 2; /* One pixel on the left, one pixel on the right */;
+    float height = ImGui::GetWindowHeight() - 2 * frameHeight;
 
     if (width != mWidth || height != mHeight && height != 0)
     {
@@ -104,7 +103,7 @@ void Editor::SceneViewer::RenderScene()
     if (mActiveRenderingContext.cmdList == nullptr)
         return;
 
-    auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
+    auto const& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
     auto& cmdList = mActiveRenderingContext.cmdList;
     
     if (mPixelInspector)
@@ -134,12 +133,12 @@ void Editor::SceneViewer::SelectObject()
         if (!leftMouseButtonPressed)
         {
             leftMouseButtonPressed = true;
-            auto& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
+            auto const& currentFrameResources = mPerFrameResources[mActiveRenderingContext.activeFrame];
             auto mousePosition = ImGui::GetMousePos();
             auto cursorPosition = ImGui::GetCursorScreenPos();
             ImVec2 pos = {mousePosition.x - cursorPosition.x, mousePosition.y - cursorPosition.y};
-            if (pos.x > currentFrameResources.renderTarget->GetExtent2D().width ||
-                pos.y > currentFrameResources.renderTarget->GetExtent2D().height ||
+            if (pos.x > (float)currentFrameResources.renderTarget->GetExtent2D().width ||
+                pos.y > (float)currentFrameResources.renderTarget->GetExtent2D().height ||
                 pos.x <= 0 || pos.y <= 0)
             {
                 return;

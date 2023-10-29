@@ -74,9 +74,9 @@ ThreadPool::~ThreadPool()
 
 std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
 {
-    std::shared_ptr<Task> currentTask = std::make_shared<Task>(func);
+    auto currentTask = std::make_shared<Task>(func);
     {
-        std::unique_lock<std::mutex> lock(mWorkListMutex);
+        std::unique_lock lock(mWorkListMutex);
         if (mWorkList != nullptr)
         {
             currentTask->nextTask = mWorkList;
@@ -92,13 +92,112 @@ std::shared_ptr<Task> ThreadPool::ExecuteDeffered(std::function<void()> func)
     return currentTask;
 }
 
+std::vector<std::shared_ptr<struct Task>> ThreadPool::ExecuteBatchDeffered(std::vector<std::function<void()>> const& funcs)
+{
+    std::vector<std::shared_ptr<struct Task>> tasks;
+    tasks.reserve(funcs.size());
+
+    std::shared_ptr<struct Task> taskList;
+    for (auto const& func : funcs)
+    {
+        auto currentTask = std::make_shared<Task>(func);
+        if (taskList == nullptr) [[unlikely]]
+        {
+            taskList = currentTask;
+        }
+        else
+        {
+            currentTask->nextTask = taskList;
+            taskList = currentTask;
+        }
+
+        tasks.push_back(currentTask);
+        VLOG(3) << "Task " << currentTask->taskID << " was inserted into a local work list";
+    }
+
+    {
+        std::unique_lock lock(mWorkListMutex);
+        if (mWorkList != nullptr)
+        {
+            CHECK(tasks[0]->nextTask == nullptr) << "The first task in the vector is not the first task inserted in the local work list";
+            tasks[0]->nextTask = mWorkList;
+            mWorkList = taskList;
+        }
+        else
+        {
+            mWorkList = taskList;
+        }
+        VLOG(3) << "Local task list was inserted in the global work list";
+    }
+
+    mWorkersCV.notify_all();
+    return tasks;
+}
+
+void ThreadPool::ExecuteParallelForImmediate(std::function<void(uint32_t)> const& func, uint32_t size, uint32_t batchSize, WaitPolicy wp)
+{
+    if (size < batchSize)
+    {
+        for (uint32_t i = 0; i < size; ++i)
+        {
+            func(i);
+        }
+        return;
+    }
+
+    uint32_t remainingTasks = size % batchSize;
+    uint32_t fullTasks = size / batchSize;
+
+    std::vector<std::function<void()>> tasks;
+    tasks.reserve(fullTasks + remainingTasks);
+
+    for (uint32_t taskBatch = 0; taskBatch < fullTasks; ++taskBatch)
+    {
+        auto task = [batchSize, func, taskBatch]()
+        {
+            for (uint32_t i = 0; i < batchSize; ++i)
+            {
+                func(taskBatch * batchSize + i);
+            }
+        };
+        tasks.emplace_back(task);
+    }
+
+    std::vector<std::shared_ptr<struct Jnrlib::Task>> tasksToWait;
+    if (wp == WaitPolicy::EXECUTE_THEN_EXIT)
+    {
+        tasksToWait = ExecuteBatchDeffered(tasks);
+        for (uint32_t i = 0; i < remainingTasks; ++i)
+        {
+            func(fullTasks * batchSize + i);
+        }
+    }
+    else
+    {
+        auto task = [&]()
+        {
+            for (uint32_t i = 0; i < remainingTasks; ++i)
+            {
+                func(fullTasks * batchSize + i);
+            }
+        };
+        tasks.emplace_back(task);
+        tasksToWait = ExecuteBatchDeffered(tasks);
+    }
+
+    for (const auto& task : tasksToWait)
+    {
+        Wait(task, wp);
+    }
+}
+
 bool ThreadPool::IsTaskCompleted(std::shared_ptr<struct Task> task)
 {
     return task->completed;
 }
 
 
-uint32_t Jnrlib::ThreadPool::GetCurrentThreadId() const
+uint32_t ThreadPool::GetCurrentThreadId() const
 {
     auto currentThreadId = std::this_thread::get_id();
     for (uint32_t i = 0; i < mThreads.size(); ++i)
@@ -111,7 +210,7 @@ uint32_t Jnrlib::ThreadPool::GetCurrentThreadId() const
     return -1;
 }
 
-uint32_t Jnrlib::ThreadPool::GetNumberOfThreads() const
+uint32_t ThreadPool::GetNumberOfThreads() const
 {
     return (uint32_t)mThreads.size();
 }
@@ -132,14 +231,14 @@ void ThreadPool::Wait(std::shared_ptr<struct Task> task, WaitPolicy wp)
     }
 }
 
-void Jnrlib::ThreadPool::WaitForAll(WaitPolicy wp)
+void ThreadPool::WaitForAll(WaitPolicy wp)
 {
     switch (wp)
     {
-        case Jnrlib::ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT:
+        case ThreadPool::WaitPolicy::EXECUTE_THEN_EXIT:
             WaitForAllExecutingTasks();
             break;
-        case Jnrlib::ThreadPool::WaitPolicy::EXIT_ASAP:
+        case ThreadPool::WaitPolicy::EXIT_ASAP:
             WaitForAllToFinish();
             break;
         default:
@@ -249,6 +348,14 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 
             // Not completed? Let's wait for active tasks
             bool found = false;
+
+            /* While waiting for the task to be finished, unlock the mutex, so other threads can still add tasks
+             * and if they do, it means that this task might depend on one of other threads, so give up waiting and 
+             * get back to doing work
+             */
+            bool shouldContinue = false;
+            auto numActiveTasksLast = mActiveTasksCount.load();
+            lock.unlock();
             while (true)
             {
                 if (task->IsCompleted())
@@ -256,13 +363,29 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
                     found = true;
                     break;
                 }
+                auto numActiveTasksNow = mActiveTasksCount.load();
                 if (mActiveTasksCount.load() == 0)
                     break;
+
+                if (numActiveTasksNow >= numActiveTasksLast)
+                {
+                    shouldContinue = true;
+                }
+                numActiveTasksLast = numActiveTasksNow;
+            }
+            lock.lock();
+
+            if (shouldContinue)
+            {
+                /* If there are new tasks added to the work list, we should just give up on waiting this one
+                 * and continue executing taks untill it's finished
+                 */
+                continue;
             }
 
-            if (!found)
+            if (!found && !task->IsCompleted())
             {
-                throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+                throw Exceptions::TaskNotFound(task->taskID);
             }
             else
             {
@@ -315,7 +438,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         else
         {
             VLOG(4) << "Task" << task->taskID << " not found, throwing an exception";
-            throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+            throw Exceptions::TaskNotFound(task->taskID);
         }
     }
 
@@ -352,7 +475,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
             return;
         }
         // And if that doesn't work, we throw an error
-        throw Jnrlib::Exceptions::TaskNotFound(task->taskID);
+        throw Exceptions::TaskNotFound(task->taskID);
     }
     
     if (currentTask->taskID == task->taskID)
@@ -366,10 +489,10 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
     }
 
     // This should never happen
-    throw Jnrlib::Exceptions::ImpossibleToGetHere("Task ID = " + std::to_string(task->taskID) + ". Could not be found");
+    throw Exceptions::ImpossibleToGetHere("Task ID = " + std::to_string(task->taskID) + ". Could not be found");
 }
 
-void Jnrlib::ThreadPool::WaitForAllToFinish()
+void ThreadPool::WaitForAllToFinish()
 {
     // Make sure that there are no tasks to be run
     {
@@ -386,7 +509,7 @@ void Jnrlib::ThreadPool::WaitForAllToFinish()
     WAIT_ALL_ACTIVE_THREADS;
 }
 
-void Jnrlib::ThreadPool::WaitForAllExecutingTasks()
+void ThreadPool::WaitForAllExecutingTasks()
 {
     // Execute tasks in the queue until the searched task is executed
     std::unique_lock<std::mutex> lock(mWorkListMutex);

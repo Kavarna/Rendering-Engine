@@ -16,7 +16,7 @@ namespace Jnrlib
         MAKE_SINGLETONE_CAPABLE(ThreadPool);
     private:
         ThreadPool(uint32_t nthreads = std::thread::hardware_concurrency() - 1);
-        ~ThreadPool();
+        ~ThreadPool() final;
 
     public:
         enum class WaitPolicy
@@ -28,6 +28,9 @@ namespace Jnrlib
 
     public:
         std::shared_ptr<struct Task> ExecuteDeffered(std::function<void()> func);
+        std::vector<std::shared_ptr<struct Task>> ExecuteBatchDeffered(std::vector<std::function<void()>> const& funcs);
+
+        void ExecuteParallelForImmediate(std::function<void(uint32_t)> const& func, uint32_t size, uint32_t batchSize, WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
         void Wait(std::shared_ptr<struct Task> task, WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
         void WaitForAll(WaitPolicy wp = WaitPolicy::EXECUTE_THEN_EXIT);
         void CancelRemainingTasks();
@@ -36,6 +39,7 @@ namespace Jnrlib
 
         uint32_t GetCurrentThreadId() const;
         uint32_t GetNumberOfThreads() const;
+
 
     private:
         void Init(uint32_t nthreads);
