@@ -9,6 +9,7 @@
 #include "Vulkan/Buffer.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include "Scene/Components/Base.h"
 #include "Scene/Components/Camera.h"
@@ -311,6 +312,14 @@ void Editor::SceneViewer::InitCamera()
         auto cameraEntity = mScene->GetCameraEntity();
         auto& baseComponent = cameraEntity->GetComponent<Common::Components::Base>();
         auto& cameraComponent = cameraEntity->GetComponent<Common::Components::Camera>();
+
+        Jnrlib::Vec3 scale;
+        Jnrlib::Quaternion rotation;
+        Jnrlib::Position translation;
+        Jnrlib::Vec3 skew;
+        Jnrlib::Vec4 perspective;
+        glm::decompose(baseComponent.world, scale, rotation, translation, skew, perspective);
+
         CreateInfo::Camera cameraInfo;
         {
             cameraInfo.fieldOfView = glm::pi<float>() / 4.0f;
@@ -318,7 +327,7 @@ void Editor::SceneViewer::InitCamera()
             cameraInfo.roll = cameraComponent.roll;
             cameraInfo.yaw = cameraComponent.yaw;
             cameraInfo.pitch = cameraComponent.pitch;
-            cameraInfo.position = baseComponent.position;
+            cameraInfo.position = translation;
             cameraInfo.RecalculateViewport((uint32_t)mWidth, (uint32_t)mHeight);
         }
         mCamera.reset(new Common::EditorCamera(cameraInfo));

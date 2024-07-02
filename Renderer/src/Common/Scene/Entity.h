@@ -47,6 +47,11 @@ namespace Common
         bool HasChildren() const;
         std::vector<Entity*>const& GetChildren() const;
 
+        Entity *GetParent() const
+        {
+            return mParentEntity;
+        }
+
         operator bool() const
         {
             return mEntity != entt::null;

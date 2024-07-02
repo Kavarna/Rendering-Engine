@@ -13,6 +13,7 @@
 #include "MaterialManager.h"
 
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/matrix_decompose.hpp"
 
 using namespace Common;
 using namespace Systems;
@@ -35,11 +36,18 @@ RealtimeRender::~RealtimeRender()
 
 void RealtimeRender::DrawAccelerationStructure(Base const& base, AccelerationStructure const& accelerationStructure)
 {
+    Jnrlib::Vec3 scale;
+    Jnrlib::Quaternion rotation;
+    Jnrlib::Position translation;
+    Jnrlib::Vec3 skew;
+    Jnrlib::Vec4 perspective;
+    glm::decompose(base.world, scale, rotation, translation, skew, perspective);
+
     for (auto const& node : accelerationStructure.nodes)
     {
         Jnrlib::BoundingBox bb = node.bounds;
-        bb.pMin += base.position;
-        bb.pMax += base.position;
+        bb.pMin += translation;
+        bb.pMax += translation;
         mBatchRenderer.WireframeBoundingBox(bb, Jnrlib::Cyan);
     }
 }
@@ -71,7 +79,14 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             {
                 PerObjectInfo* objectInfo = (PerObjectInfo*)mPerObjectBuffer->GetElement(update.bufferIndex);
 
-                objectInfo->world = glm::translate(glm::identity<glm::mat4x4>(), base.position);
+                objectInfo->world = base.world;
+                auto parent = base.entityPtr->GetParent();
+                while (parent != nullptr)
+                {
+                    auto& parentBase = parent->GetComponent<Base>();
+                    objectInfo->world = objectInfo->world * parentBase.world;
+                    parent = parent->GetParent();
+                }
                 objectInfo->materialIndex = mesh.material->GetMaterialIndex();
                 /* TODO: Simply this - move the material to base + move radius to scaling */
                 if (auto sphere = base.entityPtr->TryGetComponent<Sphere>(); sphere != nullptr) [[unlikely]]

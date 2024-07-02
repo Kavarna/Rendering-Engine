@@ -5,6 +5,8 @@
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Base.h"
 
+#include <glm/gtx/matrix_decompose.hpp>
+
 struct RayForPixelInfo
 {
     Jnrlib::Float pixelX;
@@ -59,7 +61,14 @@ Common::Ray Common::CameraUtils::GetRayForPixel(Common::Components::Camera const
         rp.projectionSize = camera->projectionSize;
         rp.viewportSize = camera->viewportSize;
 
-        rp.position = camera->baseComponent.position;
+        Jnrlib::Vec3 scale;
+        Jnrlib::Quaternion rotation;
+        Jnrlib::Position translation;
+        Jnrlib::Vec3 skew;
+        Jnrlib::Vec4 perspective;
+        glm::decompose(camera->baseComponent.world, scale, rotation, translation, skew, perspective);
+
+        rp.position = translation;
         rp.upperLeftForner = camera->upperLeftCorner;
         rp.forwardDirection = camera->forwardDirection;
         rp.rightDirection = camera->rightDirection;

@@ -9,17 +9,24 @@ namespace Common
     {
     public:
         Ray() = default;
-        Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction) :
-            origin(position), direction(glm::normalize(direction))
+        Ray(Jnrlib::Position const& position, Jnrlib::Direction const& direction, Jnrlib::Float t = Jnrlib::Infinity) :
+            origin(position), direction(glm::normalize(direction)), maxT(t)
         { }
         Jnrlib::Position At(Jnrlib::Float t) const
         {
             return origin + direction * t;
         }
+        Ray TransformedRay(Jnrlib::Matrix4x4 const& inverseWorld)
+        {
+            Jnrlib::Direction transformedDirection = Jnrlib::Matrix3x3(inverseWorld) * direction;
+            Jnrlib::Position transformedOrigin = inverseWorld * glm::vec4(origin, 1.0f);
+
+            return Ray(transformedOrigin, transformedDirection, maxT);
+        }
 
         ~Ray()
         {
-            if (mSaveRays)
+            if (mSaveRays) [[unlikely]]
             {
                 /* Save the ray for possible replay */
                 mPositions.push_back(origin);

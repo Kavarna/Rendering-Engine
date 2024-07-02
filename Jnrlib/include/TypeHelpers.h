@@ -108,6 +108,14 @@ namespace Jnrlib
 
     using Float = float;
 
+    using Matrix4x4 = glm::mat4x4;
+    using Matrix3x3 = glm::mat3x3;
+
+    using Vec3 = glm::vec3;
+    using Vec4 = glm::vec4;
+
+    using Quaternion = glm::quat;
+
 #elif USE_FLOAT64
 #pragma message("USE_FLOAT64 is not fully tested and might yield some bad results")
     using Color = glm::dvec4;
@@ -115,6 +123,15 @@ namespace Jnrlib
     using Direction = glm::dvec3;
 
     using Float = double;
+
+    using Matrix4x4 = glm::dmat4x4;
+    using Matrix3x3 = glm::dmat3x3;
+
+    using Vec3 = glm::dvec3;
+    using Vec4 = glm::dvec4;
+
+    using Quaternion = glm::dquat;
+
 #endif
 
 

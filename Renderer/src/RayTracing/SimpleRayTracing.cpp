@@ -43,8 +43,14 @@ void SimpleRayTracing::Render()
 void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
 {
     auto& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
-    Jnrlib::Color color = Jnrlib::Blue * (Jnrlib::Float)0.2f;
+
     auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
+
+    Jnrlib::Float t = Jnrlib::Half * (ray.direction.y + Jnrlib::One);
+    Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);
+    Jnrlib::Color blueSkyColor = Jnrlib::Color(Jnrlib::Quarter, Jnrlib::Quarter, Jnrlib::One, 1.0f);
+
+    Jnrlib::Color color = t * whiteSkyColor + (Jnrlib::One - t) * blueSkyColor;
 
     if (auto hp = mScene.GetClosestHit(ray); hp.has_value())
     {
@@ -53,7 +59,7 @@ void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
         if (std::optional<ScatterInfo> scatterInfo = material->Scatter(ray, *hp); scatterInfo.has_value())
             color = scatterInfo->attenuation;
 
-        Jnrlib::Float attenuation = glm::dot(hp->GetNormal(), glm::normalize(Jnrlib::Direction(0.5f, 0.5f, -1.0f)));
+        Jnrlib::Float attenuation = std::clamp(glm::dot(hp->GetNormal(), glm::normalize(Jnrlib::Direction(0.5f, 0.5f, -1.0f))) + 0.2f, Jnrlib::Zero, Jnrlib::One);
         color *= attenuation;
     }
 

@@ -4,6 +4,8 @@
 #include "Scene/Components/Camera.h"
 #include "Scene/Components/Base.h"
 
+#include <glm/gtx/matrix_decompose.hpp>
+
 using namespace RayTracing;
 using namespace Common;
 
@@ -42,7 +44,15 @@ void PathTracing::TracePixel(uint32_t x, uint32_t y)
 {
     auto const& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
     auto const& baseComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Base>();
-    Jnrlib::Position pos = baseComponent.position;
+
+    Jnrlib::Vec3 scale;
+    Jnrlib::Quaternion rotation;
+    Jnrlib::Position translation;
+    Jnrlib::Vec3 skew;
+    Jnrlib::Vec4 perspective;
+    glm::decompose(baseComponent.world, scale, rotation, translation, skew, perspective);
+
+    Jnrlib::Position pos = translation;
     Jnrlib::Direction rightDirection = cameraComponent.GetRightDirection();
     Jnrlib::Direction upDirection = cameraComponent.GetUpDirection();
 

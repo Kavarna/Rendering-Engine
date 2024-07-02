@@ -10,6 +10,8 @@
 
 #include "Material/Lambertian.h"
 
+#include <glm/gtx/matrix_decompose.hpp>
+
 using namespace Common;
 using namespace Components;
 using namespace Systems;
@@ -27,10 +29,6 @@ static std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, S
      * ray = o + t * d
      */
     Float radius = s.radius;
-    Float px = base.position.x;
-    Float py = base.position.y;
-    Float pz = base.position.z;
-
     Float ox = r.origin.x;
     Float oy = r.origin.y;
     Float oz = r.origin.z;
@@ -40,9 +38,9 @@ static std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, S
     Float dz = r.direction.z;
 
     /* Extracing the components for the equation ax^2 + bx + c = 0 */
-    Float lx = ox - px;
-    Float ly = oy - py;
-    Float lz = oz - pz;
+    Float lx = ox;
+    Float ly = oy;
+    Float lz = oz;
 
     Float a = dx * dx + dy * dy + dz * dz;
     Float b = 2 * (dx * lx + dy * ly + dz * lz);
@@ -66,8 +64,15 @@ static std::optional<HitPoint> RaySphereIntersection(Ray& r, Base const& base, S
         return std::nullopt;
     }
 
+    Jnrlib::Vec3 scale;
+    Jnrlib::Quaternion rotation;
+    Jnrlib::Position translation;
+    Jnrlib::Vec3 skew;
+    Jnrlib::Vec4 perspective;
+    glm::decompose(base.world, scale, rotation, translation, skew, perspective);
+
     Position hitPosition = r.At(t1);
-    Direction normal = hitPosition - base.position;
+    Direction normal = glm::normalize(hitPosition - translation);
 
     if (fabs(intersectionPoint) < EPSILON || intersectionPoint > r.maxT)
         return std::nullopt;
@@ -260,9 +265,9 @@ static std::optional<HitPoint> RayMeshIntersectionSlow(Ray& r, Base const& base,
         uint32_t index1 = indices[mesh.indices.firstIndex + i * 3 + 1];
         uint32_t index2 = indices[mesh.indices.firstIndex + i * 3 + 2];
 
-        glm::vec3 p0 = vertices[mesh.indices.firstVertex + index0].position + base.position;
-        glm::vec3 p1 = vertices[mesh.indices.firstVertex + index1].position + base.position;
-        glm::vec3 p2 = vertices[mesh.indices.firstVertex + index2].position + base.position;
+        glm::vec3 p0 = vertices[mesh.indices.firstVertex + index0].position;
+        glm::vec3 p1 = vertices[mesh.indices.firstVertex + index1].position;
+        glm::vec3 p2 = vertices[mesh.indices.firstVertex + index2].position;
 
         float barycentrics[3];
         if (RayTriangleIntersection(r, p0, p1, p2, &t, barycentrics))
@@ -318,8 +323,6 @@ static std::optional<HitPoint> RayMeshIntersectionFast(Ray &r, Base const& base,
     {
         const Common::Components::LinearBVHNode* node = &accelStructure.nodes[currentNodeIndex];
         auto bounds = node->bounds;
-        bounds.pMin += base.position;
-        bounds.pMax += base.position;
         if (RayAABBIntersectionFast(r, bounds, invDir, isDirNeg))
         {
             if (node->primitiveCount)
@@ -331,9 +334,9 @@ static std::optional<HitPoint> RayMeshIntersectionFast(Ray &r, Base const& base,
                     auto index1 = mesh.indices.firstIndex + (node->primitiveOffset + i) * 3 + 1;
                     auto index2 = mesh.indices.firstIndex + (node->primitiveOffset + i) * 3 + 2;
 
-                    glm::vec3 p0 = vertices[mesh.indices.firstVertex + indices[index0]].position + base.position;
-                    glm::vec3 p1 = vertices[mesh.indices.firstVertex + indices[index1]].position + base.position;
-                    glm::vec3 p2 = vertices[mesh.indices.firstVertex + indices[index2]].position + base.position;
+                    glm::vec3 p0 = vertices[mesh.indices.firstVertex + indices[index0]].position;
+                    glm::vec3 p1 = vertices[mesh.indices.firstVertex + indices[index1]].position;
+                    glm::vec3 p2 = vertices[mesh.indices.firstVertex + indices[index2]].position;
 
                     Float barycentrics[3]{};
                     float t;
@@ -406,7 +409,6 @@ Intersection::~Intersection()
 
 std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registry& objects, Common::Scene const* scene)
 {
-
     std::optional<HitPoint> finalHitPoint;
     Direction invDir = One / r.origin;
     {
@@ -414,7 +416,19 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
         auto view = objects.view<const Base, const Sphere>();
         for (auto const& [entity, base, sphere] : view.each())
         {
-            std::optional<HitPoint> hp = RaySphereIntersection(r, base, sphere);
+            /* TODO: This code is duplicated; Ideally we should not do this during raytracing => bake all world matrices */
+            Jnrlib::Matrix4x4 world = base.world;
+            auto parent = base.entityPtr->GetParent();
+            while (parent != nullptr)
+            {
+                auto &parentBase = parent->GetComponent<Base>();
+                world = world * parentBase.world;
+                parent = parent->GetParent();
+            }
+            Jnrlib::Matrix4x4 inverseWorld = glm::inverse(world);
+
+            auto localSpaceRay = r.TransformedRay(inverseWorld);
+            std::optional<HitPoint> hp = RaySphereIntersection(localSpaceRay, base, sphere);
 
             if (!hp.has_value())
                 continue;
@@ -424,6 +438,7 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
             hp->SetEntity(base.entityPtr);
 
             finalHitPoint = hp.value();
+            r.maxT = localSpaceRay.maxT;
         }
     }
 
@@ -432,10 +447,22 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
         auto view = objects.view<const Base, const Mesh, const AccelerationStructure>();
         for (auto const& [entity, base, mesh, accel] : view.each())
         {
-            if (auto ptr = base.entityPtr->TryGetComponent<Sphere>(); ptr != nullptr)
+            if (auto ptr = base.entityPtr->TryGetComponent<Sphere>(); ptr != nullptr) [[unlikely]]
                 continue;
 
-            std::optional<HitPoint> hp = RayMeshIntersectionFast(r, base, mesh, accel, scene);
+            /* TODO: This code is duplicated; Ideally we should not do this during raytracing => bake all world matrices */
+            Jnrlib::Matrix4x4 world = base.world;
+            auto parent = base.entityPtr->GetParent();
+            while (parent != nullptr)
+            {
+                auto &parentBase = parent->GetComponent<Base>();
+                world = world * parentBase.world;
+                parent = parent->GetParent();
+            }
+            Jnrlib::Matrix4x4 inverseWorld = glm::inverse(world);
+
+            auto localSpaceRay = r.TransformedRay(inverseWorld);
+            std::optional<HitPoint> hp = RayMeshIntersectionFast(localSpaceRay, base, mesh, accel, scene);
 
             if (!hp.has_value())
                 continue;
@@ -445,6 +472,7 @@ std::optional<Common::HitPoint> Intersection::IntersectRay(Ray& r, entt::registr
             hp->SetEntity(base.entityPtr);
 
             finalHitPoint = hp.value();
+            r.maxT = localSpaceRay.maxT;
         }
     }
     return finalHitPoint;

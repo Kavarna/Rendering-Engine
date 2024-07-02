@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "Components/Update.h"
+#include "Components/Base.h"
 #include "Constants.h"
 
 using namespace Common;
@@ -8,6 +9,9 @@ void Entity::UpdateBase()
 {
     auto& u = GetComponent<Components::Update>();
     u.dirtyFrames = Common::Constants::FRAMES_IN_FLIGHT;
+
+    auto &base = GetComponent<Components::Base>();
+    base.inverseWorld = glm::inverse(base.world);
 }
 
 void Entity::SetParent(Entity* parentEntity)

@@ -13,6 +13,8 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 
+#include <glm/gtx/transform.hpp>
+
 using namespace Common;
 using namespace Jnrlib;
 
@@ -390,7 +392,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
 
         /* Handle Base */
         entity->AddComponent(
-            Components::Base{.position = p.position, .name = p.name, .entityPtr = entity.get()}
+            Components::Base{.world = glm::translate(p.position), .name = p.name, .entityPtr = entity.get()}
         );
 
         /* Make sure that there's a material to be used */
@@ -403,6 +405,7 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                 Components::Update{.dirtyFrames = Constants::FRAMES_IN_FLIGHT, .bufferIndex = currentBufferIndex++}
             );
             mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
+            entity->UpdateBase();
         }
 
         switch (p.primitiveType)
@@ -500,7 +503,7 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
     std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
     entity->AddComponent<Components::Base>(
         Components::Base{
-            .position = cameraInfo.position,
+            .world = glm::translate(cameraInfo.position),
             .name = "Camera",
             .entityPtr = entity.get()}
     );
@@ -526,6 +529,7 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
         mRegistry.on_update<Components::Camera>().connect<&Components::Camera::Update>(cameraComponent);
 
         mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
+        entity->UpdateBase();
     }
 
 

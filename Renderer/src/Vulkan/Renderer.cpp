@@ -452,11 +452,6 @@ void Renderer::InitDearImGui()
 
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowMinSize = ImVec2(64, 64);
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(mWindow, true);

@@ -6,6 +6,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 glm::vec3 Common::Components::Camera::GetUpperLeftCorner() const
 {
@@ -35,7 +36,14 @@ void Common::Components::Camera::Update()
     rightDirection = Constants::DEFAULT_RIGHT_DIRECTION * rotateMatrix;
     upDirection = glm::cross(forwardDirection, rightDirection);
 
-    upperLeftCorner = baseComponent.position +
+    Jnrlib::Vec3 scale;
+    Jnrlib::Quaternion rotation;
+    Jnrlib::Position translation;
+    Jnrlib::Vec3 skew;
+    Jnrlib::Vec4 perspective;
+    glm::decompose(baseComponent.world, scale, rotation, translation, skew, perspective);
+
+    upperLeftCorner = translation +
         forwardDirection * focalDistance - rightDirection * viewportSize.x * Jnrlib::Half +
         upDirection * viewportSize.y * Jnrlib::Half;
 }

@@ -12,6 +12,9 @@
 #include "Common/Scene/Components/Mesh.h"
 #include "Common/Scene/Components/AccelerationStructure.h"
 
+#include <glm/gtx/transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+
 using namespace Editor;
 using namespace Common;
 using namespace Common::Components;
@@ -73,9 +76,16 @@ void ObjectInspector::ClearSelection()
 
 void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
 {
-
     std::string name = b.name;
-    glm::vec3 position = b.position;
+
+    Jnrlib::Vec3 scale;
+    Jnrlib::Quaternion rotation;
+    Jnrlib::Position translation;
+    Jnrlib::Vec3 skew;
+    Jnrlib::Vec4 perspective;
+    glm::decompose(b.world, scale, rotation, translation, skew, perspective);
+
+    glm::vec3 position = translation;
 
     auto inputTextFlags = ImGuiInputTextFlags_CharsNoBlank | ImGuiInputTextFlags_EnterReturnsTrue;
     if (isUpdatable)
@@ -106,7 +116,8 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
     {
         mActiveEntity->PatchComponent<Base>([&](Base& b)
         {
-            b.position = position;
+            // b.position = position;
+            // b.world = glm::translate(position);
         });
     }
 }

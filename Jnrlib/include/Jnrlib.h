@@ -1,7 +1,7 @@
 #pragma once
 
-#include "glog/logging.h"
-#include "glm/glm.hpp"
+#include <glog/logging.h>
+#include <glm/glm.hpp>
 
 #include "Singletone.h"
 #include "CountParameters.h"
