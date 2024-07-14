@@ -15,27 +15,31 @@ FILE(GLOB IMGUI_SOURCES "../external/imgui/*.h" "../external/imgui/*.cpp")
 FILE(GLOB IMGUI_MISC_SOURCES "../external/imgui/misc/cpp/*.h" "../external/imgui/misc/cpp/*.cpp")
 list (APPEND SOURCES ${IMGUI_SOURCES})
 list (APPEND SOURCES ${IMGUI_MISC_SOURCES})
-add_executable("Renderer" ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 set(VULKAN_SDK "$ENV{VULKAN_SDK}")
 
 include_directories("${VULKAN_SDK}/Include/vma/")
 find_package(Vulkan REQUIRED FATAL_ERROR)
 
-target_link_libraries("Renderer" Vulkan::Vulkan)
-target_link_libraries("Renderer" glfw)  
-target_link_libraries("Renderer" Jnrlib)
-target_link_libraries("Renderer" ${CONAN_LIBS})
+# 3rd party libs
+target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)
+
+# Internal libs
+target_link_libraries(${PROJECT_NAME} Jnrlib)
+
+# Conan libs
+target_link_libraries(${PROJECT_NAME} boost::boost glm::glm glog::glog effolkronium_random magic_enum::magic_enum nlohmann_json::nlohmann_json EnTT::EnTT assimp::assimp)
 
 if (BUILD_TESTS)
-    target_link_libraries("Renderer" gtest_main)
+    target_link_libraries(${PROJECT_NAME} gtest_main)
 endif(BUILD_TESTS)
 
 make_filters("${SOURCES}")
 
-set_target_properties("Renderer" PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_target_properties(${PROJECT_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
-set_property(TARGET "Renderer" PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 # Add external dependencies
 include_directories("../external/glfw/include")
@@ -58,12 +62,12 @@ foreach(SHADER_SOURCE ${EDITOR_SHADERS})
     set(target_name "Shader_${SHADER_FILE_NAME}")
     add_custom_target(${target_name} ALL
                       DEPENDS ${COMPILED_SHADER})
-    add_dependencies("Renderer" ${target_name})
+    add_dependencies(${PROJECT_NAME} ${target_name})
 
     install(FILES ${COMPILED_SHADER} DESTINATION "bin/Shaders")
 
 endforeach()
 
 # Install project
-install(TARGETS "Renderer"
+install(TARGETS ${PROJECT_NAME}
         DESTINATION "bin")

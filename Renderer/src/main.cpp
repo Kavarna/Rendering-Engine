@@ -1,6 +1,7 @@
 #include "boost/program_options.hpp"
 #include <iostream>
 #include <optional>
+#include <functional>
 
 #ifdef BUILD_TESTS
 #include "gtest/gtest.h"
@@ -8,7 +9,9 @@
 #include "Jnrlib.h"
 #include "Scene/SceneParser.h"
 #include "Vulkan/Renderer.h"
+#include "RayTracing/Renderer.h"
 #include "Common/MaterialManager.h"
+#include "Common/Scene/Scene.h"
 #include "ThreadPool.h"
 #include "Editor/Editor.h"
 
@@ -54,7 +57,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
                     result.mode = ApplicationMode::TESTING;
                 }
             }), "Run all tests")
-        ("editor,e", bool_switch()->default_value(true)->notifier([&](bool value)
+        ("editor,e", bool_switch()->default_value(false)->notifier([&](bool value)
             {
                 if (value)
                 {
@@ -92,7 +95,7 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
         store(command_line_parser(argc, argv).options(visibleOptions).positional(inputFiles).run(), vm);
         notify(vm);
 
-        if (vm.count("help"))
+        if (vm.count("help") || result.mode == ApplicationMode::UNDEFINED)
         {
             std::cout << visibleOptions << std::endl;
             return std::nullopt;
@@ -159,7 +162,8 @@ int main(int argc, char const* argv[])
         
         for (auto& parsedScene : parsedScenes)
         {
-            // Renderer::RenderScene(parsedScene);
+            auto s = std::make_unique<Common::Scene>(parsedScene.sceneInfo);
+            RayTracing::RenderScene(s, parsedScene.rendererInfo);
         }
     }
     else if (options->mode == ApplicationMode::EDITOR)
@@ -167,15 +171,23 @@ int main(int argc, char const* argv[])
         using Common::SceneParser;
         LOG(INFO) << "Starting application in editor mode";
         std::vector<SceneParser::ParsedScene> parsedScenes;
-        parsedScenes.reserve(options->sceneFiles.size());
-        for (const auto& it : options->sceneFiles)
+        if (options->sceneFiles.size() > 0)
         {
-            if (auto parsedScene = SceneParser::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+            parsedScenes.reserve(options->sceneFiles.size());
+            for (const auto &it : options->sceneFiles)
             {
-                Common::MaterialManager::Get()->AddMaterials(parsedScene->materialsInfo);
-                parsedScene->sceneInfo.alsoBuildForRealTimeRendering = true;
-                parsedScenes.emplace_back(std::move(*parsedScene));
+                if (auto parsedScene = SceneParser::Get()->LoadSceneFromFile(it); parsedScene.has_value())
+                {
+                    Common::MaterialManager::Get()->AddMaterials(parsedScene->materialsInfo);
+                    parsedScene->sceneInfo.alsoBuildForRealTimeRendering = true;
+                    parsedScenes.emplace_back(std::move(*parsedScene));
+                }
             }
+        }
+        else
+        {
+            SceneParser::ParsedScene scene;
+            /* TODO: Create a default scene and load it */
         }
 
         Editor::Editor::Get(options->enableValidationLayer, parsedScenes)->Run();

@@ -1,13 +1,14 @@
 [requires]
-glm/0.9.9.8
-boost/1.80.0
+glm/1.0.1
+boost/1.85.0
 glog/0.6.0
-nlohmann_json/3.11.1
+nlohmann_json/3.11.3
 pngpp/0.2.10
-effolkronium-random/1.4.1
+effolkronium-random/1.5.0
 entt/3.11.1
 magic_enum/0.9.2
-assimp/5.2.2
+assimp/5.4.1
 
 [generators]
+CMakeDeps
 CMakeToolchain

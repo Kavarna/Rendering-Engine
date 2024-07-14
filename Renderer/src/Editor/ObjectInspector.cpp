@@ -116,6 +116,7 @@ void ObjectInspector::RenderBase(Base& b, bool isUpdatable)
     {
         mActiveEntity->PatchComponent<Base>([&](Base& b)
         {
+            b.world = glm::translate(position);
             // b.position = position;
             // b.world = glm::translate(position);
         });

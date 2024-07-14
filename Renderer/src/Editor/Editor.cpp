@@ -215,7 +215,7 @@ CreateInfo::VulkanRenderer Editor::Editor::CreateRendererInfo(bool enableValidat
         LOG(INFO) << "Enabling vulkan validation layers";
         info.instanceLayers.push_back("VK_LAYER_KHRONOS_validation");
         info.instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        info.instanceLayers.push_back("VK_LAYER_LUNARG_api_dump");
+        // info.instanceLayers.push_back("VK_LAYER_LUNARG_api_dump");
     }
 
     return info;

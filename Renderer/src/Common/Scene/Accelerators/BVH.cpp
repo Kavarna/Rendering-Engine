@@ -1,5 +1,7 @@
 #include "BVH.h"
 
+#include <numeric>
+
 using namespace Common;
 using namespace Components;
 using namespace Jnrlib;
