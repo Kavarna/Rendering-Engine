@@ -385,7 +385,7 @@ void ThreadPool::ExecuteTasksUntilTaskCompleted(std::shared_ptr<struct Task> tas
 
             if (!found && !task->IsCompleted())
             {
-                throw Exceptions::TaskNotFound(task->taskID);
+                throw Exceptions::TaskNotFound(task->taskID, __FILE__, __LINE__);
             }
             else
             {
@@ -438,7 +438,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
         else
         {
             VLOG(4) << "Task" << task->taskID << " not found, throwing an exception";
-            throw Exceptions::TaskNotFound(task->taskID);
+            throw Exceptions::TaskNotFound(task->taskID, __FILE__, __LINE__);
         }
     }
 
@@ -475,7 +475,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
             return;
         }
         // And if that doesn't work, we throw an error
-        throw Exceptions::TaskNotFound(task->taskID);
+        throw Exceptions::TaskNotFound(task->taskID, __FILE__, __LINE__);
     }
     
     if (currentTask->taskID == task->taskID)
@@ -489,7 +489,7 @@ void ThreadPool::ExecuteSpecificTask(std::shared_ptr<struct Task> task)
     }
 
     // This should never happen
-    throw Exceptions::ImpossibleToGetHere("Task ID = " + std::to_string(task->taskID) + ". Could not be found");
+    throw Exceptions::ImpossibleToGetHere("Task ID = " + std::to_string(task->taskID) + ". Could not be found", __FILE__, __LINE__);
 }
 
 void ThreadPool::WaitForAllToFinish()

@@ -37,7 +37,7 @@ namespace Jnrlib
                 {
                     if (!m_singletoneInstance)
                     {
-                        throw Jnrlib::Exceptions::SingletoneNotCreated();
+                        throw Jnrlib::Exceptions::SingletoneNotCreated(__FILE__, __LINE__);
                     }
                     return m_singletoneInstance;
                 }
@@ -46,7 +46,7 @@ namespace Jnrlib
             {
                 if (m_singletoneInstance)
                 {
-                    throw Jnrlib::Exceptions::SingletoneNotUniqueAttempt();
+                    throw Jnrlib::Exceptions::SingletoneNotUniqueAttempt(__FILE__, __LINE__);
                 }
                 std::call_once(m_singletoneFlags,
                                [&]

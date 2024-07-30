@@ -118,6 +118,51 @@ std::optional<ProgramOptions> ParseCommandLine(int argc, char const* argv[])
     return result;
 }
 
+Common::SceneParser::ParsedScene CreateDefaultScene()
+{
+    Common::SceneParser::ParsedScene scene = {};
+    {
+        /* Renderer info */
+        scene.rendererInfo.maxDepth = 10;
+        scene.rendererInfo.numSamples = 100;
+        scene.rendererInfo.rendererType = CreateInfo::RayTracingType::SimpleRayTracing;
+    }
+    {
+        /* Default materials */
+        CreateInfo::Material defaultMaterial = {};
+        {
+            defaultMaterial.name = "Green";
+            defaultMaterial.attenuation = Jnrlib::Green;
+            defaultMaterial.type = CreateInfo::MaterialType::Lambertian;
+            defaultMaterial.mask |= CreateInfo::Material::Attenuation;
+        }
+        scene.materialsInfo.push_back(defaultMaterial);
+    }
+    {
+        scene.sceneInfo.alsoBuildForRealTimeRendering = true;
+        scene.sceneInfo.imageInfo.width = 1024;
+        scene.sceneInfo.imageInfo.height = 1024;
+        scene.sceneInfo.outputFile = "output.png";
+        scene.sceneInfo.cameraInfo.position = Jnrlib::Position(0.0f, 5.0f, 0.0f);
+        scene.sceneInfo.cameraInfo.focalDistance = 1.0f;
+        scene.sceneInfo.cameraInfo.fieldOfView = 0.9f;
+        scene.sceneInfo.cameraInfo.RecalculateViewport((uint32_t)scene.sceneInfo.imageInfo.width, (uint32_t)scene.sceneInfo.imageInfo.height);
+
+        CreateInfo::Primitive earthPrimitive = {};
+        {
+            earthPrimitive.materialName = "Green";
+            earthPrimitive.name = "Earth";
+            earthPrimitive.position = Jnrlib::Position(0.0f, -10000.f, 0.0f);
+            earthPrimitive.radius = 10000.f;
+            earthPrimitive.primitiveType = CreateInfo::PrimitiveType::Sphere;
+        }
+
+        scene.sceneInfo.primitives.push_back(earthPrimitive);
+    }
+
+    return scene;
+}
+
 int main(int argc, char const* argv[])
 {
     FLAGS_logtostderr = true;
@@ -186,8 +231,9 @@ int main(int argc, char const* argv[])
         }
         else
         {
-            SceneParser::ParsedScene scene;
-            /* TODO: Create a default scene and load it */
+            SceneParser::ParsedScene scene = CreateDefaultScene();
+            Common::MaterialManager::Get()->AddMaterials(scene.materialsInfo);
+            parsedScenes.push_back(scene);
         }
 
         Editor::Editor::Get(options->enableValidationLayer, parsedScenes)->Run();

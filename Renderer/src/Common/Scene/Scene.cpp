@@ -362,6 +362,8 @@ Components::Indices& Common::Scene::GetMeshIndices(std::string const& meshName)
 
 void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool buildRealtime)
 {
+    CHECK(primitives.size() > 0) << "There must be at least one object to be rendered";
+
     Helpers::ModelLoader loader(this);
     uint32_t currentBufferIndex = 0;
     mEntities.reserve(primitives.size());

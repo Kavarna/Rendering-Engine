@@ -37,7 +37,7 @@ nlohmann::json get_sub_js(nlohmann::json& js, const char* key)
     }
     catch (...)
     {
-        throw Jnrlib::Exceptions::FieldNotFound(key, "nlohmann::json");
+        throw Jnrlib::Exceptions::FieldNotFound(key, "nlohmann::json", __FILE__, __LINE__);
     }
 }
 
