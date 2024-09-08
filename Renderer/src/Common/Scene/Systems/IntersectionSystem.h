@@ -10,13 +10,6 @@ namespace Common
     class Scene;
 }
 
-namespace Common::Components
-{
-    struct Base;
-    struct Sphere;
-    struct Mesh;
-}
-
 namespace Common::Systems
 {
     class Intersection : public Jnrlib::ISingletone<Intersection>

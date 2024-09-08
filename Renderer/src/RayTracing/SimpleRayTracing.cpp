@@ -43,8 +43,9 @@ void SimpleRayTracing::Render()
 void SimpleRayTracing::TracePixel(uint32_t x, uint32_t y)
 {
     auto& cameraComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Camera>();
+    auto &cameraBaseComponent = mScene.GetCameraEntity()->GetComponent<Common::Components::Base>();
 
-    auto ray = Common::CameraUtils::GetRayForPixel(&cameraComponent, x, y);
+    auto ray = Common::CameraUtils::GetRayForPixel(&cameraBaseComponent, &cameraComponent, x, y);
 
     Jnrlib::Float t = Jnrlib::Half * (ray.direction.y + Jnrlib::One);
     Jnrlib::Color whiteSkyColor = Jnrlib::Color(Jnrlib::Half);

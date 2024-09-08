@@ -3,6 +3,7 @@
 #include "ObjectInspector.h"
 
 #include "Scene/Components/Base.h"
+#include "Common/CreateInfo/SceneCreateInfo.h"
 
 #include "imgui.h"
 
@@ -11,6 +12,33 @@ using namespace Editor;
 SceneHierarchy::SceneHierarchy(Common::Scene* scene, SceneViewer* sceneViewer, ObjectInspector* objInspector) :
     mScene(scene), mSceneViewer(sceneViewer), mObjectInspector(objInspector)
 {
+}
+
+void SceneHierarchy::MenuPerNode(Common::Entity *entity)
+{
+    if (ImGui::BeginPopupContextItem())
+    {
+        if (ImGui::MenuItem("Rename"))
+        {
+            mRenameStarted = true;
+            mEntityToRename = entity;
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if (mRenameStarted && entity == mEntityToRename)
+    {
+        auto &lbase = mEntityToRename->GetComponent<Common::Components::Base>();
+        std::string newName(lbase.name);
+        newName.resize(Common::Constants::MAX_NAME_SIZE);
+        if (ImGui::InputText("New name", (char *)newName.c_str(), Common::Constants::MAX_NAME_SIZE, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CharsNoBlank))
+        {
+            lbase.name = newName;
+            mRenameStarted = false;
+            mEntityToRename = nullptr;
+        }
+    }
 }
 
 Common::Entity* SceneHierarchy::RenderNode(Common::Entity* entity)
@@ -36,6 +64,7 @@ Common::Entity* SceneHierarchy::RenderNode(Common::Entity* entity)
         selectedEntity = entity;
     }
 
+    MenuPerNode(entity);
 
     if (isNodeOpen)
     {
@@ -64,7 +93,17 @@ void SceneHierarchy::OnRender()
         ImGui::End();
         return;
     }
-    
+
+    if (ImGui::BeginPopupContextWindow())
+    {
+        if (ImGui::MenuItem("Add new object"))
+        {
+            mScene->AddNewEntity(true, nullptr);
+        }
+
+        ImGui::EndPopup();
+    }
+
     Common::Entity* selectedEntity = nullptr; 
     for (uint32_t i = 0; i < entities.size(); ++i)
     {
@@ -102,7 +141,7 @@ void SceneHierarchy::SelectEntity(Common::Entity* entity)
     {
         mSelectedEntities.clear();
         mSelectedEntities.insert(entity);
-        mObjectInspector->SetEntity(entity);
+        mObjectInspector->SetEntity(entity, mScene);
     }
     if (mSceneViewer != nullptr)
         mSceneViewer->SelectEntities(mSelectedEntities);

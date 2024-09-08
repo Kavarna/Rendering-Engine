@@ -11,6 +11,7 @@ namespace Common
 namespace Common::Components
 {
     struct Camera;
+    struct Base;
 }
 
 namespace Common
@@ -19,6 +20,6 @@ namespace Common
     {
     public:
         static Ray GetRayForPixel(Common::EditorCamera const*, uint32_t x, uint32_t y);
-        static Ray GetRayForPixel(Common::Components::Camera const*, uint32_t x, uint32_t y);
+        static Ray GetRayForPixel(Common::Components::Base const *baseComponent, Common::Components::Camera const*, uint32_t x, uint32_t y);
     };
 }

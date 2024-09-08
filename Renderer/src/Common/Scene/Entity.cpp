@@ -16,19 +16,15 @@ void Entity::UpdateBase()
 
 void Entity::SetParent(Entity* parentEntity)
 {
+    if (parentEntity == nullptr)
+        return;
+
     if (parentEntity == mParentEntity)
         return;
 
-    for (uint32_t i = 0; i < parentEntity->mChildEntities.size(); ++i)
-    {
-        if (parentEntity->mChildEntities[i] == this)
-        {
-            mParentEntity = parentEntity;
-            return;
-        }
-    }
     mParentEntity = parentEntity;
-    parentEntity->AddChildUnsafe(this);
+
+    parentEntity->AddChild(this);
 }
 
 void Entity::AddChild(Entity* childEntity)

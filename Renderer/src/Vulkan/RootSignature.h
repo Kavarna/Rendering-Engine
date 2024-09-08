@@ -33,7 +33,7 @@ namespace Vulkan
         void BindStorageBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
 
         void AddInputBuffer(uint32_t binding, uint32_t descriptorCount, VkShaderStageFlags stages = VK_SHADER_STAGE_ALL);
-        void BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
+        void BindUniformBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex = 0, uint32_t instance = 0);
 
         void BakeLayout();
         /* Bake multiple instances */

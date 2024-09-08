@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ImguiWindow.h"
-#include "Common/Scene/Scene.h"
+#include <unordered_set>
 
 namespace Common
 {
     class Entity;
+    class Scene;
 }
 
 namespace Editor
@@ -28,10 +29,15 @@ namespace Editor
     private:
         Common::Entity* RenderNode(Common::Entity* entity);
 
+        void MenuPerNode(Common::Entity *entity);
+
     private:
         Common::Scene* mScene;
         SceneViewer* mSceneViewer;
         ObjectInspector* mObjectInspector;
+
+        Common::Entity *mEntityToRename = nullptr;
+        bool mRenameStarted = false;
 
         std::unordered_set<Common::Entity*> mSelectedEntities;
     };

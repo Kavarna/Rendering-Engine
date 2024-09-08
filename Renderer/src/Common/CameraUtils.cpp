@@ -51,7 +51,7 @@ Common::Ray Common::CameraUtils::GetRayForPixel(Common::EditorCamera const* came
     return ::GetRayForPixel(rp);
 }
 
-Common::Ray Common::CameraUtils::GetRayForPixel(Common::Components::Camera const* camera, uint32_t x, uint32_t y)
+Common::Ray Common::CameraUtils::GetRayForPixel(Common::Components::Base const* baseComponent, Common::Components::Camera const* camera, uint32_t x, uint32_t y)
 {
     RayForPixelInfo rp{};
     {
@@ -66,7 +66,7 @@ Common::Ray Common::CameraUtils::GetRayForPixel(Common::Components::Camera const
         Jnrlib::Position translation;
         Jnrlib::Vec3 skew;
         Jnrlib::Vec4 perspective;
-        glm::decompose(camera->baseComponent.world, scale, rotation, translation, skew, perspective);
+        glm::decompose(baseComponent->world, scale, rotation, translation, skew, perspective);
 
         rp.position = translation;
         rp.upperLeftForner = camera->upperLeftCorner;

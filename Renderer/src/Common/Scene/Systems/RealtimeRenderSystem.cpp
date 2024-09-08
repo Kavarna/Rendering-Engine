@@ -119,11 +119,12 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         static Jnrlib::Color skyColor = 0.5f * whiteSkyColor + 0.5f * blueSkyColor;
         cmdList->BeginRenderingOnImage(mRenderTarget, skyColor, mDepthImage, true);
     }
-    cmdList->BindPipeline(mDefaultPipeline.get());
-    cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
 
     /* Render */
     {
+        cmdList->BindPipeline(mDefaultPipeline.get());
+        cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
+
         for (auto const& [entity, base, update, mesh] : updatables.each())
         {
              if (mSelectedEntities.find(base.entityPtr) != mSelectedEntities.end())
@@ -136,10 +137,11 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
             cmdList->BindPushRange<uint32_t>(mDefaultRootSignature.get(), 0, 1, &index, VK_SHADER_STAGE_VERTEX_BIT);
             cmdList->DrawIndexedInstanced(mesh.indices.indexCount, mesh.indices.firstIndex, mesh.indices.firstVertex);
         }
+
+        DrawAccelerationStructures();
     }
 
-    DrawAccelerationStructures();
-
+    /* Render selected entities */
     if (mSelectedEntities.size())
     {
         cmdList->BindPipeline(mSelectedObjectsPipeline.get());
@@ -176,13 +178,16 @@ void RealtimeRender::RenderScene(CommandList* cmdList)
         }
     }
 
-    cmdList->BindPipeline(mDebugPipeline.get());
-    cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
-    if (mDrawCameraFrustum)
+    /* Render cameras (if any) & batch renderer*/
     {
-        DrawCameraEntities();
+        cmdList->BindPipeline(mDebugPipeline.get());
+        cmdList->BindDescriptorSet(mDefaultDescriptorSets.get(), 0, mDefaultRootSignature.get());
+        if (mDrawCameraFrustum)
+        {
+            DrawCameraEntities();
+        }
+        mBatchRenderer.End(cmdList);
     }
-    mBatchRenderer.End(cmdList);
     cmdList->EndRendering();
     mBatchRenderer.Begin();
 }
@@ -289,17 +294,36 @@ void RealtimeRender::InitRootSignatures()
 
 void RealtimeRender::InitPerObjectBuffer()
 {
+    mOldPerObjectBuffer = std::move(mPerObjectBuffer);
+
     /* Might make this not host-accessible and just copy in it whenever needed */
     mPerObjectBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(PerObjectInfo), sizeof(glm::vec4)),
         mScene->GetNumberOfObjects(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
     mDefaultDescriptorSets->BindStorageBuffer(mPerObjectBuffer.get(), 0, 0, 0);
+
+    if (mOldPerObjectBuffer)
+    {
+        /* Copy the old info */
+        for (uint32_t i = 0; i < std::min(mOldPerObjectBuffer->GetCount(), mPerObjectBuffer->GetCount()); ++i)
+        {
+            void* src = mOldPerObjectBuffer->GetElement(i);
+            void *dst = mPerObjectBuffer->GetElement(i);
+
+            memcpy(dst, src, mPerObjectBuffer->GetElementSize());
+        }
+    }
+}
+
+void RealtimeRender::ReloadObjects()
+{
+    InitPerObjectBuffer();
 }
 
 void RealtimeRender::InitUniformBuffer()
 {
     mUniformBuffer = std::make_unique<Buffer>(sizeof(UniformBuffer), 1,
                                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
-    mDefaultDescriptorSets->BindInputBuffer(mUniformBuffer.get(), 1, 0, 0);
+    mDefaultDescriptorSets->BindUniformBuffer(mUniformBuffer.get(), 1, 0, 0);
 }
 
 void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
@@ -313,11 +337,8 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
                                                                      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         localMaterialsBuffer->Copy(materials.data());
 
-
-
         mMaterialsBuffer = std::make_unique<Buffer>(Jnrlib::AlignUp(sizeof(MaterialManager::ShaderMaterial), sizeof(glm::vec4)), materials.size(),
                                                             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-
         cmdList->CopyBuffer(mMaterialsBuffer.get(), localMaterialsBuffer.get());
         cmdList->AddLocalBuffer(std::move(localMaterialsBuffer));
     }
@@ -330,7 +351,7 @@ void RealtimeRender::InitMaterialsBuffer(CommandList* cmdList)
                                                         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
         SetLight(DirectionalLight{.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), .direction = glm::vec3(0.5f, 0.5f, -1.0f)});
     }
-    mDefaultDescriptorSets->BindInputBuffer(mLightBuffer.get(), 3, 0, 0);
+    mDefaultDescriptorSets->BindUniformBuffer(mLightBuffer.get(), 3, 0, 0);
 }
 
 void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
@@ -473,19 +494,20 @@ void RealtimeRender::InitPipelines(uint32_t width, uint32_t height)
 
 void RealtimeRender::DrawCameraEntities()
 {
-    auto* cameraEntity = mScene->GetCameraEntity();
-    auto& cameraComponent = cameraEntity->GetComponent<Camera>();
+    auto *cameraEntity = mScene->GetCameraEntity();
+    auto &cameraComponent = cameraEntity->GetComponent<Camera>();
+    auto &baseComponent = cameraEntity->GetComponent<Base>();
     if (mSelectedEntities.find(const_cast<Entity*>(cameraEntity)) != mSelectedEntities.end())
     {
-        DrawCameraEntity(cameraComponent, true);
+        DrawCameraEntity(baseComponent, cameraComponent, true);
     }
     else
     {
-        DrawCameraEntity(cameraComponent, false);
+        DrawCameraEntity(baseComponent, cameraComponent, false);
     }
 }
 
-void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected)
+void RealtimeRender::DrawCameraEntity(Common::Components::Base const& baseComponent, Common::Components::Camera const& cameraComponent, bool isSelected)
 {
     std::function<void(glm::vec3)> vertex;
     if (isSelected)
@@ -512,7 +534,7 @@ void RealtimeRender::DrawCameraEntity(Common::Components::Camera const& cameraCo
     glm::vec3 corners[8];
     for (uint32_t i = 0; i < sizeof(coordinates) / sizeof(coordinates[0]); ++i)
     {
-        auto currentRay = CameraUtils::GetRayForPixel(&cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
+        auto currentRay = CameraUtils::GetRayForPixel(&baseComponent, &cameraComponent, (uint32_t)coordinates[i].x, (uint32_t)coordinates[i].y);
         corners[i] = currentRay.origin + currentRay.direction * cameraComponent.focalDistance;
         corners[i + 4] = currentRay.origin + currentRay.direction * 10.0f;
     }

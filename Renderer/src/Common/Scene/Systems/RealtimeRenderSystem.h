@@ -56,6 +56,8 @@ namespace Common::Systems
         void AddOneTimeVertex(glm::vec3 const& position, glm::vec4 const& color);
         void AddVertex(glm::vec3 const& position, glm::vec4 const& color, float timeInSeconds);
 
+        void ReloadObjects();
+
     public:
         Vulkan::Pipeline* GetDefaultPipeline();
 
@@ -70,7 +72,7 @@ namespace Common::Systems
         void DrawAccelerationStructure(Common::Components::Base const&, Common::Components::AccelerationStructure const& accelerationStructure);
         void DrawAccelerationStructures();
         void DrawCameraEntities();
-        void DrawCameraEntity(Common::Components::Camera const& cameraComponent, bool isSelected);
+        void DrawCameraEntity(Common::Components::Base const &baseComponent, Common::Components::Camera const &cameraComponent, bool isSelected);
 
     private:
         EditorCamera const* mCamera = nullptr;
@@ -110,6 +112,7 @@ namespace Common::Systems
         Common::BatchRenderer mBatchRenderer;
 
         std::unique_ptr<Vulkan::Buffer> mPerObjectBuffer;
+        std::unique_ptr<Vulkan::Buffer> mOldPerObjectBuffer;
         std::unique_ptr<Vulkan::DescriptorSet> mDefaultDescriptorSets;
 
         std::unique_ptr<Vulkan::RootSignature> mDefaultRootSignature;

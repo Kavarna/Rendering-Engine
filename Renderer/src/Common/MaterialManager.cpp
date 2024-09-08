@@ -28,6 +28,11 @@ std::shared_ptr<IMaterial> MaterialManager::GetMaterial(std::string const& name)
 	return nullptr;
 }
 
+std::shared_ptr<IMaterial> MaterialManager::GetDefaultMaterial() const
+{
+	return mMaterials.begin()->second;
+}
+
 std::vector<MaterialManager::ShaderMaterial> MaterialManager::GetShaderMaterials()
 {
 	return mShaderMaterials;

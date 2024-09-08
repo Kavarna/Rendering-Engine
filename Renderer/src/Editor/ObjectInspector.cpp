@@ -1,4 +1,5 @@
 #include "ObjectInspector.h"
+#include "SceneViewer.h"
 
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -11,6 +12,9 @@
 #include "Common/Scene/Components/Camera.h"
 #include "Common/Scene/Components/Mesh.h"
 #include "Common/Scene/Components/AccelerationStructure.h"
+#include "Common/Scene/Scene.h"
+
+#include "Common/MaterialManager.h"
 
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -18,6 +22,11 @@
 using namespace Editor;
 using namespace Common;
 using namespace Common::Components;
+
+ObjectInspector::ObjectInspector(SceneViewer *sceneViewer)
+{
+    mSceneViewer = sceneViewer;
+}
 
 void ObjectInspector::OnRender()
 {
@@ -27,7 +36,7 @@ void ObjectInspector::OnRender()
         return;
     }
 
-    if (mActiveEntity == nullptr)
+    if (mActiveEntity == nullptr || mActiveScene == nullptr)
     {
         ImGui::Text("No entity selected");
         ImGui::End();
@@ -46,7 +55,7 @@ void ObjectInspector::OnRender()
         RenderSphere(*s, isUpdatable);
     }
 
-    if (auto* c = mActiveEntity->TryGetComponent<Camera>(); c != nullptr && ImGui::CollapsingHeader("Camera"))
+    if (auto* c = mActiveEntity->TryGetComponent<Components::Camera>(); c != nullptr && ImGui::CollapsingHeader("Camera"))
     {
         RenderCamera(*c, isUpdatable);
     }
@@ -61,12 +70,48 @@ void ObjectInspector::OnRender()
         RenderAccelerationStructure(*m, isUpdatable);
     }
 
+    HandleAddComponent();
+
     ImGui::End();
 }
 
-void ObjectInspector::SetEntity(Entity* entity)
+void ObjectInspector::HandleAddComponent()
+{
+    const char *componentTypes[] = { "SphereComponent" };
+    static int currentComponentIndex = 0; // Here we store our selection data as an index.
+    const char *comboPreviewValue = componentTypes[currentComponentIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+
+    if (ImGui::BeginCombo("Component type", comboPreviewValue))
+    {
+        for (int n = 0; n < sizeof(componentTypes) / sizeof(componentTypes[0]); n++)
+        {
+            const bool isSelected = (currentComponentIndex == n);
+            if (ImGui::Selectable(componentTypes[n], isSelected))
+                currentComponentIndex = n;
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    
+    if (ImGui::Button("Add component"))
+    {
+        if (currentComponentIndex == 0)
+        {
+            std::shared_ptr<IMaterial> material = MaterialManager::Get()->GetDefaultMaterial();
+            mActiveScene->AddSphereComponent(mActiveEntity, true, material, 1.0f);
+
+            mSceneViewer->OnNewComponent();
+        }
+    }
+}
+
+void ObjectInspector::SetEntity(Entity* entity, Scene* scene)
 {
     mActiveEntity = entity;
+    mActiveScene = scene;
 }
 
 void ObjectInspector::ClearSelection()
@@ -138,7 +183,7 @@ void ObjectInspector::RenderSphere(Sphere& s, bool isUpdatable)
     }
 }
 
-void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
+void ObjectInspector::RenderCamera(Components::Camera& c, bool isUpdatable)
 {
     bool isPrimary = c.primary;
     Jnrlib::Float focalDistance = c.focalDistance;
@@ -146,7 +191,7 @@ void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
     glm::vec3 rotation = glm::vec3(c.pitch, c.yaw, c.roll);
     if (ImGui::Checkbox("Primary", &isPrimary) && isUpdatable)
     {
-        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        mActiveEntity->PatchComponent<Components::Camera>([&](Components::Camera& c)
         {
             c.primary = isPrimary;
         });
@@ -154,7 +199,7 @@ void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
 
     if (ImGui::DragFloat("Focal distance", &focalDistance, 0.01f) && isUpdatable)
     {
-        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        mActiveEntity->PatchComponent<Components::Camera>([&](Components::Camera& c)
         {
             c.focalDistance = focalDistance;
         });
@@ -162,7 +207,7 @@ void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
 
     if (ImGui::DragFloat2("Viewport size", (float*)&viewportSize, 0.01f) && isUpdatable)
     {
-        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        mActiveEntity->PatchComponent<Components::Camera>([&](Components::Camera& c)
         {
             c.viewportSize = viewportSize;
         });
@@ -170,7 +215,7 @@ void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
 
     if (ImGui::DragFloat2("Projection size", (float*)&projectionSize, 0.01f) && isUpdatable)
     {
-        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        mActiveEntity->PatchComponent<Components::Camera>([&](Components::Camera& c)
         {
             c.projectionSize = projectionSize;
         });
@@ -178,7 +223,7 @@ void ObjectInspector::RenderCamera(Camera& c, bool isUpdatable)
 
     if (ImGui::DragFloat3("Euler rotation", (float*)&rotation, 0.01f) && isUpdatable)
     {
-        mActiveEntity->PatchComponent<Camera>([&](Camera& c)
+        mActiveEntity->PatchComponent<Components::Camera>([&](Components::Camera& c)
         {
             c.pitch = rotation.x;
             c.yaw = rotation.y;

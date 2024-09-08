@@ -3,6 +3,8 @@
 #include "TypeHelpers.h"
 #include <boost/algorithm/string.hpp>
 
+#include "Constants.h"
+
 using json = nlohmann::json;
 
 
@@ -157,6 +159,8 @@ namespace CreateInfo
         j.at("type").get_to(primitiveTypeString);
         std::string positionString, materialName;
         j.at("name").get_to(p.name);
+
+        p.name.resize(Common::Constants::MAX_NAME_SIZE);
 
         p.primitiveType = GetPrimitiveTypeFromString(primitiveTypeString);
         CHECK(p.primitiveType != PrimitiveType::None) << "Primitive type " << primitiveTypeString << " is not valid";

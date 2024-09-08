@@ -142,7 +142,7 @@ if (!mSuccess)\
                 mesh.indices.indexCount = (uint32_t)context.indices.size();
                 mesh.indices.firstVertex = mScene->AddVertices(std::move(context.vertices));
                 mesh.indices.firstIndex = mScene->AddIndices(std::move(context.indices));
-                mesh.name = name;
+                // mesh.name = name;
                 mesh.material = material;
                 
                 /* Update the indices */
@@ -229,8 +229,8 @@ Scene::Scene(CreateInfo::Scene const& info) :
     mImageInfo(info.imageInfo)
 {
     LOG(INFO) << "Creating scene with info: " << info;
-    CreatePrimitives(info.primitives, info.alsoBuildForRealTimeRendering);
     CreateCamera(info.cameraInfo, info.alsoBuildForRealTimeRendering);
+    CreatePrimitives(info.primitives, info.alsoBuildForRealTimeRendering);
 }
 
 Scene::~Scene()
@@ -280,6 +280,77 @@ std::vector<Entity*>& Scene::GetRootEntities()
 std::vector<std::unique_ptr<Entity>>& Scene::GetEntities()
 {
     return mEntities;
+}
+
+Entity *Scene::AddNewEntity(std::string const &name, Jnrlib::Matrix4x4 const world, bool buildRealtime, Entity *parentEntity)
+{
+    std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
+
+    entity->AddComponent(
+        Components::Base{ .world = world, .name = name, .entityPtr = entity.get() }
+    );
+
+    if (buildRealtime)
+    {
+        entity->AddComponent(
+            Components::Update{ .dirtyFrames = Constants::FRAMES_IN_FLIGHT,.bufferIndex = (uint32_t)mRegistry.size() - 1 }
+        );
+        mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
+        entity->UpdateBase();
+    }
+
+    if (parentEntity == nullptr)
+    {
+        mRootEntities.push_back(entity.get());
+    }
+    else
+    {
+        entity->SetParent(parentEntity);
+    }
+    mEntities.push_back(std::move(entity));
+
+    return mEntities.back().get();
+}
+
+Entity* Scene::AddNewEntity(bool buildRealtime, Entity* parentEntity)
+{
+    return AddNewEntity("NewEntity", glm::identity<Jnrlib::Matrix4x4>(), buildRealtime, parentEntity);
+}
+
+void Scene::AddSphereComponent(Entity* entity, bool alsoBuildRealtime, std::shared_ptr<IMaterial> material, Jnrlib::Float radius)
+{
+    CHECK(material != nullptr) << "Can not add a sphere entity with an empty material";
+
+    if (mMeshIndices.find("Sphere") == mMeshIndices.end())
+    {
+        if (alsoBuildRealtime)
+        {
+            Components::Indices indices{};
+            indices.firstVertex = (uint32_t)mVertices.size();
+            indices.firstIndex = (uint32_t)mIndices.size();
+            uint32_t stackCount = 36;
+            uint32_t sliceCount = 36;
+            std::vector<VertexPositionNormal> sphereVertices;
+            std::vector<uint32_t> sphereIndices;
+            Sphere::GetVertices(One, sliceCount, stackCount, sphereVertices, sphereIndices);
+            AddVertices(std::move(sphereVertices));
+            AddIndices(std::move(sphereIndices));
+            indices.indexCount = (uint32_t)mIndices.size() - indices.firstIndex;
+            AddMeshIndices("Sphere", indices);
+
+            mRegistry.on_update<Components::Sphere>().connect<&Entity::UpdateBase>(entity);
+        }
+    }
+    Components::Mesh mesh{};
+    mesh.material = material;
+    mesh.name = "Sphere";
+    if (alsoBuildRealtime)
+    {
+        /* They are only needed for realtime rendering */
+        mesh.indices = GetMeshIndices("Sphere");
+    }
+    entity->AddComponent(mesh);
+    entity->AddComponent(Components::Sphere{ .radius = radius, .material = material });
 }
 
 std::optional<HitPoint> Scene::GetClosestHit(Ray& r) const
@@ -360,99 +431,50 @@ Components::Indices& Common::Scene::GetMeshIndices(std::string const& meshName)
     return mMeshIndices[meshName];
 }
 
-void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool buildRealtime)
+void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitives, bool alsoBuildRealtime)
 {
     CHECK(primitives.size() > 0) << "There must be at least one object to be rendered";
 
     Helpers::ModelLoader loader(this);
-    uint32_t currentBufferIndex = 0;
     mEntities.reserve(primitives.size());
     mRootEntities.reserve(primitives.size());
     for (uint32_t i = 0; i < primitives.size(); ++i)
     {
         auto& p = primitives[i];
-        std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
 
-        /* Handle parent-ship */
+        /* Find the parent if present */
+        Entity *parentEntity = nullptr;
         if (p.parentName.size() > 0)
         {
-            for (uint32_t j = 0; j < entity->mEntities.size(); ++j)
+            for (uint32_t j = 0; j < mRegistry.size(); ++j)
             {
                 auto* parent = mEntities[j].get();
                 auto& base = parent->GetComponent<Components::Base>();
                 if (base.name == p.parentName)
                 {
-                    parent->AddChild(entity.get());
+                    parentEntity = parent;
                     break;
                 }
             }
         }
-        else
-        {
-            mRootEntities.push_back(entity.get());
-        }
 
-        /* Handle Base */
-        entity->AddComponent(
-            Components::Base{.world = glm::translate(p.position), .name = p.name, .entityPtr = entity.get()}
-        );
+        auto *entity = AddNewEntity(p.name, glm::translate(p.position), alsoBuildRealtime, parentEntity);
 
         /* Make sure that there's a material to be used */
         auto material = MaterialManager::Get()->GetMaterial(p.materialName);
         CHECK(material) << "All primitives must have a material";
 
-        if (buildRealtime)
-        {
-            entity->AddComponent(
-                Components::Update{.dirtyFrames = Constants::FRAMES_IN_FLIGHT, .bufferIndex = currentBufferIndex++}
-            );
-            mRegistry.on_update<Components::Base>().connect<&Entity::UpdateBase>(entity.get());
-            entity->UpdateBase();
-        }
-
         switch (p.primitiveType)
         {
             case CreateInfo::PrimitiveType::Sphere:
-            {
-                if (mMeshIndices.find("Sphere") == mMeshIndices.end())
-                {
-                    if (buildRealtime)
-                    {
-                        Components::Indices indices{};
-                        indices.firstVertex = (uint32_t)mVertices.size();
-                        indices.firstIndex = (uint32_t)mIndices.size();
-                        uint32_t stackCount = 36;
-                        uint32_t sliceCount = 36;
-                        std::vector<VertexPositionNormal> sphereVertices;
-                        std::vector<uint32_t> sphereIndices;
-                        Sphere::GetVertices(One, sliceCount, stackCount, sphereVertices, sphereIndices);
-                        AddVertices(std::move(sphereVertices));
-                        AddIndices(std::move(sphereIndices));
-                        indices.indexCount = (uint32_t)mIndices.size() - indices.firstIndex;
-                        AddMeshIndices("Sphere", indices);
-
-                        mRegistry.on_update<Components::Sphere>().connect<&Entity::UpdateBase>(entity.get());
-                    }
-                }
-                Components::Mesh mesh{};
-                mesh.material = material;
-                mesh.name = p.name;
-                if (buildRealtime)
-                {
-                    /* They are only needed for realtime rendering */
-                    mesh.indices = GetMeshIndices("Sphere");
-                }
-                entity->AddComponent(mesh);
-                entity->AddComponent(Components::Sphere{.radius = p.radius, .material = material});
-
+                AddSphereComponent(entity, alsoBuildRealtime, material, p.radius);
                 break;
-            }
             case CreateInfo::PrimitiveType::Mesh:
             { 
                 std::string name = Helpers::GetMeshNameFromPath(p.path);
                 if (mMeshIndices.find(name) == mMeshIndices.end())
                 {
-                    loader.LoadModel(p.path, entity.get(), material, p.accelerationInfo);
+                    loader.LoadModel(p.path, entity, material, p.accelerationInfo);
                 }
                 else
                 {
@@ -462,8 +484,6 @@ void Scene::CreatePrimitives(std::vector<CreateInfo::Primitive> const& primitive
                 break;
             }
         }
-
-        mEntities.push_back(std::move(entity));
     }
 
     loader.Wait();
@@ -503,14 +523,14 @@ void Scene::CreateRenderingBuffers(Vulkan::CommandList* cmdList, uint32_t cmdBuf
 void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRealtime)
 {
     std::unique_ptr<Entity> entity = std::make_unique<Entity>(mRegistry.create(), mRegistry);
-    entity->AddComponent<Components::Base>(
+    auto& base = entity->AddComponent<Components::Base>(
         Components::Base{
             .world = glm::translate(cameraInfo.position),
             .name = "Camera",
             .entityPtr = entity.get()}
     );
 
-    auto& cameraComponent = entity->AddComponent(Components::Camera(entity->GetComponent<Components::Base>()));
+    auto& cameraComponent = entity->AddComponent(Components::Camera());
     {
         cameraComponent.primary = true;
         cameraComponent.focalDistance = cameraInfo.focalDistance;
@@ -519,14 +539,16 @@ void Scene::CreateCamera(CreateInfo::Camera const& cameraInfo, bool alsoBuildRea
         cameraComponent.pitch = cameraInfo.pitch;
         cameraComponent.yaw = cameraInfo.yaw;
         cameraComponent.viewportSize = glm::vec2(cameraInfo.viewportWidth, cameraInfo.viewportHeight);
-        cameraComponent.Update();
+        cameraComponent.entityPtr = entity.get();
     }
+    cameraComponent.Update();
 
     if (alsoBuildRealtime)
     {
         entity->AddComponent(
             Components::Update{.dirtyFrames = Constants::FRAMES_IN_FLIGHT, .bufferIndex = (uint32_t)mRegistry.size()}
         );
+
         mRegistry.on_update<Components::Base>().connect<&Components::Camera::Update>(cameraComponent);
         mRegistry.on_update<Components::Camera>().connect<&Components::Camera::Update>(cameraComponent);
 

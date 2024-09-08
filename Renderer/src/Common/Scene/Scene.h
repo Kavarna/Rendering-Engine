@@ -44,6 +44,11 @@ namespace Common
         std::vector<Entity*>& GetRootEntities();
         std::vector<std::unique_ptr<Entity>>& GetEntities();
 
+        Entity *AddNewEntity(std::string const &name, Jnrlib::Matrix4x4 const world, bool buildRealtime, Entity *parentEntity = nullptr);
+        Entity* AddNewEntity(bool buildRealtime, Entity* parentEntity = nullptr);
+
+        void AddSphereComponent(Entity *entity, bool alsoBuildRealtime, std::shared_ptr<IMaterial> material, Jnrlib::Float radius);
+
     public:
         std::optional<HitPoint> GetClosestHit(Ray&) const;
         uint32_t GetNumberOfObjects() const;

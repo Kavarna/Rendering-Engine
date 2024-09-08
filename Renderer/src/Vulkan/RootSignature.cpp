@@ -180,7 +180,7 @@ void DescriptorSet::AddInputBuffer(uint32_t binding, uint32_t descriptorCount, V
     mInputBufferCount++;
 }
 
-void DescriptorSet::BindInputBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
+void DescriptorSet::BindUniformBuffer(Vulkan::Buffer* buffer, uint32_t binding, uint32_t elementIndex, uint32_t instance)
 {
     auto device = Renderer::Get()->GetDevice();
     uint32_t dstArrayElement = buffer->mCount == 1 ? 0 : elementIndex;

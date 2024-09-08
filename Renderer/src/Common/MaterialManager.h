@@ -22,6 +22,7 @@ namespace Common
         void AddMaterials(std::vector<CreateInfo::Material> const& materials);
 
         std::shared_ptr<IMaterial> GetMaterial(std::string const& name) const;
+        std::shared_ptr<IMaterial> GetDefaultMaterial() const;
 
         struct ShaderMaterial
         {

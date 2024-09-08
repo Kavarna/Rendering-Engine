@@ -37,6 +37,9 @@ namespace Editor
 
         virtual void OnRender() override;
 
+        void OnNewEntity();
+        void OnNewComponent();
+
         void SelectEntities(std::unordered_set<Common::Entity*> const& selectedIndices);
         void ClearSelection();
 
@@ -49,8 +52,6 @@ namespace Editor
         void UpdatePassive();
         void UpdateActive();
         void RenderScene();
-
-        void RenderAccelerationStructures();
 
         void AddDebugVertex(glm::vec3 const& pos, glm::vec4 const& color, float time);
 

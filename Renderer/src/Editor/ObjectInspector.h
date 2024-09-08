@@ -14,17 +14,17 @@ namespace Common::Components
 
 namespace Editor
 {
-
+    class SceneViewer;
     class ObjectInspector : public ImguiWindow
     {
     public:
-        ObjectInspector() = default;
+        ObjectInspector(SceneViewer* sceneViewer);
         ~ObjectInspector() = default;
 
         virtual void OnRender() override;
 
     public:
-        void SetEntity(Common::Entity* entity);
+        void SetEntity(Common::Entity* entity, Common::Scene* scene);
         void ClearSelection();
 
     private:
@@ -34,8 +34,11 @@ namespace Editor
         void RenderMesh(Common::Components::Mesh& c, bool isUpdatable);
         void RenderAccelerationStructure(Common::Components::AccelerationStructure& c, bool isUpdatable);
 
-    private:
-        Common::Entity* mActiveEntity;
+        void HandleAddComponent();
 
+    private:
+        Common::Entity *mActiveEntity = nullptr;
+        Common::Scene *mActiveScene = nullptr;
+        SceneViewer *mSceneViewer = nullptr;
     };
 }

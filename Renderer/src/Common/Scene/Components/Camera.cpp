@@ -4,6 +4,8 @@
 
 #include "Base.h"
 
+#include "Common/Scene/Entity.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -30,6 +32,8 @@ glm::vec3 Common::Components::Camera::GetUpDirection() const
 
 void Common::Components::Camera::Update()
 {
+    auto *baseComponent = entityPtr->TryGetComponent<Base>();
+
     auto rotateMatrix = glm::eulerAngleXYZ(pitch, yaw, roll);
 
     forwardDirection = Constants::DEFAULT_FORWARD_DIRECTION * rotateMatrix;
@@ -41,7 +45,7 @@ void Common::Components::Camera::Update()
     Jnrlib::Position translation;
     Jnrlib::Vec3 skew;
     Jnrlib::Vec4 perspective;
-    glm::decompose(baseComponent.world, scale, rotation, translation, skew, perspective);
+    glm::decompose(baseComponent->world, scale, rotation, translation, skew, perspective);
 
     upperLeftCorner = translation +
         forwardDirection * focalDistance - rightDirection * viewportSize.x * Jnrlib::Half +

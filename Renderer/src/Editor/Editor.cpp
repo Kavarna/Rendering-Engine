@@ -385,7 +385,7 @@ void Editor::Editor::InitImguiWindows()
     }
     {
         /* Object inspector */
-        auto objectInspector = std::make_unique<ObjectInspector>();
+        auto objectInspector = std::make_unique<ObjectInspector>(mSceneViewer);
         mObjectInspector = objectInspector.get();
         mImguiWindows.emplace_back(std::move(objectInspector));
     }

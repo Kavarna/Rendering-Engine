@@ -21,7 +21,7 @@ using namespace Vulkan;
 Editor::SceneViewer::SceneViewer(Common::Scene* scene, Vulkan::CommandList* cmdList)
     : mScene(scene)
 {
-    mRenderSystem = std::make_unique<Common::Systems::RealtimeRender>(scene, cmdList);
+    mRenderSystem = std::make_unique<Common::Systems::RealtimeRender>(mScene, cmdList);
     mRenderSystem->SetDrawCameraFrustum(true);
 }
 
@@ -77,6 +77,16 @@ void Editor::SceneViewer::OnRender()
     }
 
     ImGui::End();
+}
+
+void Editor::SceneViewer::OnNewEntity()
+{
+    mRenderSystem->ReloadObjects();
+}
+
+void Editor::SceneViewer::OnNewComponent()
+{
+    mRenderSystem->ReloadObjects();
 }
 
 void Editor::SceneViewer::SelectEntities(std::unordered_set<Common::Entity*> const& selectedIndices)
